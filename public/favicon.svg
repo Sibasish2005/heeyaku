@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Rounded Brand Dark Navy Background -->
+  <rect width="64" height="64" rx="14" fill="#0B1F33" />
+  
+  <!-- Centered Heeyaku Official Logo Bars -->
+  <g transform="translate(8, 12)">
+    <!-- Top bar (longest) -->
+    <rect x="0" y="0" width="48" height="9.75" rx="3.5" fill="#FFFFFF" />
+    
+    <!-- Middle bar (medium, right-aligned) -->
+    <rect x="17.25" y="14.25" width="30.75" height="9.75" rx="3.5" fill="#FFFFFF" />
+    
+    <!-- Bottom bar (shortest, right-aligned) -->
+    <rect x="29.25" y="28.5" width="18.75" height="9.75" rx="3.5" fill="#FFFFFF" />
+    
+    <!-- Dot (bottom left, Electric Brand Blue #2563EB) -->
+    <circle cx="6" cy="33.375" r="4.5" fill="#2563EB" />
+  </g>
+</svg>

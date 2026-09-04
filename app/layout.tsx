@@ -58,6 +58,15 @@ export const metadata: Metadata = {
     title: "HEEYAKU — Best EdTech Platform, EdTech CRM & LMS Solutions",
     description: "Custom EdTech CRM, LMS, AI automation, and web development in Tripura, Agartala, India.",
   },
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon.svg', type: 'image/svg+xml' }
+    ],
+    apple: [
+      { url: '/favicon.svg', type: 'image/svg+xml' }
+    ]
+  },
   robots: {
     index: true,
     follow: true,
