@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Dedicated Technical Docs & AEO Context for LLMs
+# LLMs: https://heeyaku.com/llm.txt
+# Full Documentation: https://heeyaku.com/llms-full.txt
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+Sitemap: https://heeyaku.com/sitemap.xml

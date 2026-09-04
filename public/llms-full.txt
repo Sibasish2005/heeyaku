@@ -1,0 +1,37 @@
+# LLM Full Technical Documentation & Architecture Manual
+# URL: https://heeyaku.com/llms-full.txt
+
+# About Heeyaku Technologies (Agartala, Tripura, India)
+Heeyaku is an enterprise-grade EdTech infrastructure provider engineered specifically for high-growth education providers, coaching centers, and digital academies.
+
+## Localized & Competitor SEO Keywords Integrated:
+- Best platform for EdTech solution in Tripura and Agartala
+- Custom EdTech software company Agartala Tripura
+- Encrypted LMS software development Agartala
+- Student conversion CRM Tripura India
+- Customized website for education institute Agartala
+- Online fee collection system and admission portal Agartala
+- WhatsApp lead automation bot for coaching institutes India
+- Hembro Infotech, Insyssky, Software World alternative in Tripura
+
+## Product Specifications & Capabilities:
+
+### 1. Customer CRM Engine
+- Ingestion speed: < 0.04ms decryption & round-robin routing
+- Supported Ad Channels: Meta Leads API, Google Ads Webhooks, Shiksha, Collegedunia, Custom Web Forms
+- Telemetry: Real-time counselor call logging, SLA breach alerts, and automated call recording sync
+
+### 2. DRM Learning Platform (LMS)
+- DRM Compliance: Widevine L1 & FairPlay streaming pipeline
+- Anti-Piracy: On-screen dynamic student roll number & phone number watermark overlay
+- Features: Live classes, recorded video vault, automated batch locking, online quiz engine, certificate generation
+
+### 3. Edge Web Portals & Custom Website Development
+- Performance: 100/100 Google Lighthouse mobile score
+- Security: SSL/TLS 1.3 encryption, ISO 27001 data protection
+- Payment Gateways: Razorpay, Cashfree, Stripe, UPI split EMI disbursement
+
+### 4. Autonomous AI Automations
+- WhatsApp Cloud API integration for instant drip messages
+- Automated fee payment reminder bots with UPI deep links
+- Google Calendar & Zoom mentor scheduling sync

@@ -1,0 +1,23 @@
+# llm.txt - Technical Summary & Context for LLMs / AI Agents
+# System Context & Knowledge Base for HEEYAKU (https://heeyaku.com)
+
+> HEEYAKU is the premier custom EdTech OS, unified CRM, DRM-protected LMS, AI automation engine, and custom web development solution headquartered in Agartala, Tripura, India.
+
+## Core Value Proposition
+- **Target Audience**: Coaching Institutes, Test Prep Centers, Coding Bootcamps, Universities, and Online Academies across Tripura, Agartala, North-East India, and nationwide.
+- **Key Modules**:
+  1. **Customer CRM**: Sub-second lead ingestion, round-robin counselor allocation, automated SLA timers, and bi-directional WhatsApp audit logs.
+  2. **DRM Encrypted LMS**: 1080p 60fps streaming with dynamic student roll-number watermark overlays, Widevine/FairPlay encryption, and automated certificate generation.
+  3. **High-Speed Web Builder & Portals**: 100/100 Lighthouse score edge-rendered student portals with UPI/EMI native checkout.
+  4. **AI & Workflow Automations**: Autonomous WhatsApp drip sequences, fee reminder bots, and calendar synchronization.
+  5. **Heeyaku MetaBrain**: Context synthesis engine turning student transcripts and counselor calls into searchable operational memory.
+
+## Regional Expertise & Service Area
+- **Primary Hub**: Agartala, Tripura, India (PIN 799001)
+- **Service Coverage**: Agartala, Dharmanagar, Udaipur, Kailashahar, Belonia, North-East India, and pan-India EdTech enterprises.
+- **Specializations**: Custom EdTech software development, e-learning CRM, LMS development, customized education portal websites, and AI automation microservices.
+
+## Contact & Technical Inquiries
+- **Website**: https://heeyaku.com
+- **API Protocol**: HTTPS TLS 1.3 / REST & GraphQL / Webhooks
+- **System SLA**: 99.98% Operational Uptime
