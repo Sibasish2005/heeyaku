@@ -1,3 +1,5 @@
+import { ClerkProvider } from "@clerk/nextjs";
+import { shadcn } from "@clerk/ui/themes";
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
@@ -161,9 +163,10 @@ export default function RootLayout({
         />
       </head>
       <body className="w-full flex flex-col bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white antialiased">
-        {children}
+        <ClerkProvider appearance={{ theme: shadcn }}>
+          {children}
+        </ClerkProvider>
       </body>
     </html>
   );
 }
-
