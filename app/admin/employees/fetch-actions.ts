@@ -81,17 +81,42 @@ export async function fetchEmployeesChunkAction(params: {
           isActive: true,
           createdAt: true,
           _count: {
-            select: { leads: true },
+            select: {
+              leads: true,
+              callLogs: true,
+            },
+          },
+          callLogs: {
+            select: {
+              durationSeconds: true,
+            },
           },
         },
       }),
       prisma.employee.count({ where }),
     ]);
 
-    const items: EmployeeListItem[] = employees.map((e) => ({
-      ...e,
-      createdAt: e.createdAt.toISOString(),
-    }));
+    const items: EmployeeListItem[] = employees.map((e) => {
+      const empTalkTime = e.callLogs.reduce((acc, c) => acc + c.durationSeconds, 0);
+      return {
+        id: e.id,
+        employeeCode: e.employeeCode,
+        name: e.name,
+        email: e.email,
+        phoneNumber: e.phoneNumber,
+        team: e.team,
+        notes: e.notes,
+        isActive: e.isActive,
+        createdAt: e.createdAt.toISOString(),
+        _count: {
+          leads: e._count.leads,
+          callLogs: e._count.callLogs,
+        },
+        totalCalls: e._count.callLogs,
+        totalTalkTimeSeconds: empTalkTime,
+      };
+    });
+
 
     chunkCache.set(cacheKey, { items, totalCount, timestamp: Date.now() });
 
