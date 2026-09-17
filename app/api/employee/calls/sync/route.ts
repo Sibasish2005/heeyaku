@@ -124,19 +124,19 @@ export async function POST(req: NextRequest) {
 
       // Check if call log already exists (by ID or employee + number + timestamp within 2 mins)
       let existingLog = null;
-      if (c.id && c.id.length >= 10 && !c.id.includes('_')) {
+      if (c.id && !c.id.includes('_')) {
         existingLog = await prisma.callLog.findUnique({
           where: { id: c.id },
         });
       }
 
-      if (!existingLog) {
+      if (!existingLog && last10.length >= 8) {
         const timeWindowStart = new Date(startedAt.getTime() - 120 * 1000);
         const timeWindowEnd = new Date(startedAt.getTime() + 120 * 1000);
         existingLog = await prisma.callLog.findFirst({
           where: {
             employeeId,
-            phoneNumber: rawNumber,
+            phoneNumber: { contains: last10 },
             startedAt: {
               gte: timeWindowStart,
               lte: timeWindowEnd,
