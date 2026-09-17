@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { BrainCircuit, Cpu, Database, Zap, Check, Send } from 'lucide-react';
-import TiltedCard from './TiltedCard';
+import TiltedCard from '../shared/TiltedCard';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function MetaBrainSection() {

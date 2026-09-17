@@ -3,7 +3,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import Aurora from './Aurora';
-import BookDemoButton from './BookDemoButton';
+import BookDemoButton from '../shared/BookDemoButton';
 
 const InteractiveAppWorkspace = dynamic(() => import('./InteractiveAppWorkspace'), {
   ssr: true,

@@ -3,7 +3,7 @@
 import React from 'react';
 import { TrendingUp, ShieldCheck, Zap, CheckCircle2 } from 'lucide-react';
 import Masonry, { MasonryItem } from './Masonry';
-import CountUpNumber from './CountUpNumber';
+import CountUpNumber from '../shared/CountUpNumber';
 
 // Curated copyright-free high-resolution Unsplash images representing modern EdTech, LMS, CRM, and digital learning
 const EDTECH_SHOWCASE_ITEMS: MasonryItem[] = [

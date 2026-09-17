@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import HeeyakuLogo from './HeeyakuLogo';
+import HeeyakuLogo from '../shared/HeeyakuLogo';
 import { ArrowRight, Sparkles, Zap, Shield, Users, GraduationCap, Globe, Cpu } from 'lucide-react';
 import Link from 'next/link';
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import HeeyakuLogo from './HeeyakuLogo';
+import HeeyakuLogo from '../shared/HeeyakuLogo';
 import { Layers, Cpu, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MorphIcon } from 'morphicons/react';

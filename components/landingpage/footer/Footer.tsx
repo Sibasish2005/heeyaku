@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import HeeyakuLogo from './HeeyakuLogo';
+import HeeyakuLogo from '../shared/HeeyakuLogo';
 
 export default function Footer() {
   return (

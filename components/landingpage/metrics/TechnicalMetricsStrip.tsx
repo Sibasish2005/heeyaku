@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import CountUpNumber from './CountUpNumber';
+import CountUpNumber from '../shared/CountUpNumber';
 
 interface MetricItem {
   numValue: number;

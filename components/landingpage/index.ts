@@ -1,27 +1,60 @@
-export { default as Navbar } from './Navbar';
-export { default as Hero } from './Hero';
-export { default as Aurora } from './Aurora';
-export { default as HeeyakuLogo } from './HeeyakuLogo';
-export { default as BookDemoButton } from './BookDemoButton';
-export { default as SocialProofBar } from './SocialProofBar';
-export { default as Masonry } from './Masonry';
-export { default as TechnicalMetricsStrip } from './TechnicalMetricsStrip';
-export { default as ProductSuiteGrid } from './ProductSuiteGrid';
-export { default as RevenueLeakSection } from './RevenueLeakSection';
-export { default as ConnectedWorkflowSection } from './ConnectedWorkflowSection';
-export { default as MetaBrainSection } from './MetaBrainSection';
-export { default as IntegrationsEcosystem } from './IntegrationsEcosystem';
-export { default as WhyHeeyaku } from './WhyHeeyaku';
-export { default as ImplementationRoadmap } from './ImplementationRoadmap';
-export { default as FinalCTA } from './FinalCTA';
-export { default as Footer } from './Footer';
-export { default as TiltedCard } from './TiltedCard';
-export { default as SpotlightCard } from './SpotlightCard';
-export { default as InteractiveMorphIcon } from './InteractiveMorphIcon';
-export { default as SmoothScroll } from './SmoothScroll';
-export { default as InteractiveAppWorkspace } from './InteractiveAppWorkspace';
-export { default as BrandPillarsShowcase } from './BrandPillarsShowcase';
-export { default as StaggeredMenu } from './StaggeredMenu';
-export { default as CountUpNumber } from './CountUpNumber';
-export { default as GhostFibers } from './GhostFibers';
-export { default as AccordionGallery } from './AccordionGallery';
+// ==========================================
+// HEEYAKU LANDING PAGE COMPONENTS EXPORT MAP
+// ==========================================
+
+// 1. Navigation
+export { default as Navbar } from './navbar/Navbar';
+export { default as StaggeredMenu } from './navbar/StaggeredMenu';
+
+// 2. Hero Section
+export { default as Hero } from './hero/Hero';
+export { default as Aurora } from './hero/Aurora';
+export { default as InteractiveAppWorkspace } from './hero/InteractiveAppWorkspace';
+
+// 3. Brand Pillars Showcase
+export { default as BrandPillarsShowcase } from './brand-pillars/BrandPillarsShowcase';
+
+// 4. Social Proof & Masonry Showcase
+export { default as SocialProofBar } from './social-proof/SocialProofBar';
+export { default as Masonry } from './social-proof/Masonry';
+
+// 5. Technical Metrics
+export { default as TechnicalMetricsStrip } from './metrics/TechnicalMetricsStrip';
+
+// 6. Product Suite Grid (Bento Architecture)
+export { default as ProductSuiteGrid } from './product-suite/ProductSuiteGrid';
+
+// 7. Revenue Leak (Problem Diagnostic)
+export { default as RevenueLeakSection } from './revenue-leak/RevenueLeakSection';
+
+// 8. Connected Workflow (Solution Stepper)
+export { default as ConnectedWorkflowSection } from './workflow/ConnectedWorkflowSection';
+export { default as AccordionGallery } from './workflow/AccordionGallery';
+
+// 9. Heeyaku MetaBrain (AI Feature Deep Dive)
+export { default as MetaBrainSection } from './metabrain/MetaBrainSection';
+
+// 10. Integrations Ecosystem
+export { default as IntegrationsEcosystem } from './integrations/IntegrationsEcosystem';
+
+// 11. Why Heeyaku (Spec Matrix)
+export { default as WhyHeeyaku } from './why-heeyaku/WhyHeeyaku';
+
+// 12. Implementation Roadmap
+export { default as ImplementationRoadmap } from './roadmap/ImplementationRoadmap';
+
+// 13. Final CTA & Shader FX
+export { default as FinalCTA } from './cta/FinalCTA';
+export { default as GhostFibers } from './cta/GhostFibers';
+
+// 14. Global Footer
+export { default as Footer } from './footer/Footer';
+
+// 15. Shared UI Primitives & Elements
+export { default as HeeyakuLogo } from './shared/HeeyakuLogo';
+export { default as BookDemoButton } from './shared/BookDemoButton';
+export { default as CountUpNumber } from './shared/CountUpNumber';
+export { default as InteractiveMorphIcon } from './shared/InteractiveMorphIcon';
+export { default as SmoothScroll } from './shared/SmoothScroll';
+export { default as SpotlightCard } from './shared/SpotlightCard';
+export { default as TiltedCard } from './shared/TiltedCard';

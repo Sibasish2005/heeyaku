@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { MessageSquare, CreditCard, Hash, FileSpreadsheet, Layers, Send, Link2, Sparkles, ArrowUpRight } from 'lucide-react';
-import HeeyakuLogo from './HeeyakuLogo';
+import HeeyakuLogo from '../shared/HeeyakuLogo';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 

@@ -7,17 +7,17 @@ import {
 } from "@/components/landingpage";
 
 // Code-split below-the-fold components for ultra-fast initial mobile load
-const SocialProofBar = dynamic(() => import('@/components/landingpage/SocialProofBar'));
-const TechnicalMetricsStrip = dynamic(() => import('@/components/landingpage/TechnicalMetricsStrip'));
-const ProductSuiteGrid = dynamic(() => import('@/components/landingpage/ProductSuiteGrid'));
-const RevenueLeakSection = dynamic(() => import('@/components/landingpage/RevenueLeakSection'));
-const ConnectedWorkflowSection = dynamic(() => import('@/components/landingpage/ConnectedWorkflowSection'));
-const MetaBrainSection = dynamic(() => import('@/components/landingpage/MetaBrainSection'));
-const IntegrationsEcosystem = dynamic(() => import('@/components/landingpage/IntegrationsEcosystem'));
-const WhyHeeyaku = dynamic(() => import('@/components/landingpage/WhyHeeyaku'));
-const ImplementationRoadmap = dynamic(() => import('@/components/landingpage/ImplementationRoadmap'));
-const FinalCTA = dynamic(() => import('@/components/landingpage/FinalCTA'));
-const Footer = dynamic(() => import('@/components/landingpage/Footer'));
+const SocialProofBar = dynamic(() => import('@/components/landingpage/social-proof/SocialProofBar'));
+const TechnicalMetricsStrip = dynamic(() => import('@/components/landingpage/metrics/TechnicalMetricsStrip'));
+const ProductSuiteGrid = dynamic(() => import('@/components/landingpage/product-suite/ProductSuiteGrid'));
+const RevenueLeakSection = dynamic(() => import('@/components/landingpage/revenue-leak/RevenueLeakSection'));
+const ConnectedWorkflowSection = dynamic(() => import('@/components/landingpage/workflow/ConnectedWorkflowSection'));
+const MetaBrainSection = dynamic(() => import('@/components/landingpage/metabrain/MetaBrainSection'));
+const IntegrationsEcosystem = dynamic(() => import('@/components/landingpage/integrations/IntegrationsEcosystem'));
+const WhyHeeyaku = dynamic(() => import('@/components/landingpage/why-heeyaku/WhyHeeyaku'));
+const ImplementationRoadmap = dynamic(() => import('@/components/landingpage/roadmap/ImplementationRoadmap'));
+const FinalCTA = dynamic(() => import('@/components/landingpage/cta/FinalCTA'));
+const Footer = dynamic(() => import('@/components/landingpage/footer/Footer'));
 
 export default function Home() {
   return (
