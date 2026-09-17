@@ -47,7 +47,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const employeeId = payload.employeeId;
+    let employeeId = payload.employeeId;
+    const existingEmp = await prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!existingEmp && (payload.employeeCode || payload.email)) {
+      const fallbackEmp = await prisma.employee.findFirst({
+        where: {
+          OR: [
+            ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
+            ...(payload.email ? [{ email: payload.email }] : []),
+          ],
+        },
+      });
+      if (fallbackEmp) {
+        employeeId = fallbackEmp.id;
+      }
+    }
     const body = await req.json();
 
     const rawCalls = Array.isArray(body.calls)

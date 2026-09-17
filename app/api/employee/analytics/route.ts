@@ -24,7 +24,23 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const employeeId = payload.employeeId;
+    let employeeId = payload.employeeId;
+
+    // Resilient lookup: if employee was recreated with a new ID after DB reset, resolve by employeeCode/email
+    const existingEmp = await prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!existingEmp && (payload.employeeCode || payload.email)) {
+      const fallbackEmp = await prisma.employee.findFirst({
+        where: {
+          OR: [
+            ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
+            ...(payload.email ? [{ email: payload.email }] : []),
+          ],
+        },
+      });
+      if (fallbackEmp) {
+        employeeId = fallbackEmp.id;
+      }
+    }
 
     // Determine Start of Day (UTC / IST boundary)
     const now = new Date();
