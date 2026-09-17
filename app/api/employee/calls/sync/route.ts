@@ -122,25 +122,69 @@ export async function POST(req: NextRequest) {
         callType = c.callType as CallType;
       }
 
-      // Record the CallLog
-      const createdCall = await prisma.callLog.create({
-        data: {
-          employeeId,
-          leadId: matchedLead?.id || c.leadId || null,
-          phoneNumber: rawNumber,
-          contactName: c.contactName || c.name || null,
-          callType,
-          durationSeconds: duration,
-          connected: isConnected,
-          outcomeId,
-          outcomeLabel,
-          notes,
-          startedAt,
-          endedAt,
-        },
-      });
+      // Check if call log already exists (by ID or employee + number + timestamp within 2 mins)
+      let existingLog = null;
+      if (c.id && c.id.length >= 10 && !c.id.includes('_')) {
+        existingLog = await prisma.callLog.findUnique({
+          where: { id: c.id },
+        });
+      }
 
-      syncedIds.push(createdCall.id);
+      if (!existingLog) {
+        const timeWindowStart = new Date(startedAt.getTime() - 120 * 1000);
+        const timeWindowEnd = new Date(startedAt.getTime() + 120 * 1000);
+        existingLog = await prisma.callLog.findFirst({
+          where: {
+            employeeId,
+            phoneNumber: rawNumber,
+            startedAt: {
+              gte: timeWindowStart,
+              lte: timeWindowEnd,
+            },
+          },
+        });
+      }
+
+      let targetCallId = '';
+
+      if (existingLog) {
+        // Update existing call log
+        const updated = await prisma.callLog.update({
+          where: { id: existingLog.id },
+          data: {
+            leadId: matchedLead?.id || existingLog.leadId,
+            contactName: c.contactName || c.name || existingLog.contactName,
+            durationSeconds: Math.max(existingLog.durationSeconds, duration),
+            connected: isConnected || existingLog.connected,
+            outcomeId: outcomeId || existingLog.outcomeId,
+            outcomeLabel: outcomeLabel || existingLog.outcomeLabel,
+            notes: notes || existingLog.notes,
+            endedAt: endedAt || existingLog.endedAt,
+          },
+        });
+        targetCallId = updated.id;
+      } else {
+        // Create the CallLog
+        const createdCall = await prisma.callLog.create({
+          data: {
+            employeeId,
+            leadId: matchedLead?.id || c.leadId || null,
+            phoneNumber: rawNumber,
+            contactName: c.contactName || c.name || null,
+            callType,
+            durationSeconds: duration,
+            connected: isConnected,
+            outcomeId,
+            outcomeLabel,
+            notes,
+            startedAt,
+            endedAt,
+          },
+        });
+        targetCallId = createdCall.id;
+      }
+
+      syncedIds.push(targetCallId);
       syncedCount++;
 
       // If outcome was provided and we have a matched lead, update lead status & append notes
