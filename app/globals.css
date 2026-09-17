@@ -161,5 +161,63 @@ html.lenis, html.lenis body {
   }
   html {
     @apply font-sans;
+    zoom: 0.90;
+  }
+}
+
+/* Emil Kowalski & Apple Design Craft System */
+:root {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Optical sizing and tight display tracking (Apple typography) */
+h1, h2, h3, h4, .font-heading {
+  letter-spacing: -0.022em;
+  font-optical-sizing: auto;
+}
+
+/* Micro-interaction transitions */
+button, a, input, select, textarea {
+  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: var(--ease-out);
+  transition-duration: 160ms;
+}
+
+/* Universal modern dropdown styling for all select elements across the site */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 0.875rem;
+  padding-right: 2.25rem !important;
+  cursor: pointer;
+}
+
+/* Physical tactile press feedback (Emil Kowalski / Apple design) */
+button:active:not(:disabled),
+a:active:not([aria-disabled="true"]) {
+  transform: scale(0.975);
+}
+
+/* Glass surface standard */
+.glass-chrome {
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+/* Accessibility: prefers-reduced-motion graceful degradation */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  button:active:not(:disabled), a:active {
+    transform: none !important;
   }
 }

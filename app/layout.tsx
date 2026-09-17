@@ -145,6 +145,9 @@ const jsonLd = {
   ]
 };
 
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "sonner";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -153,6 +156,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${manrope.variable} antialiased font-sans`}
     >
       <head>
@@ -162,10 +166,13 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="w-full flex flex-col bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white antialiased">
-        <ClerkProvider appearance={{ theme: shadcn }}>
-          {children}
-        </ClerkProvider>
+      <body className="w-full flex flex-col bg-background text-foreground selection:bg-[#2563EB] selection:text-white antialiased transition-colors duration-200">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <ClerkProvider appearance={{ theme: shadcn }}>
+            {children}
+            <Toaster richColors closeButton position="top-right" />
+          </ClerkProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
