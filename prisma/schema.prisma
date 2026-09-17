@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LeadStatus {
+  NEW
+  ASSIGNED
+  CONTACTED
+  INTERESTED
+  FOLLOW_UP
+  CALL_BACK
+  NOT_INTERESTED
+  NO_ANSWER
+  BUSY
+  WRONG_NUMBER
+  CONVERTED
+  NOT_QUALIFIED
+  OTHER
+}
+
+model Employee {
+  id           String    @id @default(cuid())
+  employeeCode String    @unique
+  name         String
+  email        String    @unique
+  phoneNumber  String
+  team         String?   @default("General")
+  notes        String?
+  passwordHash String
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  leads        Lead[]
+
+  @@index([employeeCode])
+  @@index([email])
+  @@index([isActive])
+  @@map("employees")
+}
+
+model Lead {
+  id                 String      @id @default(cuid())
+  leadCode           String      @unique
+  name               String
+  phoneNumber        String
+  email              String?
+  company            String?
+  source             String      @default("MANUAL")
+  status             LeadStatus  @default(NEW)
+  notes              String?
+  assignedEmployeeId String?
+  assignedEmployee   Employee?   @relation(fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+  assignedAt         DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([leadCode])
+  @@index([phoneNumber])
+  @@index([status])
+  @@index([assignedEmployeeId])
+  @@index([createdAt])
+  @@map("leads")
+}

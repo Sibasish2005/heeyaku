@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# mobile app (independent repository)
+/CallTrackerApp/
+
+# scratch directory
+/scratch/
