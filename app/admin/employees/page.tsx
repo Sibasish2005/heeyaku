@@ -13,40 +13,52 @@ export const dynamic = 'force-dynamic';
 export default async function EmployeesPage() {
   await assertAdminAccess();
 
-  const [totalEmployees, activeEmployees, totalAssignedLeads, initialEmployeesList] = await Promise.all([
-    prisma.employee.count(),
-    prisma.employee.count({ where: { isActive: true } }),
-    prisma.lead.count({ where: { assignedEmployeeId: { not: null } } }),
-    prisma.employee.findMany({
-      take: 10,
-      orderBy: {
-        createdAt: 'desc',
-      },
-      select: {
-        id: true,
-        employeeCode: true,
-        name: true,
-        email: true,
-        phoneNumber: true,
-        team: true,
-        notes: true,
-        isActive: true,
-        createdAt: true,
-        _count: {
-          select: {
-            leads: true,
+  let totalEmployees = 0;
+  let activeEmployees = 0;
+  let totalAssignedLeads = 0;
+  let formattedEmployees: any[] = [];
+
+  try {
+    const [total, active, assigned, initialEmployeesList] = await Promise.all([
+      prisma.employee.count(),
+      prisma.employee.count({ where: { isActive: true } }),
+      prisma.lead.count({ where: { assignedEmployeeId: { not: null } } }),
+      prisma.employee.findMany({
+        take: 10,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          id: true,
+          employeeCode: true,
+          name: true,
+          email: true,
+          phoneNumber: true,
+          team: true,
+          notes: true,
+          isActive: true,
+          createdAt: true,
+          _count: {
+            select: {
+              leads: true,
+            },
           },
         },
-      },
-    }),
-  ]);
+      }),
+    ]);
 
-  const inactiveEmployees = totalEmployees - activeEmployees;
+    totalEmployees = total;
+    activeEmployees = active;
+    totalAssignedLeads = assigned;
+    formattedEmployees = initialEmployeesList.map((e) => ({
+      ...e,
+      createdAt: e.createdAt.toISOString(),
+    }));
+  } catch (error) {
+    console.error('Error loading employees in EmployeesPage:', error);
+  }
 
-  const formattedEmployees = initialEmployeesList.map((e) => ({
-    ...e,
-    createdAt: e.createdAt.toISOString(),
-  }));
+  const inactiveEmployees = Math.max(0, totalEmployees - activeEmployees);
 
   return (
     <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-8 space-y-8">
