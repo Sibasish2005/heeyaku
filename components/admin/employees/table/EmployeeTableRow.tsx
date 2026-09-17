@@ -2,8 +2,21 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Mail, Phone, Users, ExternalLink, MoreVertical, Edit3, KeyRound, UserCheck, UserX, Loader2 } from 'lucide-react';
+import { Mail, Phone, PhoneCall, Users, ExternalLink, MoreVertical, Edit3, KeyRound, UserCheck, UserX, Loader2 } from 'lucide-react';
 import { EmployeeListItem } from '../EmployeeTable';
+
+function formatDuration(sec: number) {
+  if (!sec || sec <= 0) return '0s';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    return `${h}h ${m % 60}m`;
+  }
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
 
 interface EmployeeTableRowProps {
   emp: EmployeeListItem;
@@ -80,6 +93,21 @@ export default function EmployeeTableRow({
           <span>{emp._count.leads}</span>
         </Link>
       </td>
+
+      <td className="py-2.5 px-3 text-center whitespace-nowrap">
+        <Link
+          href={`/admin/employees/${emp.id}`}
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold font-mono text-blue-600 dark:text-blue-400 hover:underline"
+        >
+          <PhoneCall className="w-3 h-3" />
+          <span>{emp._count.callLogs ?? emp.totalCalls ?? 0}</span>
+        </Link>
+      </td>
+
+      <td className="py-2.5 px-3 text-center whitespace-nowrap font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+        {formatDuration(emp.totalTalkTimeSeconds ?? 0)}
+      </td>
+
 
       <td className="py-2.5 px-3 text-[10.5px] text-muted-foreground font-mono whitespace-nowrap">
         {new Date(emp.createdAt).toLocaleDateString('en-IN', {

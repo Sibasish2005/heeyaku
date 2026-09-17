@@ -115,6 +115,8 @@ export default function EmployeeTable({
                 <th className="py-2.5 px-3">Role</th>
                 <th className="py-2.5 px-3">Account Status</th>
                 <th className="py-2.5 px-3 text-center">Assigned Leads</th>
+                <th className="py-2.5 px-3 text-center">Calls Logged</th>
+                <th className="py-2.5 px-3 text-center">Talk Time</th>
                 <th className="py-2.5 px-3">Joined Date</th>
                 <th className="py-2.5 px-4 text-right">Actions</th>
               </tr>
@@ -122,7 +124,8 @@ export default function EmployeeTable({
             <tbody className="divide-y divide-border text-xs">
               {table.getRowModel().rows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
+
                     {isLoadingChunk ? 'Fetching staff records...' : 'No employees match your search or filter criteria.'}
                   </td>
                 </tr>

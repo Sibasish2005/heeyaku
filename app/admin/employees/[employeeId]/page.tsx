@@ -53,6 +53,32 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
           updatedAt: true,
         },
       },
+      callLogs: {
+        orderBy: {
+          startedAt: 'desc',
+        },
+        select: {
+          id: true,
+          phoneNumber: true,
+          contactName: true,
+          callType: true,
+          durationSeconds: true,
+          connected: true,
+          outcomeId: true,
+          outcomeLabel: true,
+          notes: true,
+          startedAt: true,
+          endedAt: true,
+          createdAt: true,
+          lead: {
+            select: {
+              id: true,
+              name: true,
+              leadCode: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -79,13 +105,22 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
     updatedAt: l.updatedAt.toISOString(),
   }));
 
+  const formattedCallLogs = employee.callLogs.map((c) => ({
+    ...c,
+    startedAt: c.startedAt.toISOString(),
+    endedAt: c.endedAt ? c.endedAt.toISOString() : null,
+    createdAt: c.createdAt.toISOString(),
+  }));
+
   return (
     <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-8 space-y-6">
       <EmployeeDetailView
         employee={formattedEmployee}
         leads={formattedLeads}
         leadStatusCounts={leadStatusCounts}
+        callLogs={formattedCallLogs}
       />
     </main>
   );
+
 }
