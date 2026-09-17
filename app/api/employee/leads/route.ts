@@ -22,9 +22,25 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    let employeeId = payload.employeeId;
+    const existingEmp = await prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!existingEmp && (payload.employeeCode || payload.email)) {
+      const fallbackEmp = await prisma.employee.findFirst({
+        where: {
+          OR: [
+            ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
+            ...(payload.email ? [{ email: payload.email }] : []),
+          ],
+        },
+      });
+      if (fallbackEmp) {
+        employeeId = fallbackEmp.id;
+      }
+    }
+
     const leads = await prisma.lead.findMany({
       where: {
-        assignedEmployeeId: payload.employeeId,
+        assignedEmployeeId: employeeId,
       },
       orderBy: {
         updatedAt: 'desc',

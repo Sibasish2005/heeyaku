@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const employee = await prisma.employee.findUnique({
+    let employee = await prisma.employee.findUnique({
       where: { id: payload.employeeId },
       select: {
         id: true,
@@ -35,6 +35,27 @@ export async function GET(req: NextRequest) {
         createdAt: true,
       },
     });
+
+    if (!employee && (payload.employeeCode || payload.email)) {
+      employee = await prisma.employee.findFirst({
+        where: {
+          OR: [
+            ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
+            ...(payload.email ? [{ email: payload.email }] : []),
+          ],
+        },
+        select: {
+          id: true,
+          employeeCode: true,
+          name: true,
+          email: true,
+          phoneNumber: true,
+          team: true,
+          isActive: true,
+          createdAt: true,
+        },
+      });
+    }
 
     if (!employee || !employee.isActive) {
       return NextResponse.json(

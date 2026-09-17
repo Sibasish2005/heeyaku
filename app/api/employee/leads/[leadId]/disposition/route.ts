@@ -51,7 +51,23 @@ export async function POST(
       );
     }
 
-    if (existingLead.assignedEmployeeId !== payload.employeeId) {
+    let employeeId = payload.employeeId;
+    const existingEmp = await prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!existingEmp && (payload.employeeCode || payload.email)) {
+      const fallbackEmp = await prisma.employee.findFirst({
+        where: {
+          OR: [
+            ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
+            ...(payload.email ? [{ email: payload.email }] : []),
+          ],
+        },
+      });
+      if (fallbackEmp) {
+        employeeId = fallbackEmp.id;
+      }
+    }
+
+    if (existingLead.assignedEmployeeId !== employeeId) {
       return NextResponse.json(
         { success: false, error: 'You are not authorized to update this lead.' },
         { status: 403 }
