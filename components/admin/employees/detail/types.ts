@@ -64,3 +64,39 @@ export const STATUS_BADGE_STYLES: Record<string, string> = {
   NOT_QUALIFIED: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20',
   OTHER: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20',
 };
+
+export interface CallLogItem {
+  id: string;
+  phoneNumber: string;
+  contactName: string | null;
+  callType: string;
+  durationSeconds: number;
+  connected: boolean;
+  outcomeId: string | null;
+  outcomeLabel: string | null;
+  notes: string | null;
+  startedAt: string;
+  endedAt: string | null;
+  createdAt: string;
+  lead?: {
+    id: string;
+    name: string;
+    leadCode: string;
+  } | null;
+}
+
+export function formatSecondsDuration(totalSeconds: number): string {
+  if (!totalSeconds || totalSeconds <= 0) return '0s';
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+  return `${seconds}s`;
+}
+

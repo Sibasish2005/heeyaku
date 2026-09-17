@@ -8,8 +8,14 @@ export interface EmployeeListItem {
   notes: string | null;
   isActive: boolean;
   createdAt: string;
-  _count: { leads: number };
+  _count: {
+    leads: number;
+    callLogs?: number;
+  };
+  totalCalls?: number;
+  totalTalkTimeSeconds?: number;
 }
+
 
 export interface EmployeeTableProps {
   initialEmployees: EmployeeListItem[];
