@@ -20,32 +20,41 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   await assertAdminAccess();
   const { employeeId } = await searchParams;
 
-  const [leads, activeEmployees] = await Promise.all([
-    prisma.lead.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: {
-        assignedEmployee: {
-          select: {
-            id: true,
-            employeeCode: true,
-            name: true,
+  let leads: any[] = [];
+  let activeEmployees: any[] = [];
+
+  try {
+    const [fetchedLeads, fetchedEmployees] = await Promise.all([
+      prisma.lead.findMany({
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          assignedEmployee: {
+            select: {
+              id: true,
+              employeeCode: true,
+              name: true,
+            },
           },
         },
-      },
-    }),
-    prisma.employee.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        employeeCode: true,
-        name: true,
-        team: true,
-      },
-    }),
-  ]);
+      }),
+      prisma.employee.findMany({
+        where: { isActive: true },
+        orderBy: { name: 'asc' },
+        select: {
+          id: true,
+          employeeCode: true,
+          name: true,
+          team: true,
+        },
+      }),
+    ]);
+    leads = fetchedLeads;
+    activeEmployees = fetchedEmployees;
+  } catch (error) {
+    console.error('Error loading leads in LeadsPage:', error);
+  }
 
   const totalLeads = leads.length;
   const newLeads = leads.filter((l) => l.status === 'NEW').length;
