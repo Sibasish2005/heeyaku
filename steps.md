@@ -23,6 +23,7 @@ This document tracks the incremental progress, architecture decisions, and verif
 | **Milestone 16**| BDA Role Consolidation | ✅ Complete | Unified company staff to single role: Business Development Associate (BDA). Removed deprecated team/department dropdown options and filters across forms and views. |
 | **Milestone 17**| Clean Design & Layout Polish | ✅ Complete | Eliminated AI slop aesthetic across dashboard and directories. Simplified section headers, removed icon soup, set leads filter default to UNASSIGNED, and added endless scrolling/sticky tables. |
 | **Milestone 18**| Bulk Assign & Sonner Toasts | ✅ Complete | Replaced cramped dropdown with spacious search-integrated associate selector matching native dialogs. Integrated Sonner toasts replacing in-UI DOM alert banners. Zero TypeScript errors and strict `< 200 lines` adherence. |
+| **Milestone 19**| Android Auth & Leads CRM | ✅ Complete | Mobile employee login (EMP-XXXX/email + password), assigned leads CRM tab, mandatory post-call KPI disposition gate before WhatsApp redirection, backend-aligned profile stats, and SharedPreferences session persistence. |
 
 ---
 
@@ -297,6 +298,26 @@ This document tracks the incremental progress, architecture decisions, and verif
   - All admin components strictly comply with the `< 200 lines` limit (`BulkAssignDialog.tsx` is 189 lines, `LeadTable.tsx` is 180 lines).
   - TypeScript compilation `npx tsc --noEmit` exited with code `0`.
   - Live browser testing verified flawless toast rendering and responsive modal interaction.
+
+### Milestone 19: Android App Authentication, Assigned Leads CRM & WhatsApp Integration
+- **Backend Employee API**:
+  - `lib/auth/employee-token.ts`: HMAC-SHA256 session token signer and verifier (30-day mobile validity).
+  - `app/api/employee/auth/login/route.ts`: Authenticates BDA by `employeeCode` or `email` with `bcryptjs` password hashing and active-state verification.
+  - `app/api/employee/auth/me/route.ts`: Returns fresh BDA profile alongside live CRM statistics (assigned count, contacted today, converted total).
+  - `app/api/employee/leads/route.ts`: Fetches all leads assigned to the authenticated employee in real time.
+  - `app/api/employee/leads/[leadId]/disposition/route.ts`: Records post-call discussion outcome, notes, and pipeline status updates to Supabase PostgreSQL.
+- **Android App (`CallTrackerApp/`)**:
+  - **Production Endpoint**: Configured `https://heeyaku.vercel.app` as default API domain in `src/config/api.ts`.
+  - **Native SharedPreferences Session Persistence**: Added `setItem`, `getItem`, `removeItem` in `CallTrackerModule.kt` for persistent session management.
+  - **Login Screen**: Built brand-accurate dark mode login screen (`LoginScreen.tsx`) accepting employee ID (`EMP-XXXX`) and password.
+  - **Assigned Leads Tab**: Replaced the legacy "Calls" navigation tab with **"Leads"** (`LeadsScreen.tsx`), featuring real-time search, status filter chips, and pull-to-refresh.
+  - **Direct Actions (Call & WhatsApp)**:
+    - **Call Action**: Triggers native dialer with telephone intent while keeping telephony listener active.
+    - **WhatsApp Action & KPI Disposition Gate**: Prompts `LeadDispositionModal` requiring the BDA to log the discussion outcome and KPI to the backend database before redirecting to WhatsApp.
+  - **Backend-Aligned Profile**: Updated `ProfileScreen.tsx` to display real employee code, email, phone, role, and live activity metrics, with clean session logout.
+- **Verification**:
+  - End-to-end API test script verified login (200 OK), `/me` profile (200 OK), `/leads` retrieval (200 OK), and disposition update (200 OK).
+  - Both Next.js (`npx tsc --noEmit`) and CallTrackerApp (`npx tsc --noEmit`) compiled with 0 errors.
 
 
 
