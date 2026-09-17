@@ -60,7 +60,28 @@ export async function GET(req: NextRequest) {
 
     function computeMetrics(logs: typeof callLogs) {
       const totalAttempts = logs.length;
-      const totalConnected = logs.filter((c) => c.connected).length;
+
+      // RULE: Only the first connected call for the same lead ID is considered connected. Same lead cannot have 2 connected calls.
+      const chronological = [...logs].sort(
+        (a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime()
+      );
+
+      const seenConnectedLeads = new Set<string>();
+      let totalConnected = 0;
+
+      for (const c of chronological) {
+        if (c.connected) {
+          const leadKey = c.leadId
+            ? `lead_${c.leadId}`
+            : `phone_${c.phoneNumber.replace(/[^0-9]/g, '').slice(-10)}`;
+
+          if (!seenConnectedLeads.has(leadKey)) {
+            seenConnectedLeads.add(leadKey);
+            totalConnected++;
+          }
+        }
+      }
+
       const totalUnconnected = totalAttempts - totalConnected;
       const connectionRatePercent =
         totalAttempts > 0 ? Math.round((totalConnected / totalAttempts) * 100) : 0;
@@ -90,7 +111,24 @@ export async function GET(req: NextRequest) {
     const todayMetrics = computeMetrics(todayLogs);
     const lifetimeMetrics = computeMetrics(callLogs);
 
-    // Format calls for mobile client compatibility
+    // Format calls for mobile client: only the first connected call for a lead is marked connected: true
+    const seenConnectedInAll = new Set<string>();
+    const sortedAllChronological = [...callLogs].sort(
+      (a, b) => new Date(a.startedAt).getTime() - new Date(b.startedAt).getTime()
+    );
+    const firstConnectedCallIds = new Set<string>();
+    for (const c of sortedAllChronological) {
+      if (c.connected) {
+        const leadKey = c.leadId
+          ? `lead_${c.leadId}`
+          : `phone_${c.phoneNumber.replace(/[^0-9]/g, '').slice(-10)}`;
+        if (!seenConnectedInAll.has(leadKey)) {
+          seenConnectedInAll.add(leadKey);
+          firstConnectedCallIds.add(c.id);
+        }
+      }
+    }
+
     const formattedCalls = callLogs.map((c) => ({
       id: c.id,
       employeeId: c.employeeId,
@@ -100,7 +138,7 @@ export async function GET(req: NextRequest) {
       startedAt: new Date(c.startedAt).getTime(),
       endedAt: c.endedAt ? new Date(c.endedAt).getTime() : new Date(c.startedAt).getTime() + c.durationSeconds * 1000,
       durationSeconds: c.durationSeconds,
-      connected: c.connected,
+      connected: firstConnectedCallIds.has(c.id),
       outcomeId: c.outcomeId || undefined,
       outcomeLabel: c.outcomeLabel || undefined,
       notes: c.notes || undefined,

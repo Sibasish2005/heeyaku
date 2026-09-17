@@ -110,7 +110,8 @@ export async function POST(req: NextRequest) {
       }
 
       const duration = Number(c.durationSeconds ?? c.duration ?? 0);
-      const isConnected = Boolean(c.connected || duration > 0);
+      const rawIsConnected = Boolean(c.connected || duration > 0);
+      let isConnected = rawIsConnected;
       const outcomeId = c.outcomeId ? String(c.outcomeId) : null;
       const outcomeLabel = c.outcomeLabel ? String(c.outcomeLabel) : null;
       const notes = c.notes ? String(c.notes).trim() : null;
@@ -157,6 +158,42 @@ export async function POST(req: NextRequest) {
             },
           },
         });
+      }
+
+      // RULE: Only the first connected call for the same lead is considered connected. Same lead cannot have 2 connected calls.
+      const targetLeadId = matchedLead?.id || c.leadId || null;
+      if (isConnected) {
+        const priorConnected = await prisma.callLog.findFirst({
+          where: {
+            OR: [
+              ...(targetLeadId ? [{ leadId: targetLeadId }] : []),
+              ...(last10.length >= 8 ? [{ employeeId, phoneNumber: { contains: last10 } }] : []),
+            ],
+            connected: true,
+            ...(existingLog ? { id: { not: existingLog.id } } : {}),
+            startedAt: { lt: startedAt },
+          },
+        });
+
+        if (priorConnected) {
+          isConnected = false;
+        } else {
+          // If this call is the first connected call, demote any subsequent calls for this lead to connected: false
+          await prisma.callLog.updateMany({
+            where: {
+              OR: [
+                ...(targetLeadId ? [{ leadId: targetLeadId }] : []),
+                ...(last10.length >= 8 ? [{ employeeId, phoneNumber: { contains: last10 } }] : []),
+              ],
+              connected: true,
+              ...(existingLog ? { id: { not: existingLog.id } } : {}),
+              startedAt: { gt: startedAt },
+            },
+            data: {
+              connected: false,
+            },
+          });
+        }
       }
 
       let targetCallId = '';
