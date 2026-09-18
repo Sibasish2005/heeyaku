@@ -8,7 +8,16 @@ export interface EmployeeTokenPayload {
   exp: number; // Unix timestamp in seconds
 }
 
-const SECRET = process.env.EMPLOYEE_JWT_SECRET || process.env.CLERK_SECRET_KEY || 'heeyaku_employee_secure_secret_2026';
+function getJwtSecret(): string {
+  const secret = process.env.EMPLOYEE_JWT_SECRET || process.env.CLERK_SECRET_KEY;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[SECURITY FATAL] EMPLOYEE_JWT_SECRET must be configured in production environment.');
+    }
+    return 'dev_ephemeral_heeyaku_secret_2026';
+  }
+  return secret;
+}
 
 function base64UrlEncode(str: string): string {
   return Buffer.from(str)
@@ -37,8 +46,9 @@ export function signEmployeeToken(data: Omit<EmployeeTokenPayload, 'exp'>, expir
   const encodedHeader = base64UrlEncode(JSON.stringify(header));
   const encodedPayload = base64UrlEncode(JSON.stringify(payload));
 
+  const secret = getJwtSecret();
   const signature = crypto
-    .createHmac('sha256', SECRET)
+    .createHmac('sha256', secret)
     .update(`${encodedHeader}.${encodedPayload}`)
     .digest('base64')
     .replace(/=/g, '')
@@ -49,7 +59,7 @@ export function signEmployeeToken(data: Omit<EmployeeTokenPayload, 'exp'>, expir
 }
 
 /**
- * Verifies an employee session token. Returns null if invalid or expired.
+ * Verifies an employee session token in constant time. Returns null if invalid or expired.
  */
 export function verifyEmployeeToken(token: string): EmployeeTokenPayload | null {
   try {
@@ -57,16 +67,20 @@ export function verifyEmployeeToken(token: string): EmployeeTokenPayload | null 
     if (parts.length !== 3) return null;
 
     const [encodedHeader, encodedPayload, signature] = parts;
+    const secret = getJwtSecret();
 
     const expectedSignature = crypto
-      .createHmac('sha256', SECRET)
+      .createHmac('sha256', secret)
       .update(`${encodedHeader}.${encodedPayload}`)
       .digest('base64')
       .replace(/=/g, '')
       .replace(/\+/g, '-')
       .replace(/\//g, '_');
 
-    if (signature !== expectedSignature) {
+    const sigBuf = Buffer.from(signature, 'utf8');
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
       return null;
     }
 

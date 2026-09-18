@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
 
     const leads = await prisma.lead.findMany({
       where,
+      take: 10000,
       orderBy: { createdAt: 'desc' },
       include: {
         assignedEmployee: {

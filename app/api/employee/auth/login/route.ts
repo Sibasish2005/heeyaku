@@ -2,9 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { signEmployeeToken } from '@/lib/auth/employee-token';
+import { checkRateLimit, resetRateLimit } from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown-ip';
+    const rateLimitKey = `login:${ip}`;
+    const rateLimit = checkRateLimit(rateLimitKey, { windowMs: 60 * 1000, maxAttempts: 5 });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Too many login attempts. Please wait ${rateLimit.resetSeconds} seconds before trying again.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.resetSeconds),
+            'X-RateLimit-Limit': '5',
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const { identifier, password } = body;
 
@@ -53,6 +75,9 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       );
     }
+
+    // Reset rate limiter on successful authentication
+    resetRateLimit(rateLimitKey);
 
     const token = signEmployeeToken({
       employeeId: employee.id,
