@@ -66,7 +66,17 @@ export async function getDashboardMetrics(): Promise<DashboardMetricsResult> {
   startOfMonth.setHours(0, 0, 0, 0);
 
   try {
-    const [todayStatusCounts, allEmployees] = await Promise.all([
+    const [
+      todayStatusCounts,
+      allEmployees,
+      todayAssignedAgg,
+      monthAssignedAgg,
+      todayConvertedAgg,
+      monthConvertedAgg,
+      allTimeConvertedAgg,
+      todayContactedAgg,
+      monthContactedAgg,
+    ] = await Promise.all([
       prisma.lead.groupBy({
         by: ['status'],
         where: {
@@ -83,16 +93,71 @@ export async function getDashboardMetrics(): Promise<DashboardMetricsResult> {
           email: true,
           phoneNumber: true,
           team: true,
-          leads: {
-            select: {
-              id: true,
-              status: true,
-              assignedAt: true,
-              updatedAt: true,
-            },
+          _count: {
+            select: { leads: true },
           },
         },
         orderBy: { name: 'asc' },
+      }),
+      prisma.lead.groupBy({
+        by: ['assignedEmployeeId'],
+        where: {
+          assignedAt: { gte: startOfToday },
+          assignedEmployeeId: { not: null },
+        },
+        _count: { _all: true },
+      }),
+      prisma.lead.groupBy({
+        by: ['assignedEmployeeId'],
+        where: {
+          assignedAt: { gte: startOfMonth },
+          assignedEmployeeId: { not: null },
+        },
+        _count: { _all: true },
+      }),
+      prisma.lead.groupBy({
+        by: ['assignedEmployeeId'],
+        where: {
+          status: 'CONVERTED',
+          updatedAt: { gte: startOfToday },
+          assignedEmployeeId: { not: null },
+        },
+        _count: { _all: true },
+      }),
+      prisma.lead.groupBy({
+        by: ['assignedEmployeeId'],
+        where: {
+          status: 'CONVERTED',
+          updatedAt: { gte: startOfMonth },
+          assignedEmployeeId: { not: null },
+        },
+        _count: { _all: true },
+      }),
+      prisma.lead.groupBy({
+        by: ['assignedEmployeeId'],
+        where: {
+          status: 'CONVERTED',
+          assignedEmployeeId: { not: null },
+        },
+        _count: { _all: true },
+      }),
+      prisma.lead.groupBy({
+        by: ['assignedEmployeeId'],
+        where: {
+          status: { in: ['CONTACTED', 'INTERESTED', 'FOLLOW_UP', 'CALL_BACK', 'CONVERTED'] },
+          updatedAt: { gte: startOfToday },
+          assignedEmployeeId: { not: null },
+        },
+        _count: { _all: true },
+      }),
+      prisma.lead.groupBy({
+        by: ['assignedEmployeeId'],
+        where: {
+          status: { in: ['CONTACTED', 'INTERESTED', 'FOLLOW_UP', 'CALL_BACK', 'CONVERTED'] },
+          updatedAt: { gte: startOfMonth },
+          assignedEmployeeId: { not: null },
+        },
+        _count: { _all: true },
       }),
     ]);
 
@@ -109,66 +174,66 @@ export async function getDashboardMetrics(): Promise<DashboardMetricsResult> {
       dotClass: meta.dotClass,
     }));
 
-  const employeeReports: TopEmployeeReport[] = allEmployees.map((emp) => {
-    const todayAssigned = emp.leads.filter(
-      (l) => l.assignedAt && new Date(l.assignedAt) >= startOfToday
-    ).length;
-    const monthAssigned = emp.leads.filter(
-      (l) => l.assignedAt && new Date(l.assignedAt) >= startOfMonth
-    ).length;
-
-    const todayConverted = emp.leads.filter(
-      (l) => l.status === 'CONVERTED' && new Date(l.updatedAt) >= startOfToday
-    ).length;
-    const monthConverted = emp.leads.filter(
-      (l) => l.status === 'CONVERTED' && new Date(l.updatedAt) >= startOfMonth
-    ).length;
-
-    const todayContacted = emp.leads.filter(
-      (l) =>
-        ['CONTACTED', 'INTERESTED', 'FOLLOW_UP', 'CALL_BACK', 'CONVERTED'].includes(l.status) &&
-        new Date(l.updatedAt) >= startOfToday
-    ).length;
-    const monthContacted = emp.leads.filter(
-      (l) =>
-        ['CONTACTED', 'INTERESTED', 'FOLLOW_UP', 'CALL_BACK', 'CONVERTED'].includes(l.status) &&
-        new Date(l.updatedAt) >= startOfMonth
-    ).length;
-
-    const allTimeConverted = emp.leads.filter((l) => l.status === 'CONVERTED').length;
-    const allTimeTotal = emp.leads.length;
-
-    const rateToday = todayAssigned > 0
-      ? ((todayConverted / todayAssigned) * 100).toFixed(1)
-      : allTimeTotal > 0
-      ? ((allTimeConverted / allTimeTotal) * 100).toFixed(1)
-      : '0.0';
-
-    const rateMonth = monthAssigned > 0
-      ? ((monthConverted / monthAssigned) * 100).toFixed(1)
-      : allTimeTotal > 0
-      ? ((allTimeConverted / allTimeTotal) * 100).toFixed(1)
-      : '0.0';
-
-    return {
-      id: emp.id,
-      employeeCode: emp.employeeCode,
-      name: emp.name,
-      email: emp.email,
-      phoneNumber: emp.phoneNumber,
-      team: emp.team,
-      totalAssignedToday: todayAssigned,
-      totalAssignedMonth: monthAssigned,
-      totalAssignedAllTime: allTimeTotal,
-      convertedToday: todayConverted,
-      convertedMonth: monthConverted,
-      convertedAllTime: allTimeConverted,
-      contactedToday: todayContacted,
-      contactedMonth: monthContacted,
-      conversionRate: rateToday,
-      conversionRateMonth: rateMonth,
+    // Build lookup maps for employee counts in O(1) time
+    const mapAgg = (agg: Array<{ assignedEmployeeId: string | null; _count: { _all: number } }>) => {
+      const m = new Map<string, number>();
+      for (const item of agg) {
+        if (item.assignedEmployeeId) m.set(item.assignedEmployeeId, item._count._all);
+      }
+      return m;
     };
-  });
+
+    const todayAssignedMap = mapAgg(todayAssignedAgg);
+    const monthAssignedMap = mapAgg(monthAssignedAgg);
+    const todayConvertedMap = mapAgg(todayConvertedAgg);
+    const monthConvertedMap = mapAgg(monthConvertedAgg);
+    const allTimeConvertedMap = mapAgg(allTimeConvertedAgg);
+    const todayContactedMap = mapAgg(todayContactedAgg);
+    const monthContactedMap = mapAgg(monthContactedAgg);
+
+    const employeeReports: TopEmployeeReport[] = allEmployees.map((emp) => {
+      const todayAssigned = todayAssignedMap.get(emp.id) || 0;
+      const monthAssigned = monthAssignedMap.get(emp.id) || 0;
+      const allTimeTotal = emp._count.leads;
+
+      const todayConverted = todayConvertedMap.get(emp.id) || 0;
+      const monthConverted = monthConvertedMap.get(emp.id) || 0;
+      const allTimeConverted = allTimeConvertedMap.get(emp.id) || 0;
+
+      const todayContacted = todayContactedMap.get(emp.id) || 0;
+      const monthContacted = monthContactedMap.get(emp.id) || 0;
+
+      const rateToday = todayAssigned > 0
+        ? ((todayConverted / todayAssigned) * 100).toFixed(1)
+        : allTimeTotal > 0
+        ? ((allTimeConverted / allTimeTotal) * 100).toFixed(1)
+        : '0.0';
+
+      const rateMonth = monthAssigned > 0
+        ? ((monthConverted / monthAssigned) * 100).toFixed(1)
+        : allTimeTotal > 0
+        ? ((allTimeConverted / allTimeTotal) * 100).toFixed(1)
+        : '0.0';
+
+      return {
+        id: emp.id,
+        employeeCode: emp.employeeCode,
+        name: emp.name,
+        email: emp.email,
+        phoneNumber: emp.phoneNumber,
+        team: emp.team,
+        totalAssignedToday: todayAssigned,
+        totalAssignedMonth: monthAssigned,
+        totalAssignedAllTime: allTimeTotal,
+        convertedToday: todayConverted,
+        convertedMonth: monthConverted,
+        convertedAllTime: allTimeConverted,
+        contactedToday: todayContacted,
+        contactedMonth: monthContacted,
+        conversionRate: rateToday,
+        conversionRateMonth: rateMonth,
+      };
+    });
 
   // Determine top performer today
   const sortedToday = [...employeeReports].sort((a, b) => {
