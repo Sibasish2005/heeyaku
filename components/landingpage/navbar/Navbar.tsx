@@ -230,16 +230,9 @@ export default function Navbar() {
           <Show when="signed-out">
             <Link
               href="/sign-in"
-              className="text-xs font-bold tracking-wider text-[#0B1F33] hover:text-[#2563EB] px-3 py-1.5 transition-colors duration-150 uppercase active:scale-[0.97] cursor-pointer"
-            >
-              Sign In
-            </Link>
-
-            <Link
-              href="/sign-up"
               className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold tracking-wider uppercase text-white bg-[#0B1F33] hover:bg-[#2563EB] rounded-full transition-[background-color,transform,box-shadow] duration-180 ease-out shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.97] cursor-pointer"
             >
-              Sign Up
+              Sign In
             </Link>
           </Show>
 
@@ -329,20 +322,13 @@ export default function Navbar() {
 
               <div className="pt-1">
                 <Show when="signed-out">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div>
                     <Link
                       href="/sign-in"
                       onClick={() => setMobileMenuOpen(false)}
-                      className="w-full flex items-center justify-center py-2.5 text-xs font-bold uppercase tracking-wider text-[#0B1F33] border border-slate-300 rounded-full hover:bg-slate-100 active:scale-[0.97] transition-colors duration-150 cursor-pointer"
-                    >
-                      Sign In
-                    </Link>
-                    <Link
-                      href="/sign-up"
-                      onClick={() => setMobileMenuOpen(false)}
                       className="w-full flex items-center justify-center py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[#0B1F33] hover:bg-[#2563EB] rounded-full shadow-sm active:scale-[0.97] transition-all duration-150 cursor-pointer"
                     >
-                      Sign Up
+                      Sign In
                     </Link>
                   </div>
                 </Show>
