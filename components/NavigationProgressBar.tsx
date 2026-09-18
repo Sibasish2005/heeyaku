@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 
 export default function NavigationProgressBar() {
@@ -12,14 +12,19 @@ export default function NavigationProgressBar() {
   // When route changes, complete and dismiss
   useEffect(() => {
     if (isNavigating) {
-      setProgress(100);
-      const timer = setTimeout(() => {
+      const finishTimer = setTimeout(() => {
+        setProgress(100);
+      }, 10);
+      const resetTimer = setTimeout(() => {
         setIsNavigating(false);
         setProgress(0);
       }, 200);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(finishTimer);
+        clearTimeout(resetTimer);
+      };
     }
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, isNavigating]);
 
   // Intercept navigation link clicks for instant 0ms tactile feedback
   useEffect(() => {

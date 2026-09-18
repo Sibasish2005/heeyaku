@@ -221,3 +221,27 @@ a:active:not([aria-disabled="true"]) {
     transform: none !important;
   }
 }
+
+/* Landing Page Isolation: Locked permanently to Light Mode & 90% Scale */
+.landing-page-root {
+  zoom: 90%;
+  color-scheme: light !important;
+  --background: oklch(1 0 0) !important;
+  --foreground: oklch(0.145 0 0) !important;
+  --card: oklch(1 0 0) !important;
+  --card-foreground: oklch(0.145 0 0) !important;
+  --popover: oklch(1 0 0) !important;
+  --popover-foreground: oklch(0.145 0 0) !important;
+  --primary: oklch(0.205 0 0) !important;
+  --primary-foreground: oklch(0.985 0 0) !important;
+  --secondary: oklch(0.97 0 0) !important;
+  --secondary-foreground: oklch(0.205 0 0) !important;
+  --muted: oklch(0.97 0 0) !important;
+  --muted-foreground: oklch(0.556 0 0) !important;
+  --accent: oklch(0.97 0 0) !important;
+  --accent-foreground: oklch(0.205 0 0) !important;
+  --border: oklch(0.922 0 0) !important;
+  --input: oklch(0.922 0 0) !important;
+  --ring: oklch(0.708 0 0) !important;
+}
+

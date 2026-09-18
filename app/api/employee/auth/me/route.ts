@@ -64,21 +64,46 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
+    const matchingEmployees = await prisma.employee.findMany({
+      where: {
+        OR: [
+          { id: payload.employeeId },
+          { id: employee.id },
+          ...(employee.employeeCode ? [{ employeeCode: employee.employeeCode }] : []),
+          ...(employee.email ? [{ email: employee.email }] : []),
+        ],
+      },
+      select: { id: true },
+    });
+    const employeeIds = Array.from(
+      new Set([payload.employeeId, employee.id, ...matchingEmployees.map((e) => e.id)])
+    ).filter(Boolean);
+
+    // Determine Start of Day in Indian Standard Time (IST, UTC+05:30)
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+    const nowMs = Date.now();
+    const istDate = new Date(nowMs + IST_OFFSET_MS);
+    const startOfTodayMs =
+      Date.UTC(
+        istDate.getUTCFullYear(),
+        istDate.getUTCMonth(),
+        istDate.getUTCDate(),
+        0, 0, 0, 0
+      ) - IST_OFFSET_MS;
+    const startOfToday = new Date(startOfTodayMs);
 
     const [totalAssigned, contactedToday, convertedTotal] = await Promise.all([
-      prisma.lead.count({ where: { assignedEmployeeId: employee.id } }),
+      prisma.lead.count({ where: { assignedEmployeeId: { in: employeeIds } } }),
       prisma.lead.count({
         where: {
-          assignedEmployeeId: employee.id,
+          assignedEmployeeId: { in: employeeIds },
           updatedAt: { gte: startOfToday },
           status: { in: ['CONTACTED', 'INTERESTED', 'FOLLOW_UP', 'CONVERTED', 'CALL_BACK'] },
         },
       }),
       prisma.lead.count({
         where: {
-          assignedEmployeeId: employee.id,
+          assignedEmployeeId: { in: employeeIds },
           status: 'CONVERTED',
         },
       }),

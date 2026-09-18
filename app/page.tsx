@@ -22,7 +22,10 @@ const Footer = dynamic(() => import('@/components/landingpage/footer/Footer'));
 export default function Home() {
   return (
     <SmoothScroll>
-      <div className="relative w-full bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white">
+      <div 
+        className="landing-page-root relative w-full bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white"
+        style={{ zoom: '90%' }}
+      >
         {/* Global Translucent Sticky Navbar with Morphicons */}
         <Navbar />
 

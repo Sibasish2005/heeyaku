@@ -50,10 +50,10 @@ export default function TodayLeadStatusSection({
       <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 pb-3 border-b border-border/80">
         <div>
           <div className="text-[11px] font-bold uppercase tracking-widest text-[#2563EB] dark:text-blue-400">
-            Section 01 · Today's Activity
+            Section 01 · Today&apos;s Activity
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight mt-0.5">
-            Where Today's Leads Stand
+            Where Today&apos;s Leads Stand
           </h2>
         </div>
         <div className="flex items-center gap-2">
