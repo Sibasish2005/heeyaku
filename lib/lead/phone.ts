@@ -46,6 +46,15 @@ export function isValidPhoneNumber(phone: string): boolean {
 }
 
 /**
+ * Extracts the last 10 numerical digits from any phone number string.
+ * Uniformly used across call logging, lead matching, and analytics deduplication.
+ */
+export function toLast10Digits(phone: string | null | undefined): string {
+  if (!phone) return '';
+  return phone.replace(/\D/g, '').slice(-10);
+}
+
+/**
  * Reusable Zod schema for 10-digit phone number validation.
  * Normalizes common phone formatting (+91, leading 0, spaces, hyphens)
  * and strictly validates that exactly 10 digits remain.

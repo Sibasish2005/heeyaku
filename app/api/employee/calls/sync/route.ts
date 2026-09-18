@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyEmployeeToken } from '@/lib/auth/employee-token';
+import { resolveEmployeeIdentity } from '@/lib/employee/resolve';
+import { toLast10Digits } from '@/lib/lead/phone';
 import { CallType, LeadStatus } from '@prisma/client';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
 
@@ -47,26 +49,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let employeeId = payload.employeeId;
-    let employee = await prisma.employee.findUnique({ where: { id: employeeId } });
-    if (!employee && (payload.employeeCode || payload.email)) {
-      employee = await prisma.employee.findFirst({
-        where: {
-          OR: [
-            ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
-            ...(payload.email ? [{ email: payload.email }] : []),
-          ],
-        },
-      });
-    }
-
-    if (!employee) {
+    const resolved = await resolveEmployeeIdentity(payload);
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Employee account not found.' },
         { status: 401 }
       );
     }
-    employeeId = employee.id;
+    const employeeId = resolved.primaryId;
     const body = await req.json();
 
     const rawCalls = Array.isArray(body.calls)
@@ -87,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     // Pre-fetch employee's assigned leads to efficiently map phone numbers
     const employeeLeads = await prisma.lead.findMany({
-      where: { assignedEmployeeId: employeeId },
+      where: { assignedEmployeeId: { in: resolved.allIds } },
       select: { id: true, phoneNumber: true, status: true, notes: true },
     });
 
@@ -95,13 +85,12 @@ export async function POST(req: NextRequest) {
       const rawNumber = String(c.phoneNumber || c.number || '').trim();
       if (!rawNumber) continue;
 
-      const digits = rawNumber.replace(/[^0-9]/g, '');
-      const last10 = digits.slice(-10);
+      const last10 = toLast10Digits(rawNumber);
 
       // Match lead by matching last 10 digits
       let matchedLead = employeeLeads.find((l) => {
-        const leadDigits = l.phoneNumber.replace(/[^0-9]/g, '');
-        return leadDigits.endsWith(last10) || last10.endsWith(leadDigits);
+        const leadDigits = toLast10Digits(l.phoneNumber);
+        return (last10.length >= 8 && leadDigits.endsWith(last10)) || (leadDigits.length >= 8 && last10.endsWith(leadDigits));
       });
 
       // If not in assigned leads, fallback to any lead

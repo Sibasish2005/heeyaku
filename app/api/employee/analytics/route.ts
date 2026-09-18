@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyEmployeeToken } from '@/lib/auth/employee-token';
+import { resolveEmployeeIdentity } from '@/lib/employee/resolve';
+import { getStartOfTodayISTMs } from '@/lib/utils/date';
+import { toLast10Digits } from '@/lib/lead/phone';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,59 +27,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 1. Resilient lookup: Find employee by id, fallback to employeeCode or email
-    let employee = await prisma.employee.findUnique({
-      where: { id: payload.employeeId },
-    });
+    // 1. Resilient lookup using centralized resolver
+    const resolved = await resolveEmployeeIdentity(payload);
+    const employeeIds = resolved?.allIds || [payload.employeeId];
 
-    if (!employee && (payload.employeeCode || payload.email)) {
-      employee = await prisma.employee.findFirst({
-        where: {
-          OR: [
-            ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
-            ...(payload.email ? [{ email: payload.email }] : []),
-          ],
-        },
-      });
-    }
-
-    // Collect all matching employee IDs to safeguard history across DB resets/reseeds
-    const matchingEmployees = await prisma.employee.findMany({
-      where: {
-        OR: [
-          { id: payload.employeeId },
-          ...(employee ? [{ id: employee.id }] : []),
-          ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
-          ...(payload.email ? [{ email: payload.email }] : []),
-          ...(employee?.employeeCode ? [{ employeeCode: employee.employeeCode }] : []),
-        ],
-      },
-      select: { id: true },
-    });
-
-    const employeeIds = Array.from(
-      new Set([
-        payload.employeeId,
-        ...(employee ? [employee.id] : []),
-        ...matchingEmployees.map((e) => e.id),
-      ])
-    ).filter(Boolean);
-
-    // 2. Determine Start of Day in Indian Standard Time (IST, UTC+05:30)
-    // Avoids server-side UTC skew where 5:00 AM IST is treated as previous day UTC
-    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-    const nowMs = Date.now();
-    const istDate = new Date(nowMs + IST_OFFSET_MS);
-    const startOfTodayMs =
-      Date.UTC(
-        istDate.getUTCFullYear(),
-        istDate.getUTCMonth(),
-        istDate.getUTCDate(),
-        0,
-        0,
-        0,
-        0
-      ) - IST_OFFSET_MS;
+    // 2. Start of Day in Indian Standard Time (IST, UTC+05:30)
+    const startOfTodayMs = getStartOfTodayISTMs();
 
     // 3. Fetch all call logs for this employee
     const callLogs = await prisma.callLog.findMany({
@@ -99,7 +55,7 @@ export async function GET(req: NextRequest) {
     for (const c of sortedAllChronological) {
       const isCallConnected = Boolean(c.connected);
       if (isCallConnected) {
-        const cleanPhone = (c.phoneNumber || '').replace(/[^0-9]/g, '').slice(-10);
+        const cleanPhone = toLast10Digits(c.phoneNumber);
         const leadKey = c.leadId
           ? `lead_${c.leadId}`
           : cleanPhone
@@ -123,7 +79,7 @@ export async function GET(req: NextRequest) {
     function computeMetrics(logs: typeof callLogs) {
       const callsByLead = new Map<string, typeof callLogs>();
       for (const c of logs) {
-        const cleanPhone = (c.phoneNumber || '').replace(/[^0-9]/g, '').slice(-10);
+        const cleanPhone = toLast10Digits(c.phoneNumber);
         const leadKey = c.leadId
           ? `lead_${c.leadId}`
           : cleanPhone

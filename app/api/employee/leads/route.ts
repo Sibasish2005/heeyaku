@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyEmployeeToken } from '@/lib/auth/employee-token';
+import { resolveEmployeeIdentity } from '@/lib/employee/resolve';
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,44 +23,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    let employeeId = payload.employeeId;
-    let employee = await prisma.employee.findUnique({ where: { id: employeeId } });
-    if (!employee && (payload.employeeCode || payload.email)) {
-      employee = await prisma.employee.findFirst({
-        where: {
-          OR: [
-            ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
-            ...(payload.email ? [{ email: payload.email }] : []),
-          ],
-        },
-      });
-    }
-
-    if (!employee) {
+    const resolved = await resolveEmployeeIdentity(payload);
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Employee account not found.' },
         { status: 401 }
       );
     }
-    employeeId = employee.id;
 
-    // Collect all matching employee IDs to ensure leads are never orphaned across DB resets
-    const matchingEmployees = await prisma.employee.findMany({
-      where: {
-        OR: [
-          { id: payload.employeeId },
-          { id: employee.id },
-          ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
-          ...(payload.email ? [{ email: payload.email }] : []),
-          ...(employee.employeeCode ? [{ employeeCode: employee.employeeCode }] : []),
-        ],
-      },
-      select: { id: true },
-    });
-
-    const employeeIds = Array.from(
-      new Set([payload.employeeId, employee.id, ...matchingEmployees.map((e) => e.id)])
-    ).filter(Boolean);
+    const employeeIds = resolved.allIds;
 
     const leads = await prisma.lead.findMany({
       where: {

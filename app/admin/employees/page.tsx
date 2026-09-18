@@ -68,14 +68,25 @@ export default async function EmployeesPage() {
               callLogs: true,
             },
           },
-          callLogs: {
-            select: {
-              durationSeconds: true,
-            },
-          },
         },
       }),
     ]);
+
+    const employeeIds = initialEmployeesList.map((e) => e.id);
+    const talkTimes = employeeIds.length > 0
+      ? await prisma.callLog.groupBy({
+          by: ['employeeId'],
+          where: { employeeId: { in: employeeIds } },
+          _sum: { durationSeconds: true },
+        })
+      : [];
+
+    const talkTimeMap = new Map<string, number>();
+    for (const t of talkTimes) {
+      if (t.employeeId) {
+        talkTimeMap.set(t.employeeId, t._sum.durationSeconds || 0);
+      }
+    }
 
     totalEmployees = total;
     activeEmployees = active;
@@ -86,7 +97,7 @@ export default async function EmployeesPage() {
     initialTeams = Array.from(new Set(teamsRaw.map((t) => t.team).filter(Boolean))) as string[];
 
     formattedEmployees = initialEmployeesList.map((e) => {
-      const empTalkTime = e.callLogs.reduce((acc, c) => acc + (c.durationSeconds || 0), 0);
+      const empTalkTime = talkTimeMap.get(e.id) || 0;
       return {
         id: e.id,
         employeeCode: e.employeeCode,

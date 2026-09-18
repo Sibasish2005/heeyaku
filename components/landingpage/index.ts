@@ -4,7 +4,6 @@
 
 // 1. Navigation
 export { default as Navbar } from './navbar/Navbar';
-export { default as StaggeredMenu } from './navbar/StaggeredMenu';
 
 // 2. Hero Section
 export { default as Hero } from './hero/Hero';
@@ -43,9 +42,8 @@ export { default as WhyHeeyaku } from './why-heeyaku/WhyHeeyaku';
 // 12. Implementation Roadmap
 export { default as ImplementationRoadmap } from './roadmap/ImplementationRoadmap';
 
-// 13. Final CTA & Shader FX
+// 13. Final CTA
 export { default as FinalCTA } from './cta/FinalCTA';
-export { default as GhostFibers } from './cta/GhostFibers';
 
 // 14. Global Footer
 export { default as Footer } from './footer/Footer';
@@ -54,7 +52,5 @@ export { default as Footer } from './footer/Footer';
 export { default as HeeyakuLogo } from './shared/HeeyakuLogo';
 export { default as BookDemoButton } from './shared/BookDemoButton';
 export { default as CountUpNumber } from './shared/CountUpNumber';
-export { default as InteractiveMorphIcon } from './shared/InteractiveMorphIcon';
 export { default as SmoothScroll } from './shared/SmoothScroll';
-export { default as SpotlightCard } from './shared/SpotlightCard';
 export { default as TiltedCard } from './shared/TiltedCard';

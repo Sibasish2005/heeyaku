@@ -3,6 +3,8 @@ import { shadcn } from "@clerk/ui/themes";
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "sonner";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -144,9 +146,6 @@ const jsonLd = {
     }
   ]
 };
-
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "sonner";
 
 export default function RootLayout({
   children,
