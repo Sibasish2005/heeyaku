@@ -101,6 +101,8 @@ model CallLog {
   @@index([leadId])
   @@index([phoneNumber])
   @@index([startedAt])
+  @@index([employeeId, startedAt])
+  @@index([leadId, connected])
   @@map("call_logs")
 }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyEmployeeToken } from '@/lib/auth/employee-token';
+import { resolveEmployeeIdentity } from '@/lib/employee/resolve';
 import { LeadStatus } from '@prisma/client';
 
 const VALID_STATUSES = new Set(Object.values(LeadStatus));
@@ -51,48 +52,21 @@ export async function POST(
       );
     }
 
-    let employeeId = payload.employeeId;
-    let employee = await prisma.employee.findUnique({ where: { id: employeeId } });
-    if (!employee && (payload.employeeCode || payload.email)) {
-      employee = await prisma.employee.findFirst({
-        where: {
-          OR: [
-            ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
-            ...(payload.email ? [{ email: payload.email }] : []),
-          ],
-        },
-      });
-    }
-
-    if (!employee) {
+    const resolved = await resolveEmployeeIdentity(payload);
+    if (!resolved) {
       return NextResponse.json(
         { success: false, error: 'Employee account not found.' },
         { status: 401 }
       );
     }
-    employeeId = employee.id;
 
-    const matchingEmployees = await prisma.employee.findMany({
-      where: {
-        OR: [
-          { id: payload.employeeId },
-          { id: employee.id },
-          ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
-          ...(payload.email ? [{ email: payload.email }] : []),
-          ...(employee.employeeCode ? [{ employeeCode: employee.employeeCode }] : []),
-        ],
-      },
-      select: { id: true },
-    });
-    const allowedEmployeeIds = new Set([
-      payload.employeeId,
-      employeeId,
-      ...matchingEmployees.map((e) => e.id),
-    ]);
+    const allowedEmployeeIds = new Set(resolved.allIds);
 
-    if (existingLead.assignedEmployeeId && !allowedEmployeeIds.has(existingLead.assignedEmployeeId)) {
+    // Strictly enforce assignment: an employee can only update leads assigned to them.
+    // Unassigned leads cannot be updated through this endpoint.
+    if (!existingLead.assignedEmployeeId || !allowedEmployeeIds.has(existingLead.assignedEmployeeId)) {
       return NextResponse.json(
-        { success: false, error: 'You are not authorized to update this lead.' },
+        { success: false, error: 'You are not authorized to update this lead. Only assigned leads can be updated.' },
         { status: 403 }
       );
     }

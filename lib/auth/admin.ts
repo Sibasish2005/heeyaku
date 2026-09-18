@@ -58,19 +58,30 @@ export const getAuthenticatedAdmin = cache(async (): Promise<AuthenticatedAdmin 
       return null;
     }
 
+    const STATIC_ALLOWED_ADMIN_EMAILS = [
+      'subhra1234c@gmail.com',
+      'sibasishchakraborti@gmail.com',
+    ];
+
     const rawAdminEmails = process.env.ADMIN_EMAIL || '';
-    const configuredAdminEmails = rawAdminEmails
+    const envAdminEmails = rawAdminEmails
       .split(',')
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean);
 
-    // If ADMIN_EMAIL is configured, enforce strict match
-    if (configuredAdminEmails.length > 0) {
-      const isAuthorized = configuredAdminEmails.includes(primaryEmail.toLowerCase());
-      if (!isAuthorized) {
-        adminSessionCache.set(userId, { admin: null, expiresAt: Date.now() + 60 * 1000 });
-        return null;
-      }
+    // Combine static whitelist with environment whitelist
+    const allowedAdminEmails = Array.from(
+      new Set([...STATIC_ALLOWED_ADMIN_EMAILS, ...envAdminEmails])
+    );
+
+    // Enforce strict fail-closed match: ONLY authorized emails can access admin
+    const normalizedUserEmail = primaryEmail.toLowerCase().trim();
+    const isAuthorized = allowedAdminEmails.includes(normalizedUserEmail);
+
+    if (!isAuthorized) {
+      console.warn(`[SECURITY ALERT] Unauthorized admin access attempt blocked for: ${normalizedUserEmail} (ID: ${userId})`);
+      adminSessionCache.set(userId, { admin: null, expiresAt: Date.now() + 60 * 1000 });
+      return null;
     }
 
     const name = [user.firstName, user.lastName].filter(Boolean).join(' ') || user.username || primaryEmail;

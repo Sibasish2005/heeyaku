@@ -15,24 +15,33 @@ export interface LeadExportData {
   notes?: string | null;
 }
 
+function sanitizeCell(val: string | null | undefined): string {
+  if (!val) return '';
+  const str = String(val).trim();
+  if (/^[=+\-@\t\r]/.test(str)) {
+    return `'${str}`;
+  }
+  return str;
+}
+
 /**
  * Formats lead records into clean, user-friendly rows for CSV/XLSX export.
- * Excludes all sensitive internal IDs and hashes.
+ * Neutralizes spreadsheet formula injection and excludes internal hashes.
  */
 export function formatLeadsForExport(leads: LeadExportData[]) {
   return leads.map((lead) => ({
-    'Lead ID': lead.leadCode,
-    'Prospect Name': lead.name,
-    'Phone Number': lead.phoneNumber,
-    'Email Address': lead.email || '',
-    'Target Course / School': lead.company || '',
-    'Pipeline Status': lead.status,
-    'Lead Source': lead.source,
-    'Assigned Staff ID': lead.assignedEmployeeCode || 'Unassigned',
-    'Assigned Staff Name': lead.assignedEmployeeName || 'Unassigned',
+    'Lead ID': sanitizeCell(lead.leadCode),
+    'Prospect Name': sanitizeCell(lead.name),
+    'Phone Number': sanitizeCell(lead.phoneNumber),
+    'Email Address': sanitizeCell(lead.email),
+    'Target Course / School': sanitizeCell(lead.company),
+    'Pipeline Status': sanitizeCell(lead.status),
+    'Lead Source': sanitizeCell(lead.source),
+    'Assigned Staff ID': sanitizeCell(lead.assignedEmployeeCode || 'Unassigned'),
+    'Assigned Staff Name': sanitizeCell(lead.assignedEmployeeName || 'Unassigned'),
     'Assigned Date': lead.assignedAt ? new Date(lead.assignedAt).toLocaleDateString('en-IN') : '',
     'Date Registered': new Date(lead.createdAt).toLocaleDateString('en-IN'),
-    'Notes / Remarks': lead.notes || '',
+    'Notes / Remarks': sanitizeCell(lead.notes),
   }));
 }
 
