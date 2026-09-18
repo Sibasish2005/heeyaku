@@ -3,10 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, UserCheck, Users, X, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, UserCheck, Users, X, ShieldCheck, LogOut } from 'lucide-react';
 import HeeyakuLogo from '@/components/landingpage/shared/HeeyakuLogo';
 import ThemeToggler from '@/components/ThemeToggler';
-import { UserButton } from '@clerk/nextjs';
+import { UserButton, useClerk } from '@clerk/nextjs';
 
 export interface AdminSidebarProps {
   adminEmail: string;
@@ -22,6 +22,8 @@ export default function AdminSidebar({
   onCloseMobile,
 }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { signOut } = useClerk();
+  const [isConfirmingSignOut, setIsConfirmingSignOut] = React.useState(false);
 
   const navItems = [
     { label: 'Overview', href: '/admin/dashboard', icon: LayoutDashboard },
@@ -122,6 +124,40 @@ export default function AdminSidebar({
               </div>
             </div>
           </div>
+
+          {/* Sign Out Button with Confirmation Prompt */}
+          {!isConfirmingSignOut ? (
+            <button
+              type="button"
+              onClick={() => setIsConfirmingSignOut(true)}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-border/80 hover:border-destructive/40 text-muted-foreground hover:text-destructive hover:bg-destructive/5 active:scale-[0.98] transition-colors duration-150 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Sign Out</span>
+            </button>
+          ) : (
+            <div className="p-2.5 rounded-xl border border-destructive/30 bg-destructive/5 space-y-2 animate-in fade-in duration-150">
+              <p className="text-[11px] font-semibold text-center text-foreground">
+                Are you sure you want to sign out?
+              </p>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmingSignOut(false)}
+                  className="px-2 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground bg-muted/80 hover:bg-muted rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => signOut({ redirectUrl: '/' })}
+                  className="px-2 py-1.5 text-[11px] font-bold text-white bg-destructive hover:bg-destructive/90 rounded-lg transition-colors shadow-xs cursor-pointer"
+                >
+                  Yes, Sign Out
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
     </>
