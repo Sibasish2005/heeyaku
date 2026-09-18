@@ -69,6 +69,9 @@ model Lead {
   @@index([status])
   @@index([assignedEmployeeId])
   @@index([createdAt])
+  @@index([updatedAt])
+  @@index([assignedEmployeeId, status])
+  @@index([assignedEmployeeId, updatedAt])
   @@map("leads")
 }
 
@@ -103,6 +106,7 @@ model CallLog {
   @@index([startedAt])
   @@index([employeeId, startedAt])
   @@index([leadId, connected])
+  @@index([phoneNumber, connected])
   @@map("call_logs")
 }
 
