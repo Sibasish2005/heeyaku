@@ -67,7 +67,7 @@ export default function EmployeeTableRow({
 
       <td className="py-2.5 px-3 whitespace-nowrap">
         <span className="text-[10.5px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
-          Business Development Associate
+          {emp.team || 'Business Development Associate'}
         </span>
       </td>
 

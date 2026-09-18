@@ -27,31 +27,37 @@ export default function EditEmployeeDialog({
   onClose,
   onUpdated,
 }: EditEmployeeDialogProps) {
+  if (!isOpen || !employee) return null;
+
+  return (
+    <EditEmployeeDialogContent
+      key={employee.id}
+      employee={employee}
+      onClose={onClose}
+      onUpdated={onUpdated}
+    />
+  );
+}
+
+function EditEmployeeDialogContent({
+  employee,
+  onClose,
+  onUpdated,
+}: {
+  employee: NonNullable<EditEmployeeDialogProps['employee']>;
+  onClose: () => void;
+  onUpdated?: () => void;
+}) {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phoneNumber: '',
-    team: 'Business Development Associates',
-    notes: '',
+    name: employee.name,
+    email: employee.email,
+    phoneNumber: employee.phoneNumber,
+    team: employee.team || 'Business Development Associates',
+    notes: employee.notes || '',
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (employee) {
-      setFormData({
-        name: employee.name,
-        email: employee.email,
-        phoneNumber: employee.phoneNumber,
-        team: employee.team || 'Business Development Associates',
-        notes: employee.notes || '',
-      });
-      setError(null);
-    }
-  }, [employee]);
-
-  if (!isOpen || !employee) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

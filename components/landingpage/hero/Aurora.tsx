@@ -138,7 +138,9 @@ export interface AuroraProps {
 export default function Aurora(props: AuroraProps) {
   const { colorStops = ['#2563EB', '#38BDF8', '#0052FF'], amplitude = 1.0, blend = 0.5, className = '' } = props;
   const propsRef = useRef<AuroraProps>(props);
-  propsRef.current = props;
+  useEffect(() => {
+    propsRef.current = props;
+  }, [props]);
 
   const ctnDom = useRef<HTMLDivElement>(null);
   const [hasWebGLError, setHasWebGLError] = useState(false);
@@ -164,7 +166,9 @@ export default function Aurora(props: AuroraProps) {
     }
 
     if (!hasWebGL) {
-      setHasWebGLError(true);
+      queueMicrotask(() => {
+        setHasWebGLError(true);
+      });
       return;
     }
 
@@ -182,13 +186,17 @@ export default function Aurora(props: AuroraProps) {
         dpr,
       });
     } catch {
-      setHasWebGLError(true);
+      queueMicrotask(() => {
+        setHasWebGLError(true);
+      });
       return;
     }
 
     const gl = renderer.gl;
     if (!gl) {
-      setHasWebGLError(true);
+      queueMicrotask(() => {
+        setHasWebGLError(true);
+      });
       return;
     }
 
@@ -201,24 +209,6 @@ export default function Aurora(props: AuroraProps) {
       gl.canvas.style.height = '100%';
       gl.canvas.style.display = 'block';
 
-      let program: Program | undefined;
-
-      function resize() {
-        if (!ctn || !renderer) return;
-        const width = ctn.offsetWidth || window.innerWidth;
-        const height = ctn.offsetHeight || window.innerHeight;
-        renderer.setSize(width, height);
-        if (program) {
-          program.uniforms.uResolution.value = [width, height];
-        }
-      }
-
-      const resizeObserver = new ResizeObserver(() => {
-        resize();
-      });
-      resizeObserver.observe(ctn);
-      window.addEventListener('resize', resize, { passive: true });
-
       const geometry = new Triangle(gl);
       if (geometry.attributes.uv) {
         delete geometry.attributes.uv;
@@ -229,7 +219,7 @@ export default function Aurora(props: AuroraProps) {
         return [c.r, c.g, c.b];
       });
 
-      program = new Program(gl, {
+      const program = new Program(gl, {
         vertex: VERT,
         fragment: FRAG,
         uniforms: {
@@ -240,6 +230,20 @@ export default function Aurora(props: AuroraProps) {
           uBlend: { value: blend }
         }
       });
+
+      function resize() {
+        if (!ctn || !renderer) return;
+        const width = ctn.offsetWidth || window.innerWidth;
+        const height = ctn.offsetHeight || window.innerHeight;
+        renderer.setSize(width, height);
+        program.uniforms.uResolution.value = [width, height];
+      }
+
+      const resizeObserver = new ResizeObserver(() => {
+        resize();
+      });
+      resizeObserver.observe(ctn);
+      window.addEventListener('resize', resize, { passive: true });
 
       const mesh = new Mesh(gl, { geometry, program });
       ctn.appendChild(gl.canvas);
@@ -325,8 +329,10 @@ export default function Aurora(props: AuroraProps) {
           gl.getExtension('WEBGL_lose_context')?.loseContext();
         } catch {}
       };
-    } catch (err) {
-      setHasWebGLError(true);
+    } catch {
+      queueMicrotask(() => {
+        setHasWebGLError(true);
+      });
     }
   }, [amplitude, blend, colorStops]);
 

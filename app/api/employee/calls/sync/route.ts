@@ -48,9 +48,9 @@ export async function POST(req: NextRequest) {
     }
 
     let employeeId = payload.employeeId;
-    const existingEmp = await prisma.employee.findUnique({ where: { id: employeeId } });
-    if (!existingEmp && (payload.employeeCode || payload.email)) {
-      const fallbackEmp = await prisma.employee.findFirst({
+    let employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!employee && (payload.employeeCode || payload.email)) {
+      employee = await prisma.employee.findFirst({
         where: {
           OR: [
             ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
@@ -58,10 +58,15 @@ export async function POST(req: NextRequest) {
           ],
         },
       });
-      if (fallbackEmp) {
-        employeeId = fallbackEmp.id;
-      }
     }
+
+    if (!employee) {
+      return NextResponse.json(
+        { success: false, error: 'Employee account not found.' },
+        { status: 401 }
+      );
+    }
+    employeeId = employee.id;
     const body = await req.json();
 
     const rawCalls = Array.isArray(body.calls)
@@ -206,7 +211,7 @@ export async function POST(req: NextRequest) {
             leadId: matchedLead?.id || existingLog.leadId,
             contactName: c.contactName || c.name || existingLog.contactName,
             durationSeconds: Math.max(existingLog.durationSeconds, duration),
-            connected: isConnected || existingLog.connected,
+            connected: isConnected,
             outcomeId: outcomeId || existingLog.outcomeId,
             outcomeLabel: outcomeLabel || existingLog.outcomeLabel,
             notes: notes || existingLog.notes,
@@ -273,10 +278,11 @@ export async function POST(req: NextRequest) {
       syncedCount,
       syncedIds,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error syncing call logs:', error);
+    const message = error instanceof Error ? error.message : 'Failed to sync call logs.';
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to sync call logs.' },
+      { success: false, error: message },
       { status: 500 }
     );
   }

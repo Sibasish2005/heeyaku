@@ -40,7 +40,7 @@ export default function BrandPillarsShowcase() {
                 </div>
 
                 <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight mb-3 uppercase text-[#0B1F33]">
-                  DON'T JUST GET LEADS. <br />
+                  DON&apos;T JUST GET LEADS. <br />
                   <span className="text-[#2563EB]">CONVERT THEM.</span>
                 </h3>
 

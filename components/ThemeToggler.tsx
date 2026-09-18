@@ -2,20 +2,22 @@
 
 import * as React from 'react';
 import { useTheme } from 'next-themes';
-import { Sun, Moon, Laptop } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 
 interface ThemeTogglerProps {
   className?: string;
   showLabels?: boolean;
 }
 
+const emptySubscribe = () => () => {};
+
 export default function ThemeToggler({ className = '', showLabels = false }: ThemeTogglerProps) {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   if (!mounted) {
     return (
