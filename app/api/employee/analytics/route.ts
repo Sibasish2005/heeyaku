@@ -118,31 +118,65 @@ export async function GET(req: NextRequest) {
       (c) => new Date(c.startedAt).getTime() >= startOfTodayMs
     );
 
+    // RULE: Once a lead is connected, more than one call will not be counted as more than one call on that lead.
+    // That connected lead counts as exactly 1 call (1 attempt, 1 connected).
     function computeMetrics(logs: typeof callLogs) {
-      const totalAttempts = logs.length;
+      const callsByLead = new Map<string, typeof callLogs>();
+      for (const c of logs) {
+        const cleanPhone = (c.phoneNumber || '').replace(/[^0-9]/g, '').slice(-10);
+        const leadKey = c.leadId
+          ? `lead_${c.leadId}`
+          : cleanPhone
+          ? `phone_${cleanPhone}`
+          : `call_${c.id}`;
+
+        if (!callsByLead.has(leadKey)) {
+          callsByLead.set(leadKey, []);
+        }
+        callsByLead.get(leadKey)!.push(c);
+      }
+
+      let totalAttempts = 0;
       let totalConnected = 0;
+      let totalUnconnected = 0;
       let totalDurationSeconds = 0;
       let connectedDurationSeconds = 0;
       const outcomeDistribution: Record<string, number> = {};
 
-      for (const c of logs) {
-        const dur = c.durationSeconds || 0;
-        totalDurationSeconds += dur;
+      for (const [, leadLogs] of callsByLead.entries()) {
+        // Check if ANY call in this lead's logs is in firstConnectedCallIds
+        const connectedLog = leadLogs.find((c) => firstConnectedCallIds.has(c.id));
 
-        // Strictly check against firstConnectedCallIds to prevent repeat calls to same lead
-        // from being falsely counted as connected today
-        if (firstConnectedCallIds.has(c.id)) {
-          totalConnected++;
-          connectedDurationSeconds += dur;
-        }
+        if (connectedLog) {
+          // RULE: A connected lead counts as exactly 1 call (1 attempt, 1 connected)
+          totalAttempts += 1;
+          totalConnected += 1;
 
-        if (c.outcomeId) {
-          const key = c.outcomeId.trim().toLowerCase();
-          outcomeDistribution[key] = (outcomeDistribution[key] || 0) + 1;
+          for (const c of leadLogs) {
+            totalDurationSeconds += c.durationSeconds || 0;
+          }
+          connectedDurationSeconds += connectedLog.durationSeconds || 0;
+
+          const outcome = connectedLog.outcomeId || leadLogs[leadLogs.length - 1].outcomeId;
+          if (outcome) {
+            const key = outcome.trim().toLowerCase();
+            outcomeDistribution[key] = (outcomeDistribution[key] || 0) + 1;
+          }
+        } else {
+          // For leads that were NEVER connected, count each call attempt
+          for (const c of leadLogs) {
+            totalAttempts += 1;
+            totalUnconnected += 1;
+            totalDurationSeconds += c.durationSeconds || 0;
+
+            if (c.outcomeId) {
+              const key = c.outcomeId.trim().toLowerCase();
+              outcomeDistribution[key] = (outcomeDistribution[key] || 0) + 1;
+            }
+          }
         }
       }
 
-      const totalUnconnected = Math.max(0, totalAttempts - totalConnected);
       const connectionRatePercent =
         totalAttempts > 0 ? Math.round((totalConnected / totalAttempts) * 100) : 0;
 
