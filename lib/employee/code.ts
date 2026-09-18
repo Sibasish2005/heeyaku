@@ -1,28 +1,21 @@
 import { prisma } from '@/lib/prisma';
+import { generateSequentialCode } from '@/lib/common/code-generator';
 
 /**
  * Generates the next sequential unique Employee Code.
  * Format: EMP-1001, EMP-1002, ...
  */
 export async function generateNextEmployeeCode(): Promise<string> {
-  const latestEmployee = await prisma.employee.findFirst({
-    orderBy: {
-      createdAt: 'desc',
+  return generateSequentialCode(
+    async () => {
+      const latest = await prisma.employee.findFirst({
+        orderBy: { createdAt: 'desc' },
+        select: { employeeCode: true },
+      });
+      return latest?.employeeCode;
     },
-    select: {
-      employeeCode: true,
-    },
-  });
-
-  if (!latestEmployee || !latestEmployee.employeeCode.startsWith('EMP-')) {
-    return 'EMP-1001';
-  }
-
-  const numericPart = parseInt(latestEmployee.employeeCode.replace('EMP-', ''), 10);
-  if (isNaN(numericPart)) {
-    const count = await prisma.employee.count();
-    return `EMP-${1000 + count + 1}`;
-  }
-
-  return `EMP-${numericPart + 1}`;
+    () => prisma.employee.count(),
+    'EMP',
+    1001
+  );
 }

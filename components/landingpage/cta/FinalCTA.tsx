@@ -2,8 +2,6 @@
 
 import React from 'react';
 import BookDemoButton from '../shared/BookDemoButton';
-import { ArrowRight, Sparkles } from 'lucide-react';
-import Link from 'next/link';
 
 export default function FinalCTA() {
   return (

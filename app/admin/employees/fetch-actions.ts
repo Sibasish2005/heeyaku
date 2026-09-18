@@ -86,18 +86,29 @@ export async function fetchEmployeesChunkAction(params: {
               callLogs: true,
             },
           },
-          callLogs: {
-            select: {
-              durationSeconds: true,
-            },
-          },
         },
       }),
       prisma.employee.count({ where }),
     ]);
 
+    const employeeIds = employees.map((e) => e.id);
+    const talkTimes = employeeIds.length > 0
+      ? await prisma.callLog.groupBy({
+          by: ['employeeId'],
+          where: { employeeId: { in: employeeIds } },
+          _sum: { durationSeconds: true },
+        })
+      : [];
+
+    const talkTimeMap = new Map<string, number>();
+    for (const t of talkTimes) {
+      if (t.employeeId) {
+        talkTimeMap.set(t.employeeId, t._sum.durationSeconds || 0);
+      }
+    }
+
     const items: EmployeeListItem[] = employees.map((e) => {
-      const empTalkTime = e.callLogs.reduce((acc, c) => acc + c.durationSeconds, 0);
+      const empTalkTime = talkTimeMap.get(e.id) || 0;
       return {
         id: e.id,
         employeeCode: e.employeeCode,

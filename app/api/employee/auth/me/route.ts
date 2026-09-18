@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyEmployeeToken } from '@/lib/auth/employee-token';
+import { resolveEmployeeIdentity } from '@/lib/employee/resolve';
+import { getStartOfTodayIST } from '@/lib/utils/date';
 
 export async function GET(req: NextRequest) {
   try {
@@ -22,75 +24,16 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    let employee = await prisma.employee.findUnique({
-      where: { id: payload.employeeId },
-      select: {
-        id: true,
-        employeeCode: true,
-        name: true,
-        email: true,
-        phoneNumber: true,
-        team: true,
-        isActive: true,
-        createdAt: true,
-      },
-    });
-
-    if (!employee && (payload.employeeCode || payload.email)) {
-      employee = await prisma.employee.findFirst({
-        where: {
-          OR: [
-            ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
-            ...(payload.email ? [{ email: payload.email }] : []),
-          ],
-        },
-        select: {
-          id: true,
-          employeeCode: true,
-          name: true,
-          email: true,
-          phoneNumber: true,
-          team: true,
-          isActive: true,
-          createdAt: true,
-        },
-      });
-    }
-
-    if (!employee || !employee.isActive) {
+    const resolved = await resolveEmployeeIdentity(payload);
+    if (!resolved || !resolved.employee || !resolved.employee.isActive) {
       return NextResponse.json(
-        { success: false, error: 'Employee account is not active.' },
+        { success: false, error: 'Employee account is not active or found.' },
         { status: 403 }
       );
     }
 
-    const matchingEmployees = await prisma.employee.findMany({
-      where: {
-        OR: [
-          { id: payload.employeeId },
-          { id: employee.id },
-          ...(employee.employeeCode ? [{ employeeCode: employee.employeeCode }] : []),
-          ...(employee.email ? [{ email: employee.email }] : []),
-        ],
-      },
-      select: { id: true },
-    });
-    const employeeIds = Array.from(
-      new Set([payload.employeeId, employee.id, ...matchingEmployees.map((e) => e.id)])
-    ).filter(Boolean);
-
-    // Determine Start of Day in Indian Standard Time (IST, UTC+05:30)
-    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-    const nowMs = Date.now();
-    const istDate = new Date(nowMs + IST_OFFSET_MS);
-    const startOfTodayMs =
-      Date.UTC(
-        istDate.getUTCFullYear(),
-        istDate.getUTCMonth(),
-        istDate.getUTCDate(),
-        0, 0, 0, 0
-      ) - IST_OFFSET_MS;
-    const startOfToday = new Date(startOfTodayMs);
+    const { employee, allIds: employeeIds } = resolved;
+    const startOfToday = getStartOfTodayIST();
 
     const [totalAssigned, contactedToday, convertedTotal] = await Promise.all([
       prisma.lead.count({ where: { assignedEmployeeId: { in: employeeIds } } }),
