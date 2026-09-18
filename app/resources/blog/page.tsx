@@ -1,33 +1,42 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/landingpage/navbar/Navbar';
 import Footer from '@/components/landingpage/footer/Footer';
-import { Newspaper, ArrowRight, Calendar, Clock } from 'lucide-react';
-
-export const metadata = {
-  title: 'Insights & Engineering Blog | HEEYAKU',
-  description: 'Deep dives on e-learning conversion rate optimization, telecalling latency engineering, offline sync algorithms, and academy growth strategies.',
-};
+import BookDemoButton from '@/components/landingpage/shared/BookDemoButton';
+import { 
+  Newspaper, 
+  ArrowRight, 
+  Clock, 
+  Sparkles,
+  Zap,
+  Terminal,
+  TrendingUp
+} from 'lucide-react';
 
 export default function BlogPage() {
   const posts = [
     {
       title: 'Eliminating N+1 Roundtrips in Telephony Call Log Synchronization',
-      category: 'Engineering',
+      category: 'ENGINEERING',
+      tagColor: 'text-[#2563EB] bg-blue-50 border-blue-200',
       date: 'Sep 2026',
       readTime: '6 min read',
       excerpt: 'How we transitioned from sequential loop queries to batched Postgres lookups with in-memory single-connected call constraint resolution.',
     },
     {
       title: 'The Sub-60-Second Lead Response Rule: Why Speed Is Everything',
-      category: 'Conversion',
+      category: 'CONVERSION',
+      tagColor: 'text-emerald-700 bg-emerald-50 border-emerald-200',
       date: 'Aug 2026',
       readTime: '4 min read',
       excerpt: 'Calling a prospective student within 1 minute of a form fill increases live enrollment rates by 391% compared to a 30-minute delay.',
     },
     {
       title: 'Architecting an Offline-First Call Tracker on Android with React Native',
-      category: 'Architecture',
+      category: 'ARCHITECTURE',
+      tagColor: 'text-indigo-700 bg-indigo-50 border-indigo-200',
       date: 'Aug 2026',
       readTime: '8 min read',
       excerpt: 'Designing native SQLite and SharedPreferences queues with auto-retry backoff to ensure telecallers never drop a lead record.',
@@ -35,69 +44,78 @@ export default function BlogPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#070F1A] text-slate-900 dark:text-slate-100 flex flex-col selection:bg-[#2563EB] selection:text-white">
+    <div className="min-h-screen bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white flex flex-col overflow-hidden">
       <Navbar />
 
-      <main className="flex-1 pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full">
+      {/* Ambient Aurora Glow */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-r from-blue-100/50 via-sky-100/40 to-indigo-100/40 blur-[140px] pointer-events-none -z-10" />
+
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-32 pb-24">
         {/* Header */}
-        <div className="max-w-3xl mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-[#2563EB] dark:text-blue-400 text-xs font-bold uppercase tracking-wider mb-4">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[#2563EB] text-xs font-mono font-bold uppercase tracking-wider mb-6 shadow-xs">
             <Newspaper className="w-3.5 h-3.5" />
-            <span>HEEYAKU Insights</span>
+            <span>ENGINEERING INSIGHTS & BENCHMARKS</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#0B1F33] dark:text-white mb-6">
-            Insights & <span className="text-[#2563EB]">Engineering Blog</span>
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-[-0.035em] text-[#0B1F33] leading-[1.08] mb-6">
+            Insights on Growth, <br />
+            <span className="text-[#2563EB]">Latency & Telephony</span>.
           </h1>
 
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
+          <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-2xl mx-auto">
             Practical strategies, technical case studies, and engineering breakdowns for modern academy founders, operators, and developers.
           </p>
         </div>
 
-        {/* Blog Post List */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        {/* Blog Post List (Architectural Bento Cards) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           {posts.map((post, idx) => (
             <article
               key={idx}
-              className="p-6 rounded-3xl bg-white dark:bg-[#0B1726] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:border-[#2563EB]/40 transition-colors"
+              className="p-8 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/70 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] flex flex-col justify-between hover:bg-white transition-all duration-200 group"
             >
               <div>
-                <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
-                  <span className="font-bold text-[#2563EB] uppercase tracking-wider">{post.category}</span>
-                  <div className="flex items-center gap-1.5">
+                <div className="flex items-center justify-between mb-4">
+                  <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${post.tagColor}`}>
+                    {post.category}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-xs font-mono text-slate-400">
                     <Clock className="w-3 h-3" />
                     <span>{post.readTime}</span>
                   </div>
                 </div>
-                <h3 className="text-base font-bold text-[#0B1F33] dark:text-white mb-3 leading-snug">
+
+                <h3 className="text-lg font-extrabold tracking-tight text-[#0B1F33] mb-3 leading-snug group-hover:text-[#2563EB] transition-colors">
                   {post.title}
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
+
+                <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed mb-6">
                   {post.excerpt}
                 </p>
               </div>
-              <div className="flex items-center gap-1 text-xs font-semibold text-[#2563EB]">
-                <span>Read Full Article</span>
-                <ArrowRight className="w-3 h-3" />
+
+              <div className="pt-4 border-t border-slate-200/80 flex items-center gap-1.5 text-xs font-bold text-[#2563EB] group-hover:translate-x-1 transition-transform">
+                <span>Read Technical Deep Dive</span>
+                <ArrowRight className="w-3.5 h-3.5" />
               </div>
             </article>
           ))}
         </div>
 
-        {/* CTA */}
-        <div className="rounded-3xl bg-gradient-to-r from-[#0B1F33] to-[#1E3A8A] text-white p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-          <div>
-            <h3 className="text-2xl font-bold mb-2">Want to receive our bi-weekly engineering breakdowns?</h3>
-            <p className="text-sm text-blue-200 max-w-xl">Join 4,500+ edtech leaders and academy founders.</p>
+        {/* Bottom Banner */}
+        <div className="p-10 sm:p-12 rounded-3xl bg-[#0B1F33] text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl shadow-slate-900/10">
+          <div className="max-w-xl space-y-2">
+            <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Get our bi-weekly architecture breakdowns.
+            </h3>
+            <p className="text-sm text-slate-300 leading-relaxed font-medium">
+              Join 4,500+ edtech founders, engineering leads, and academy operators.
+            </p>
           </div>
-          <Link
-            href="/#book-demo"
-            className="px-6 py-3.5 text-sm font-bold text-[#0B1F33] bg-white hover:bg-blue-50 rounded-full transition-all shadow-md active:scale-95 whitespace-nowrap flex items-center gap-2"
-          >
-            <span>Subscribe to Newsletter</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          <div>
+            <BookDemoButton text="Book a Demo" href="#book-demo" />
+          </div>
         </div>
       </main>
 

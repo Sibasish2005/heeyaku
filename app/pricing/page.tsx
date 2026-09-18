@@ -1,13 +1,19 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/landingpage/navbar/Navbar';
 import Footer from '@/components/landingpage/footer/Footer';
-import { CreditCard, CheckCircle2, ArrowRight, Zap, Shield, Sparkles } from 'lucide-react';
-
-export const metadata = {
-  title: 'Transparent Pricing & Enterprise Tiers | HEEYAKU',
-  description: 'Predictable, all-inclusive pricing for coaching institutes, training academies, and edtech scale-ups. No hidden seat fees.',
-};
+import BookDemoButton from '@/components/landingpage/shared/BookDemoButton';
+import { 
+  CreditCard, 
+  CheckCircle2, 
+  ArrowRight, 
+  Zap, 
+  Shield, 
+  Sparkles,
+  Smartphone
+} from 'lucide-react';
 
 export default function PricingPage() {
   const tiers = [
@@ -60,23 +66,27 @@ export default function PricingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#070F1A] text-slate-900 dark:text-slate-100 flex flex-col selection:bg-[#2563EB] selection:text-white">
+    <div className="min-h-screen bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white flex flex-col overflow-hidden">
       <Navbar />
 
-      <main className="flex-1 pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full">
+      {/* Ambient Aurora Glow */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-r from-blue-100/50 via-sky-100/40 to-indigo-100/40 blur-[140px] pointer-events-none -z-10" />
+
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-32 pb-24">
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-[#2563EB] dark:text-blue-400 text-xs font-bold uppercase tracking-wider mb-4">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[#2563EB] text-xs font-mono font-bold uppercase tracking-wider mb-6 shadow-xs">
             <CreditCard className="w-3.5 h-3.5" />
-            <span>Transparent Investment</span>
+            <span>TRANSPARENT ARCHITECTURE PRICING</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#0B1F33] dark:text-white mb-6">
-            Predictable Pricing for <span className="text-[#2563EB]">Scalable Growth</span>
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-[-0.035em] text-[#0B1F33] leading-[1.08] mb-6">
+            Predictable Pricing for <br />
+            <span className="text-[#2563EB]">Scalable Growth</span>.
           </h1>
 
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-            Eliminate separate subscriptions for CRM, telecalling software, LMS hosting, and WhatsApp bots. One unified platform, predictable pricing.
+          <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-2xl mx-auto">
+            Eliminate fragmented subscriptions for CRM, telecalling dialers, LMS hosting, and WhatsApp bots. One unified operating system with transparent tiers.
           </p>
         </div>
 
@@ -85,38 +95,42 @@ export default function PricingPage() {
           {tiers.map((tier, idx) => (
             <div
               key={idx}
-              className={`p-8 rounded-3xl flex flex-col justify-between transition-all duration-200 ${
+              className={`p-8 sm:p-10 rounded-3xl flex flex-col justify-between transition-all duration-200 ${
                 tier.popular
                   ? 'bg-[#0B1F33] text-white shadow-2xl shadow-blue-500/20 ring-2 ring-[#2563EB] scale-105 relative z-10'
-                  : 'bg-white dark:bg-[#0B1726] border border-slate-200 dark:border-slate-800 shadow-sm'
+                  : 'bg-[#F8FAFC]/70 backdrop-blur-md border border-slate-200/90 shadow-[0_10px_40px_rgba(0,0,0,0.03)] hover:bg-white text-[#0B1F33]'
               }`}
             >
               <div>
                 {tier.popular && (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2563EB] text-white text-[11px] font-bold uppercase tracking-wider mb-4">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2563EB] text-white text-[11px] font-mono font-bold uppercase tracking-wider mb-4">
                     <Sparkles className="w-3 h-3" />
-                    <span>Most Popular</span>
+                    <span>MOST POPULAR</span>
                   </div>
                 )}
-                <h3 className={`text-xl font-bold mb-2 ${tier.popular ? 'text-white' : 'text-[#0B1F33] dark:text-white'}`}>
+
+                <h3 className={`text-2xl font-extrabold mb-2 ${tier.popular ? 'text-white' : 'text-[#0B1F33]'}`}>
                   {tier.name}
                 </h3>
-                <p className={`text-xs mb-6 leading-relaxed ${tier.popular ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                
+                <p className={`text-xs mb-6 leading-relaxed font-medium ${tier.popular ? 'text-slate-300' : 'text-slate-500'}`}>
                   {tier.description}
                 </p>
 
                 <div className="flex items-baseline gap-1 mb-6">
                   <span className="text-4xl font-extrabold tracking-tight">{tier.price}</span>
-                  <span className={`text-xs font-semibold ${tier.popular ? 'text-slate-400' : 'text-slate-500'}`}>{tier.period}</span>
+                  <span className={`text-xs font-semibold ${tier.popular ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {tier.period}
+                  </span>
                 </div>
 
-                <div className={`h-px w-full mb-6 ${tier.popular ? 'bg-slate-700' : 'bg-slate-100 dark:bg-slate-800'}`} />
+                <div className={`h-px w-full mb-6 ${tier.popular ? 'bg-slate-700' : 'bg-slate-200/80'}`} />
 
                 <ul className="space-y-3 mb-8">
                   {tier.features.map((feat, fIdx) => (
-                    <li key={fIdx} className="flex items-start gap-2.5 text-xs">
-                      <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${tier.popular ? 'text-blue-400' : 'text-emerald-500'}`} />
-                      <span className={tier.popular ? 'text-slate-200' : 'text-slate-600 dark:text-slate-300'}>{feat}</span>
+                    <li key={fIdx} className="flex items-start gap-2.5 text-xs font-medium">
+                      <CheckCircle2 className={`w-4 h-4 shrink-0 mt-0.5 ${tier.popular ? 'text-blue-400' : 'text-emerald-600'}`} />
+                      <span className={tier.popular ? 'text-slate-200' : 'text-slate-600'}>{feat}</span>
                     </li>
                   ))}
                 </ul>
@@ -124,10 +138,10 @@ export default function PricingPage() {
 
               <Link
                 href="/#book-demo"
-                className={`w-full py-3 rounded-full text-xs font-bold uppercase tracking-wider text-center transition-all active:scale-95 ${
+                className={`w-full py-3.5 rounded-full text-xs font-bold uppercase tracking-wider text-center transition-all duration-150 active:scale-95 ${
                   tier.popular
                     ? 'bg-[#2563EB] hover:bg-blue-600 text-white shadow-md'
-                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-[#0B1F33] hover:text-white text-[#0B1F33] dark:text-slate-200'
+                    : 'bg-[#0B1F33] hover:bg-[#2563EB] text-white shadow-xs'
                 }`}
               >
                 Get Started
@@ -137,14 +151,18 @@ export default function PricingPage() {
         </div>
 
         {/* Security & Guarantee Note */}
-        <div className="text-center text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-center gap-6">
+        <div className="p-8 rounded-3xl border border-slate-200 bg-white text-xs font-medium text-slate-500 flex flex-col sm:flex-row items-center justify-center gap-8 shadow-xs">
           <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4 text-emerald-500" />
+            <Shield className="w-4 h-4 text-emerald-600" />
             <span>14-Day Full Migration Guarantee</span>
           </div>
           <div className="flex items-center gap-2">
             <Zap className="w-4 h-4 text-[#2563EB]" />
             <span>Zero Long-Term Lock-in Contracts</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Smartphone className="w-4 h-4 text-indigo-600" />
+            <span>Free Android App Installation</span>
           </div>
         </div>
       </main>

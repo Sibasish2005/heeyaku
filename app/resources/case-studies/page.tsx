@@ -1,104 +1,152 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/landingpage/navbar/Navbar';
 import Footer from '@/components/landingpage/footer/Footer';
-import { TrendingUp, ArrowRight, CheckCircle2, Award, Building2 } from 'lucide-react';
-
-export const metadata = {
-  title: 'Client Case Studies & ROI Benchmarks | HEEYAKU',
-  description: 'See how leading coaching academies and bootcamps increased lead conversion by 3.4x and eliminated revenue leakage with HEEYAKU.',
-};
+import BookDemoButton from '@/components/landingpage/shared/BookDemoButton';
+import { 
+  TrendingUp, 
+  ArrowRight, 
+  CheckCircle2, 
+  Award, 
+  Building2, 
+  Sparkles,
+  BarChart3,
+  PhoneCall,
+  ShieldCheck
+} from 'lucide-react';
 
 export default function CaseStudiesPage() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#070F1A] text-slate-900 dark:text-slate-100 flex flex-col selection:bg-[#2563EB] selection:text-white">
+    <div className="min-h-screen bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white flex flex-col overflow-hidden">
       <Navbar />
 
-      <main className="flex-1 pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full">
+      {/* Ambient Aurora Glow */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-r from-blue-100/50 via-sky-100/40 to-indigo-100/40 blur-[140px] pointer-events-none -z-10" />
+
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-32 pb-24">
         {/* Header */}
-        <div className="max-w-3xl mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-[#2563EB] dark:text-blue-400 text-xs font-bold uppercase tracking-wider mb-4">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[#2563EB] text-xs font-mono font-bold uppercase tracking-wider mb-6 shadow-xs">
             <TrendingUp className="w-3.5 h-3.5" />
-            <span>Proven Student ROI</span>
+            <span>MEASURABLE STUDENT & REVENUE ROI</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#0B1F33] dark:text-white mb-6">
-            Client Success & <span className="text-[#2563EB]">ROI Case Studies</span>
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-[-0.035em] text-[#0B1F33] leading-[1.08] mb-6">
+            Real Academies. <br />
+            <span className="text-[#2563EB]">Measurable Growth</span>.
           </h1>
 
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-            Real outcomes from e-learning academies, test prep institutes, and full-stack bootcamps that replaced fragmented tools with HEEYAKU.
+          <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-2xl mx-auto">
+            Discover how leading coaching institutes, test-prep academies, and bootcamps eliminated lead loss and scaled enrollment with HEEYAKU.
           </p>
         </div>
 
-        {/* Case Study Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-          <div className="p-8 rounded-3xl bg-white dark:bg-[#0B1726] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-3 text-xs font-bold text-[#2563EB] uppercase tracking-wider mb-4">
-                <Building2 className="w-4 h-4" />
-                <span>Apex Engineering Institute</span>
+        {/* 2 Featured Architectural Case Study Bento Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
+          
+          {/* Case 1 */}
+          <div className="p-8 sm:p-12 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/70 backdrop-blur-md space-y-8 shadow-[0_10px_40px_rgba(0,0,0,0.03)] hover:bg-white transition-colors flex flex-col justify-between">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-[#2563EB] uppercase tracking-wider">
+                  Test Prep Academy • 4,200 Students
+                </span>
+                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                  +280% ROI
+                </span>
               </div>
-              <h3 className="text-xl font-bold text-[#0B1F33] dark:text-white mb-3">
-                3.8x Increase in Connected Call Conversion
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
-                Prior to HEEYAKU, counselors were double-dialing leads and losing track of webinar attendees. Enforcing single-connected-call watermarking and sub-60s instant dialing slashed drop-off.
-              </p>
-              <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 mb-6">
+
+              <div>
+                <h3 className="text-2xl font-extrabold tracking-tight text-[#0B1F33] mb-3">
+                  Apex Engineering: 3.4x Increase in Connected Calls
+                </h3>
+                <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                  Before HEEYAKU, counselors were double-dialing leads from shared Google Sheets. Implementing the Android CallTracker and sub-60s instant lead routing dramatically improved conversion.
+                </p>
+              </div>
+
+              {/* Metric Callouts Strip */}
+              <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
                 <div>
-                  <div className="text-2xl font-black text-[#2563EB]">+240%</div>
-                  <div className="text-xs text-slate-500">Webinar Show-ups</div>
+                  <div className="text-xl font-extrabold text-[#2563EB]">+340%</div>
+                  <div className="text-[11px] font-medium text-slate-500">Connected Leads</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-emerald-500">38 mins</div>
-                  <div className="text-xs text-slate-500">Avg. Talk Time / Rep</div>
+                  <div className="text-xl font-extrabold text-emerald-600">42 mins</div>
+                  <div className="text-[11px] font-medium text-slate-500">Daily Talk Time</div>
+                </div>
+                <div>
+                  <div className="text-xl font-extrabold text-[#0B1F33]">0%</div>
+                  <div className="text-[11px] font-medium text-slate-500">Lead Over-Count</div>
                 </div>
               </div>
             </div>
-            <div className="text-xs text-slate-500 italic">"HEEYAKU replaced 4 disconnected subscriptions with one bulletproof system."</div>
+
+            <div className="pt-4 border-t border-slate-200/80 text-xs text-slate-500 italic">
+              "The single-connected-call rule ended all disputes between counselors and gave us total transparency."
+            </div>
           </div>
 
-          <div className="p-8 rounded-3xl bg-white dark:bg-[#0B1726] border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-3 text-xs font-bold text-indigo-500 uppercase tracking-wider mb-4">
-                <Award className="w-4 h-4" />
-                <span>NextGen Coding Academy</span>
+          {/* Case 2 */}
+          <div className="p-8 sm:p-12 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/70 backdrop-blur-md space-y-8 shadow-[0_10px_40px_rgba(0,0,0,0.03)] hover:bg-white transition-colors flex flex-col justify-between">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold text-indigo-600 uppercase tracking-wider">
+                  Full-Stack Bootcamp • 1,800 Cohort
+                </span>
+                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-blue-50 text-[#2563EB] border border-blue-200 font-bold">
+                  ₹24L+ RECOVERED
+                </span>
               </div>
-              <h3 className="text-xl font-bold text-[#0B1F33] dark:text-white mb-3">
-                Zero Video Piracy & 45% Lower CAC
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-6">
-                NextGen implemented HEEYAKU's DRM encrypted LMS and automated WhatsApp installment reminder engine, recovering ₹22 Lakhs in overdue student fees in 60 days.
-              </p>
-              <div className="grid grid-cols-2 gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/50 mb-6">
+
+              <div>
+                <h3 className="text-2xl font-extrabold tracking-tight text-[#0B1F33] mb-3">
+                  DevMastery: 100% Video DRM Protection & Fee Recovery
+                </h3>
+                <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                  Combated course lecture piracy with dynamic student email watermarking while deploying automated WhatsApp payment installment triggers to collect overdue tuition.
+                </p>
+              </div>
+
+              {/* Metric Callouts Strip */}
+              <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
                 <div>
-                  <div className="text-2xl font-black text-[#2563EB]">100%</div>
-                  <div className="text-xs text-slate-500">Piracy Protection</div>
+                  <div className="text-xl font-extrabold text-emerald-600">Zero</div>
+                  <div className="text-[11px] font-medium text-slate-500">Video Leaks</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-emerald-500">₹22L+</div>
-                  <div className="text-xs text-slate-500">Recovered Revenue</div>
+                  <div className="text-xl font-extrabold text-[#2563EB]">₹24.8L</div>
+                  <div className="text-[11px] font-medium text-slate-500">Fees Collected</div>
+                </div>
+                <div>
+                  <div className="text-xl font-extrabold text-[#0B1F33]">98.2%</div>
+                  <div className="text-[11px] font-medium text-slate-500">Student Retention</div>
                 </div>
               </div>
             </div>
-            <div className="text-xs text-slate-500 italic">"The offline Android app synchronization alone saved our telecallers hundreds of hours."</div>
+
+            <div className="pt-4 border-t border-slate-200/80 text-xs text-slate-500 italic">
+              "HEEYAKU's automated WhatsApp triggers recovered tuition payments that had been delayed for over 4 months."
+            </div>
           </div>
+
         </div>
 
-        {/* CTA */}
-        <div className="rounded-3xl bg-gradient-to-r from-[#0B1F33] to-[#1E3A8A] text-white p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-          <div>
-            <h3 className="text-2xl font-bold mb-2">Want to see your academy's projected numbers?</h3>
-            <p className="text-sm text-blue-200 max-w-xl">We will prepare a custom ROI analysis based on your current lead volume.</p>
+        {/* Bottom Banner */}
+        <div className="p-10 sm:p-12 rounded-3xl bg-[#0B1F33] text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl shadow-slate-900/10">
+          <div className="max-w-xl space-y-2">
+            <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Calculate your academy's conversion potential.
+            </h3>
+            <p className="text-sm text-slate-300 leading-relaxed font-medium">
+              We will benchmark your current lead pipeline against our top-performing clients.
+            </p>
           </div>
-          <Link
-            href="/#book-demo"
-            className="px-6 py-3.5 text-sm font-bold text-[#0B1F33] bg-white hover:bg-blue-50 rounded-full transition-all shadow-md active:scale-95 whitespace-nowrap flex items-center gap-2"
-          >
-            <span>Request Custom ROI Model</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          <div>
+            <BookDemoButton text="Book a Demo" href="#book-demo" />
+          </div>
         </div>
       </main>
 

@@ -1,82 +1,161 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/landingpage/navbar/Navbar';
 import Footer from '@/components/landingpage/footer/Footer';
-import { Globe, CheckCircle2, ArrowRight, Gauge, Sparkles, ShieldCheck } from 'lucide-react';
-
-export const metadata = {
-  title: 'High-Converting Web Interfaces | HEEYAKU',
-  description: 'Custom, blazing-fast web platforms engineered with Next.js, sub-100ms TTFB, modern aesthetic micro-interactions, and conversion-optimized checkout funnels.',
-};
+import BookDemoButton from '@/components/landingpage/shared/BookDemoButton';
+import { 
+  Globe, 
+  CheckCircle2, 
+  ArrowRight, 
+  Gauge, 
+  Sparkles, 
+  ShieldCheck, 
+  Smartphone,
+  Zap,
+  TrendingUp
+} from 'lucide-react';
 
 export default function WebSolutionPage() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#070F1A] text-slate-900 dark:text-slate-100 flex flex-col selection:bg-[#2563EB] selection:text-white">
+    <div className="min-h-screen bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white flex flex-col overflow-hidden">
       <Navbar />
 
-      <main className="flex-1 pt-28 pb-20 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto w-full">
+      {/* Ambient Aurora Glow */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-r from-blue-100/50 via-sky-100/40 to-indigo-100/40 blur-[140px] pointer-events-none -z-10" />
+
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-32 pb-24">
         {/* Header */}
-        <div className="max-w-3xl mb-14">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 text-[#2563EB] dark:text-blue-400 text-xs font-bold uppercase tracking-wider mb-4">
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[#2563EB] text-xs font-mono font-bold uppercase tracking-wider mb-6 shadow-xs">
             <Globe className="w-3.5 h-3.5" />
-            <span>High-Performance Web</span>
+            <span>HIGH-CONVERTING WEB PLATFORMS</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#0B1F33] dark:text-white mb-6">
-            High-Converting <span className="text-[#2563EB]">Web Interfaces</span>
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-[-0.035em] text-[#0B1F33] leading-[1.08] mb-6">
+            Sub-100ms TTFB. <br />
+            <span className="text-[#2563EB]">High-Converting Interfaces</span>.
           </h1>
 
-          <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-            Slow landing pages destroy ad spend ROI. HEEYAKU builds next-generation, server-rendered web applications with 99+ Google Lighthouse scores, frictionless checkout, and rich design aesthetics.
+          <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-2xl mx-auto">
+            Slow, template-based websites bleed marketing budget. HEEYAKU builds customized, server-rendered Next.js digital storefronts with 99+ Lighthouse scores and frictionless checkout.
           </p>
         </div>
 
-        {/* Features */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#0B1726] border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-[#2563EB] flex items-center justify-center mb-4">
-              <Gauge className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-[#0B1F33] dark:text-white mb-2">Sub-100ms TTFB</h3>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              Edge-rendered with Next.js Turbopack and globally distributed CDN caching so pages load instantly on 3G/4G networks.
-            </p>
-          </div>
+        {/* 3-Pillar Architectural Canvas */}
+        <div className="rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/70 backdrop-blur-md overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] mb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-200/80 items-stretch">
+            
+            {/* 1. Performance */}
+            <div className="p-8 sm:p-10 flex flex-col justify-between space-y-6 bg-white/60 hover:bg-white transition-colors">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center mb-6">
+                  <Gauge className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-extrabold tracking-tight text-[#0B1F33] mb-3">
+                  SUB-100ms EDGE RENDERING
+                </h3>
+                <p className="text-sm text-slate-600 font-medium leading-relaxed mb-6">
+                  Edge-rendered with Next.js Turbopack and globally distributed CDN caching so your course pages load instantly on 3G and 4G networks.
+                </p>
 
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#0B1726] border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 text-purple-500 flex items-center justify-center mb-4">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <h3 className="text-base font-bold text-[#0B1F33] dark:text-white mb-2">Micro-Interactions</h3>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              Physical spring physics, glassmorphism, and responsive interactive elements that captivate prospective students and build brand trust.
-            </p>
-          </div>
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs font-mono">
+                  <div className="flex items-center justify-between text-slate-500 font-bold">
+                    <span>Lighthouse Performance</span>
+                    <span className="text-emerald-600">99 / 100</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-500 font-bold">
+                    <span>First Contentful Paint</span>
+                    <span className="text-emerald-600">0.4s</span>
+                  </div>
+                </div>
+              </div>
 
-          <div className="p-6 rounded-3xl bg-white dark:bg-[#0B1726] border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 flex items-center justify-center mb-4">
-              <ShieldCheck className="w-5 h-5" />
+              <ul className="space-y-2 text-xs font-semibold text-slate-500">
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Collocated Mumbai serverless compute</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Automatic image & font optimization</li>
+              </ul>
             </div>
-            <h3 className="text-base font-bold text-[#0B1F33] dark:text-white mb-2">Checkout Funnels</h3>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              Frictionless 1-step checkout flows with auto OTP verification, instant payment status callbacks, and zero drop-off loops.
-            </p>
+
+            {/* 2. Micro-Interactions */}
+            <div className="p-8 sm:p-10 flex flex-col justify-between space-y-6 bg-white/60 hover:bg-white transition-colors">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-6">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-extrabold tracking-tight text-[#0B1F33] mb-3">
+                  AESTHETIC CRAFT
+                </h3>
+                <p className="text-sm text-slate-600 font-medium leading-relaxed mb-6">
+                  Engineered with physical spring animations, subtle glassmorphism, and responsive feedback that captivate visitors and establish instant authority.
+                </p>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs font-mono">
+                  <div className="flex items-center justify-between text-slate-500 font-bold">
+                    <span>Bounce Rate Reduction</span>
+                    <span className="text-[#2563EB]">-38% drop</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-500 font-bold">
+                    <span>Average Session Length</span>
+                    <span className="text-[#2563EB]">4.8 mins</span>
+                  </div>
+                </div>
+              </div>
+
+              <ul className="space-y-2 text-xs font-semibold text-slate-500">
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Native spring physics via Framer Motion</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Accessible contrast ratios and clean typography</li>
+              </ul>
+            </div>
+
+            {/* 3. High-Converting Checkout */}
+            <div className="p-8 sm:p-10 flex flex-col justify-between space-y-6 bg-white/60 hover:bg-white transition-colors">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <h3 className="text-xl font-extrabold tracking-tight text-[#0B1F33] mb-3">
+                  FRICTIONLESS CHECKOUT
+                </h3>
+                <p className="text-sm text-slate-600 font-medium leading-relaxed mb-6">
+                  Single-step checkout flow with auto OTP autofill, native UPI payment intents, and zero redirect drops for instant enrollment confirmation.
+                </p>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2 text-xs font-mono">
+                  <div className="flex items-center justify-between text-slate-500 font-bold">
+                    <span>Payment Completion Rate</span>
+                    <span className="text-emerald-600">92.4%</span>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-500 font-bold">
+                    <span>Checkout Abandonment</span>
+                    <span className="text-emerald-600">Below 8%</span>
+                  </div>
+                </div>
+              </div>
+
+              <ul className="space-y-2 text-xs font-semibold text-slate-500">
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Razorpay, Cashfree & Stripe native integrations</li>
+                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Real-time webhook order fulfillment</li>
+              </ul>
+            </div>
+
           </div>
         </div>
 
-        {/* CTA */}
-        <div className="rounded-3xl bg-gradient-to-r from-[#0B1F33] to-[#1E3A8A] text-white p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
-          <div>
-            <h3 className="text-2xl font-bold mb-2">Transform your academy's digital storefront</h3>
-            <p className="text-sm text-blue-200 max-w-xl">Get a custom web architecture audit and speed benchmark.</p>
+        {/* Bottom Banner */}
+        <div className="p-10 sm:p-12 rounded-3xl bg-[#0B1F33] text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl shadow-slate-900/10">
+          <div className="max-w-xl space-y-2">
+            <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Upgrade your academy's web platform.
+            </h3>
+            <p className="text-sm text-slate-300 leading-relaxed font-medium">
+              Get an engineering performance benchmark of your current site.
+            </p>
           </div>
-          <Link
-            href="/#book-demo"
-            className="px-6 py-3.5 text-sm font-bold text-[#0B1F33] bg-white hover:bg-blue-50 rounded-full transition-all shadow-md active:scale-95 whitespace-nowrap flex items-center gap-2"
-          >
-            <span>Request Web Audit</span>
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+          <div>
+            <BookDemoButton text="Book a Demo" href="#book-demo" />
+          </div>
         </div>
       </main>
 
