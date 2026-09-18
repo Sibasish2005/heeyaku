@@ -174,7 +174,7 @@ export function DottedArrowIcon({ className = 'w-5 h-5' }: { className?: string 
 }
 
 export default function BookDemoButton({
-  href = '#book-demo',
+  href = '/book-demo',
   text = 'Book a Demo',
   className = '',
   onClick,

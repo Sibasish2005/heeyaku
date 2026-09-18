@@ -137,7 +137,7 @@ export default function PricingPage() {
               </div>
 
               <Link
-                href="/#book-demo"
+                href="/book-demo"
                 className={`w-full py-3.5 rounded-full text-xs font-bold uppercase tracking-wider text-center transition-all duration-150 active:scale-95 ${
                   tier.popular
                     ? 'bg-[#2563EB] hover:bg-blue-600 text-white shadow-md'

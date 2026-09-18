@@ -28,11 +28,13 @@ export default function Footer() {
         </div>
 
         {/* Center: Essential Navigation Links */}
-        <div className="flex items-center gap-6 sm:gap-8 font-medium text-xs text-slate-300">
-          <Link href="#platform" className="hover:text-white transition-colors">Platform</Link>
-          <Link href="#integrations" className="hover:text-white transition-colors">Integrations</Link>
-          <Link href="#roi" className="hover:text-white transition-colors">ROI Calculator</Link>
-          <Link href="#contact" className="hover:text-white transition-colors">Contact</Link>
+        <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-7 font-medium text-xs text-slate-300">
+          <Link href="/solutions/crm" className="hover:text-white transition-colors">Solutions</Link>
+          <Link href="/platform" className="hover:text-white transition-colors">Platform</Link>
+          <Link href="/download" className="hover:text-white transition-colors text-[#38BDF8] font-bold">Android App</Link>
+          <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
+          <Link href="/resources/docs" className="hover:text-white transition-colors">Docs</Link>
+          <Link href="/book-demo" className="hover:text-white transition-colors">Book a Demo</Link>
         </div>
 
         {/* Right: Operational System Status Pill & Copyright */}

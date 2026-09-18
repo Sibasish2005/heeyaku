@@ -65,7 +65,8 @@ export default function Navbar() {
           >
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-[#0B1F33] hover:text-[#2563EB] transition-colors duration-150 rounded-lg hover:bg-slate-100 active:scale-[0.97]"
+              onClick={() => setSolutionsOpen(prev => !prev)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-[#0B1F33] hover:text-[#2563EB] transition-colors duration-150 rounded-lg hover:bg-slate-100 active:scale-[0.97] cursor-pointer"
             >
               <span>Solutions</span>
               <MorphIcon
@@ -89,6 +90,7 @@ export default function Navbar() {
                   <div className="bg-white/95 backdrop-blur-2xl rounded-2xl border border-slate-200 p-3 shadow-2xl space-y-1 text-[#0B1F33]">
                     <Link
                       href="/solutions/crm"
+                      onClick={() => setSolutionsOpen(false)}
                       className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors duration-150 group active:scale-[0.98]"
                     >
                       <div className="p-2 rounded-lg bg-[#2563EB]/10 text-[#2563EB] group-hover:bg-[#2563EB] group-hover:text-white transition-colors duration-150">
@@ -102,6 +104,7 @@ export default function Navbar() {
 
                     <Link
                       href="/solutions/automation"
+                      onClick={() => setSolutionsOpen(false)}
                       className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors duration-150 group active:scale-[0.98]"
                     >
                       <div className="p-2 rounded-lg bg-[#2563EB]/10 text-[#2563EB] group-hover:bg-[#2563EB] group-hover:text-white transition-colors duration-150">
@@ -115,6 +118,7 @@ export default function Navbar() {
 
                     <Link
                       href="/solutions/web"
+                      onClick={() => setSolutionsOpen(false)}
                       className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors duration-150 group active:scale-[0.98]"
                     >
                       <div className="p-2 rounded-lg bg-[#2563EB]/10 text-[#2563EB] group-hover:bg-[#2563EB] group-hover:text-white transition-colors duration-150">
@@ -146,7 +150,8 @@ export default function Navbar() {
           >
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-[#0B1F33]/85 hover:text-[#2563EB] transition-colors duration-150 rounded-lg hover:bg-slate-100 active:scale-[0.97]"
+              onClick={() => setResourcesOpen(prev => !prev)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-[#0B1F33]/85 hover:text-[#2563EB] transition-colors duration-150 rounded-lg hover:bg-slate-100 active:scale-[0.97] cursor-pointer"
             >
               <span>Resources</span>
               <MorphIcon
@@ -170,18 +175,21 @@ export default function Navbar() {
                   <div className="bg-white/95 backdrop-blur-2xl rounded-2xl border border-slate-200 p-2.5 shadow-2xl space-y-1 text-[#0B1F33]">
                     <Link
                       href="/resources/case-studies"
+                      onClick={() => setResourcesOpen(false)}
                       className="block px-3 py-2 text-xs font-semibold text-[#0B1F33] hover:text-[#2563EB] hover:bg-slate-100 rounded-lg transition-colors duration-150 active:scale-[0.98]"
                     >
                       Case Studies
                     </Link>
                     <Link
                       href="/resources/docs"
+                      onClick={() => setResourcesOpen(false)}
                       className="block px-3 py-2 text-xs font-semibold text-[#0B1F33] hover:text-[#2563EB] hover:bg-slate-100 rounded-lg transition-colors duration-150 active:scale-[0.98]"
                     >
                       Documentation
                     </Link>
                     <Link
                       href="/resources/blog"
+                      onClick={() => setResourcesOpen(false)}
                       className="block px-3 py-2 text-xs font-semibold text-[#0B1F33] hover:text-[#2563EB] hover:bg-slate-100 rounded-lg transition-colors duration-150 active:scale-[0.98]"
                     >
                       Insights & Blog
@@ -201,7 +209,7 @@ export default function Navbar() {
         </div>
 
         {/* Right: Actions */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-2.5">
           {/* Download App CTA */}
           <Link
             href="/download"
@@ -209,6 +217,14 @@ export default function Navbar() {
           >
             <Smartphone className="w-3.5 h-3.5" />
             <span>App</span>
+          </Link>
+
+          {/* Book Demo Header Link */}
+          <Link
+            href="/book-demo"
+            className="inline-flex items-center justify-center px-3.5 py-1.5 text-xs font-bold tracking-wider text-slate-700 hover:text-[#2563EB] hover:bg-slate-100 rounded-full transition-colors duration-150 cursor-pointer"
+          >
+            Book Demo
           </Link>
 
           <Show when="signed-out">
@@ -298,6 +314,13 @@ export default function Navbar() {
               >
                 <Smartphone className="w-4 h-4" />
                 <span>Download Mobile App (APK)</span>
+              </Link>
+              <Link
+                href="/book-demo"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center py-2.5 px-4 rounded-xl text-sm font-bold text-white bg-[#2563EB] hover:bg-[#1D4ED8] transition-colors duration-150 active:scale-[0.98] shadow-sm"
+              >
+                Book a Demo
               </Link>
             </div>
 

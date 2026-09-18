@@ -5,78 +5,78 @@ import { TrendingUp, ShieldCheck, Zap, CheckCircle2 } from 'lucide-react';
 import Masonry, { MasonryItem } from './Masonry';
 import CountUpNumber from '../shared/CountUpNumber';
 
-// Curated copyright-free high-resolution Unsplash images representing modern EdTech, LMS, CRM, and digital learning
+// Curated high-resolution images representing modern EdTech, LMS, CRM, and digital learning
 const EDTECH_SHOWCASE_ITEMS: MasonryItem[] = [
   {
     id: '1',
     img: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=480&q=70',
-    title: 'Advanced LMS Real-Time Analytics',
-    category: 'LMS Telemetry',
+    title: 'Real-Time Telephony & Counselor Dashboard',
+    category: 'Conversion CRM',
     height: 310,
-    url: '#solutions',
+    url: '/solutions/crm',
   },
   {
     id: '2',
     img: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=480&q=70',
-    title: 'Collaborative Cohort Workspaces',
-    category: 'Student Experience',
+    title: 'Automated Lead Disposition Queue',
+    category: 'Pipeline Management',
     height: 230,
-    url: '#solutions',
+    url: '/solutions/crm',
   },
   {
     id: '3',
     img: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=480&q=70',
-    title: 'Custom EdTech CRM & Lead Pipeline',
-    category: 'Conversion CRM',
+    title: 'Sub-60s Inbound Webhook Ingestion',
+    category: 'Automation Engine',
     height: 350,
-    url: '#solutions',
+    url: '/solutions/automation',
   },
   {
     id: '4',
     img: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=480&q=70',
-    title: 'Automated Retention & Trigger Engine',
-    category: 'Automation',
+    title: 'Offline-First SQLite Call Sync',
+    category: 'Android Telephony Client',
     height: 260,
-    url: '#solutions',
+    url: '/download',
   },
   {
     id: '5',
     img: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=480&q=70',
-    title: 'High-Converting Multi-Course Portal',
-    category: 'Web Platform',
+    title: 'High-Speed Course Conversion Portals',
+    category: 'Edge Web Funnels',
     height: 330,
-    url: '#solutions',
+    url: '/solutions/web',
   },
   {
     id: '6',
     img: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=480&q=70',
-    title: 'Interactive Virtual Assessments',
-    category: 'Evaluation Engine',
+    title: 'DRM Screen-Recording Watermark Protection',
+    category: 'Content Security',
     height: 240,
-    url: '#solutions',
+    url: '/platform',
   },
   {
     id: '7',
     img: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=480&q=70',
-    title: 'Enterprise Serverless Infrastructure',
-    category: 'Cloud Reliability',
+    title: 'Collocated Mumbai Data Tier (ap-south-1)',
+    category: 'Cloud Infrastructure',
     height: 290,
-    url: '#solutions',
+    url: '/platform',
   },
   {
     id: '8',
     img: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=480&q=70',
-    title: 'Global Live Lecture Distribution',
-    category: 'Streaming Engine',
+    title: 'Native Android CallTracker (v1.0.4)',
+    category: 'Mobile APK Client',
     height: 260,
-    url: '#solutions',
+    url: '/download',
   },
 ];
 
-// Trusted Brand Client Logos
-const CLIENT_LOGOS = [
+// Authentic Industry Verticals Purpose-Engineered for HEEYAKU
+const INDUSTRY_VERTICALS = [
   {
-    name: 'Apex Academy',
+    name: 'IIT-JEE & NEET Coaching',
     symbol: (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
         <path d="M12 2L2 22h20L12 2z" />
@@ -85,7 +85,7 @@ const CLIENT_LOGOS = [
     ),
   },
   {
-    name: 'SkillSphere',
+    name: 'Study Abroad & Visa Advisory',
     symbol: (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
         <circle cx="12" cy="12" r="10" />
@@ -95,7 +95,7 @@ const CLIENT_LOGOS = [
     ),
   },
   {
-    name: 'NextGen Ed',
+    name: 'IT & Coding Bootcamps',
     symbol: (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -103,7 +103,7 @@ const CLIENT_LOGOS = [
     ),
   },
   {
-    name: 'Elevate LMS',
+    name: 'UPSC & Civil Services Prep',
     symbol: (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
@@ -112,7 +112,7 @@ const CLIENT_LOGOS = [
     ),
   },
   {
-    name: 'QuantLearn',
+    name: 'Vocational & Upskilling Institutes',
     symbol: (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
         <circle cx="12" cy="12" r="9" />
@@ -123,7 +123,7 @@ const CLIENT_LOGOS = [
     ),
   },
   {
-    name: 'Pulse Institute',
+    name: 'Multi-Branch Tuition Chains',
     symbol: (
       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
@@ -134,40 +134,40 @@ const CLIENT_LOGOS = [
 
 const STATS = [
   {
-    numValue: 50,
-    suffix: 'k+',
+    numValue: 60,
+    suffix: 's',
     decimals: 0,
-    label: 'Leads Handled',
-    icon: <TrendingUp className="w-4 h-4 text-[#2563EB]" />,
-  },
-  {
-    numValue: 99.9,
-    suffix: '%',
-    decimals: 1,
-    label: 'System Uptime',
-    icon: <ShieldCheck className="w-4 h-4 text-[#2563EB]" />,
-  },
-  {
-    numValue: 3.8,
-    suffix: 'x',
-    decimals: 1,
-    label: 'Conversion Uplift',
+    label: 'Speed-to-Lead SLA',
     icon: <Zap className="w-4 h-4 text-[#2563EB]" />,
   },
   {
     numValue: 100,
-    suffix: '+',
+    suffix: '%',
     decimals: 0,
-    label: 'EdTech Deployments',
+    label: 'Android Call Tracking',
+    icon: <ShieldCheck className="w-4 h-4 text-[#2563EB]" />,
+  },
+  {
+    numValue: 0,
+    suffix: '',
+    decimals: 0,
+    label: 'Spreadsheet Leakage',
     icon: <CheckCircle2 className="w-4 h-4 text-[#2563EB]" />,
+  },
+  {
+    numValue: 14,
+    suffix: 'ms',
+    decimals: 0,
+    label: 'Mumbai API Latency',
+    icon: <TrendingUp className="w-4 h-4 text-[#2563EB]" />,
   },
 ];
 
 const CAPABILITIES = [
   'Custom CRM',
-  'LMS Architectures',
+  'Android CallTracker',
   'High-Converting Web',
-  'End-to-End Automation',
+  'WhatsApp Automation',
 ];
 
 export default function SocialProofBar() {
@@ -261,11 +261,11 @@ export default function SocialProofBar() {
           </div>
         </div>
 
-        {/* Bottom Section: Trusted Client Logos Infinite Marquee */}
+        {/* Bottom Section: Industry Verticals Infinite Marquee */}
         <div className="pt-8 border-t border-slate-100">
           <div className="text-center mb-6">
             <span className="text-[11px] sm:text-xs font-bold uppercase tracking-[0.2em] text-slate-600">
-              Trusted by Innovative Learning Institutions
+              Purpose-Engineered for Modern Education & Training Sectors
             </span>
           </div>
 
@@ -277,16 +277,16 @@ export default function SocialProofBar() {
 
             {/* Seamless Infinite Marquee Track */}
             <div className="flex gap-10 sm:gap-14 w-max animate-marquee hover:[animation-play-state:paused]">
-              {[...CLIENT_LOGOS, ...CLIENT_LOGOS, ...CLIENT_LOGOS].map((client, idx) => (
+              {[...INDUSTRY_VERTICALS, ...INDUSTRY_VERTICALS, ...INDUSTRY_VERTICALS].map((vertical, idx) => (
                 <div
-                  key={`${client.name}-${idx}`}
-                  className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-slate-600 hover:text-[#2563EB] transition-colors group cursor-pointer select-none opacity-75 hover:opacity-100"
+                  key={`${vertical.name}-${idx}`}
+                  className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-slate-600 hover:text-[#2563EB] transition-colors group cursor-pointer select-none opacity-85 hover:opacity-100"
                 >
                   <div className="text-slate-400 group-hover:text-[#2563EB] transition-colors">
-                    {client.symbol}
+                    {vertical.symbol}
                   </div>
                   <span className="font-bold text-sm sm:text-base tracking-tight whitespace-nowrap">
-                    {client.name}
+                    {vertical.name}
                   </span>
                 </div>
               ))}

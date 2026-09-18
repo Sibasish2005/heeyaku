@@ -30,7 +30,10 @@ export default function BrandPillarsShowcase() {
           <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-200/80 items-stretch">
             
             {/* PILLAR 1: DON'T JUST GET LEADS. CONVERT THEM. */}
-            <div className="p-8 sm:p-10 flex flex-col justify-between space-y-8 bg-white/60 hover:bg-white transition-colors duration-200 group">
+            <Link
+              href="/solutions/crm"
+              className="p-8 sm:p-10 flex flex-col justify-between space-y-8 bg-white/60 hover:bg-white transition-all duration-200 group cursor-pointer"
+            >
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <HeeyakuLogo size={26} color="#0B1F33" dotColor="#2563EB" withText={false} />
@@ -39,7 +42,7 @@ export default function BrandPillarsShowcase() {
                   </span>
                 </div>
 
-                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight mb-3 uppercase text-[#0B1F33]">
+                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight mb-3 uppercase text-[#0B1F33] group-hover:text-[#2563EB] transition-colors">
                   DON&apos;T JUST GET LEADS. <br />
                   <span className="text-[#2563EB]">CONVERT THEM.</span>
                 </h3>
@@ -66,13 +69,16 @@ export default function BrandPillarsShowcase() {
               </div>
 
               <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-mono text-slate-600">
-                <span className="text-[#2563EB] font-bold">0% Opportunity Loss</span>
-                <ArrowRight className="w-4 h-4 text-[#2563EB] group-hover:translate-x-1 transition-transform" />
+                <span className="text-[#2563EB] font-bold">Explore CRM Architecture</span>
+                <ArrowRight className="w-4 h-4 text-[#2563EB] group-hover:translate-x-1.5 transition-transform" />
               </div>
-            </div>
+            </Link>
 
             {/* PILLAR 2: ONE SYSTEM. ALL CONNECTED. REAL GROWTH. */}
-            <div className="p-8 sm:p-10 flex flex-col justify-between space-y-8 bg-white/80 hover:bg-white transition-colors duration-200 group">
+            <Link
+              href="/platform"
+              className="p-8 sm:p-10 flex flex-col justify-between space-y-8 bg-white/80 hover:bg-white transition-all duration-200 group cursor-pointer"
+            >
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <HeeyakuLogo size={26} color="#0B1F33" dotColor="#2563EB" withText={false} />
@@ -81,7 +87,7 @@ export default function BrandPillarsShowcase() {
                   </span>
                 </div>
 
-                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight mb-3 uppercase text-[#0B1F33]">
+                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight mb-3 uppercase text-[#0B1F33] group-hover:text-[#2563EB] transition-colors">
                   ONE SYSTEM. <br />
                   <span className="text-[#2563EB]">ALL CONNECTED.</span> <br />
                   REAL GROWTH.
@@ -114,13 +120,16 @@ export default function BrandPillarsShowcase() {
               </div>
 
               <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-mono text-slate-600">
-                <span className="text-slate-800 font-bold">4 Synchronized Engines</span>
-                <ArrowRight className="w-4 h-4 text-[#0B1F33] group-hover:translate-x-1 transition-transform" />
+                <span className="text-slate-800 font-bold">View Platform Telemetry</span>
+                <ArrowRight className="w-4 h-4 text-[#0B1F33] group-hover:translate-x-1.5 transition-transform" />
               </div>
-            </div>
+            </Link>
 
             {/* PILLAR 3: AUTOMATE FOLLOW UPS. BUILD TRUST. CLOSE MORE. */}
-            <div className="p-8 sm:p-10 flex flex-col justify-between space-y-8 bg-white/60 hover:bg-white transition-colors duration-200 group">
+            <Link
+              href="/solutions/automation"
+              className="p-8 sm:p-10 flex flex-col justify-between space-y-8 bg-white/60 hover:bg-white transition-all duration-200 group cursor-pointer"
+            >
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <HeeyakuLogo size={26} color="#0B1F33" dotColor="#38BDF8" withText={false} />
@@ -129,7 +138,7 @@ export default function BrandPillarsShowcase() {
                   </span>
                 </div>
 
-                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight mb-3 uppercase text-[#0B1F33]">
+                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight mb-3 uppercase text-[#0B1F33] group-hover:text-[#0284C7] transition-colors">
                   AUTOMATE FOLLOW UPS. <br />
                   <span className="text-[#0284C7]">BUILD TRUST.</span> <br />
                   CLOSE MORE.
@@ -153,10 +162,10 @@ export default function BrandPillarsShowcase() {
               </div>
 
               <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-mono text-slate-600">
-                <span className="text-cyan-700 font-bold">Instant Omnichannel Action</span>
-                <ArrowRight className="w-4 h-4 text-cyan-700 group-hover:translate-x-1 transition-transform" />
+                <span className="text-cyan-700 font-bold">Inspect Workflow Bots</span>
+                <ArrowRight className="w-4 h-4 text-cyan-700 group-hover:translate-x-1.5 transition-transform" />
               </div>
-            </div>
+            </Link>
 
           </div>
         </div>

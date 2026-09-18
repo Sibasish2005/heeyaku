@@ -151,7 +151,7 @@ export default function AutomationSolutionPage() {
             </p>
           </div>
           <div>
-            <BookDemoButton text="Book a Demo" href="#book-demo" />
+            <BookDemoButton text="Book a Demo" href="/book-demo" />
           </div>
         </div>
       </main>

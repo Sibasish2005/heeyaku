@@ -55,7 +55,7 @@ export default function Hero() {
 
         {/* Capsule "Book a Demo" CTA Button */}
         <div>
-          <BookDemoButton text="Book a Demo" href="#book-demo" />
+          <BookDemoButton text="Book a Demo" href="/book-demo" />
         </div>
       </div>
 

@@ -25,7 +25,7 @@ export default function FinalCTA() {
 
         {/* Actions Button */}
         <div className="flex items-center justify-center">
-          <BookDemoButton text="Book a Demo" href="#book-demo" />
+          <BookDemoButton text="Book a Demo" href="/book-demo" />
         </div>
       </div>
     </section>

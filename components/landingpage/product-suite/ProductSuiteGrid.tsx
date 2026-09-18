@@ -242,7 +242,7 @@ export default function ProductSuiteGrid() {
                     <span>{tested ? 'Telemetry Synchronized' : 'Test Real-Time Flow'}</span>
                   </Button>
                   
-                  <Link href="#book-demo">
+                  <Link href="/book-demo">
                     <Button variant="outline" className="gap-2 cursor-pointer">
                       <span>Schedule Architecture Review</span>
                       <ArrowRight className="w-4 h-4" />
