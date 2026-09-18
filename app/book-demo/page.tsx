@@ -9,12 +9,12 @@ const SERVICES_CATALOG = [
   {
     id: 'calltracker',
     name: 'Android Call Tracker',
-    summary: 'Tracks counselor calls automatically. Pops up right after each call so counselors can mark if the student is interested, needs a callback, or closed.',
+    summary: 'Tracks counselor calls automatically. Pops up right after each call so counselors can mark if the student is interested, needs a callback, or enrolled.',
   },
   {
     id: 'crm',
     name: 'Counselor Lead CRM',
-    summary: 'Pulls leads from Facebook and Google in 30 seconds and assigns them to active telecallers so no student waits or gets forgotten.',
+    summary: 'Pulls leads from Facebook, Instagram, and Google in 30 seconds and assigns them to active telecallers so no student inquiry gets forgotten.',
   },
   {
     id: 'whatsapp',
@@ -24,12 +24,12 @@ const SERVICES_CATALOG = [
   {
     id: 'web',
     name: 'Admission Website & Fee Checkout',
-    summary: 'Fast course pages where students can view your syllabus and pay admission fees instantly with UPI or cards.',
+    summary: 'Fast course pages where students can view your syllabus and pay admission fees instantly with UPI, PhonePe, or cards.',
   },
   {
     id: 'lms',
     name: 'Piracy-Protected Class Videos',
-    summary: 'Puts the student name and phone number across video lectures to prevent screen recording and course sharing.',
+    summary: 'Displays the student name and phone number dynamically across video lectures to stop screen recording and course leaks on Telegram.',
   },
 ];
 
@@ -68,39 +68,48 @@ export default function BookDemoPage() {
   const whatsappUrl = `https://wa.me/918131838253?text=${encodeURIComponent(whatsappMessage)}`;
 
   return (
-    <div className="min-h-screen bg-white text-[#0B1F33] flex flex-col justify-between">
+    <div className="min-h-screen bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white flex flex-col overflow-hidden">
       <Navbar />
 
-      <main className="pt-32 pb-24 px-4 sm:px-8 max-w-5xl mx-auto w-full">
+      {/* Atmospheric Aurora Lighting (Landing Page Scale) */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-r from-blue-100/50 via-sky-100/40 to-indigo-100/40 blur-[140px] pointer-events-none -z-10" />
+
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-32 pb-24 lg:pb-32">
         
-        {/* Simple, Non-Techy Header */}
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-[#0B1F33] tracking-tight mb-4">
-            Book a Demo
+        {/* Full-Scale Hero Header */}
+        <div className="text-left max-w-3xl mb-12 sm:mb-16">
+          <div className="text-xs sm:text-sm font-mono font-bold text-[#2563EB] uppercase tracking-wider mb-3">
+            DIRECT ARCHITECTURE CONSULTATION & ONBOARDING
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-[-0.035em] text-[#0B1F33] leading-[1.08] mb-6">
+            Book a Live Demo. <br />
+            <span className="text-[#2563EB]">Tailored for Your Academy.</span>
           </h1>
-          <p className="text-base sm:text-lg text-slate-600">
-            Tell us what your institute needs. Call us directly or send your requirements on WhatsApp for an immediate response.
+
+          <p className="text-base sm:text-xl text-slate-600 font-medium leading-relaxed">
+            Select the exact tools your team needs. Speak directly with our sales specialists or forward your requirements to WhatsApp for an immediate response.
           </p>
         </div>
 
-        {/* Direct Phone Call Strip */}
-        <div className="mb-12 p-6 sm:p-8 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+        {/* Full-Scale Hotline Banner Strip */}
+        <div className="mb-14 p-8 sm:p-10 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/80 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div>
             <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-1">
-              Direct Sales & Support Line
+              DIRECT SALES & ONBOARDING HOTLINE
             </div>
-            <div className="text-2xl sm:text-3xl font-extrabold text-[#0B1F33]">
+            <div className="text-3xl sm:text-4xl font-extrabold text-[#0B1F33]">
               +91 81318 38253
             </div>
-            <div className="text-xs text-slate-500 mt-1">
-              Monday to Saturday: 9:00 AM – 8:00 PM IST
+            <div className="text-xs sm:text-sm text-slate-500 mt-1">
+              Available Monday to Saturday: 9:00 AM – 8:00 PM IST
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <a
               href="tel:+918131838253"
-              className="px-6 py-3 rounded-xl bg-[#0B1F33] hover:bg-[#2563EB] text-white font-bold text-sm transition-colors"
+              className="px-7 py-3.5 rounded-full bg-[#0B1F33] hover:bg-[#1E293B] text-white text-xs sm:text-sm font-bold tracking-wider uppercase transition-colors shadow-sm"
             >
               Call +91 81318 38253
             </a>
@@ -108,67 +117,81 @@ export default function BookDemoPage() {
               href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm transition-colors"
+              className="px-7 py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold tracking-wider uppercase transition-colors shadow-sm"
             >
               WhatsApp Us
             </a>
           </div>
         </div>
 
-        {/* Two-Column Plan & Dispatch Box */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
+        {/* 2-Column Split Specification Builder (Landing Page Scale) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
-          {/* Left: What services do you need? */}
-          <div className="lg:col-span-7 space-y-6">
+          {/* Left Column: Interactive Selection Canvas */}
+          <div className="lg:col-span-7 space-y-10">
+            
+            {/* Step 1: Select Services */}
             <div>
-              <h2 className="text-xl font-bold text-[#0B1F33] mb-1">
-                1. Select what you want to setup
+              <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
+                STEP 1
+              </div>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-[#0B1F33] mb-2">
+                Select What You Need to Setup
               </h2>
-              <p className="text-xs text-slate-500">
-                Click to pick the tools you need for your counselors and teachers.
+              <p className="text-xs sm:text-sm text-slate-600 font-medium mb-6">
+                Click to choose the modules your counselors and faculty need.
               </p>
-            </div>
 
-            <div className="space-y-3">
-              {SERVICES_CATALOG.map((service) => {
-                const isSelected = selectedServices.includes(service.id);
-                return (
-                  <div
-                    key={service.id}
-                    onClick={() => toggleService(service.id)}
-                    className={`p-4 rounded-xl border transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-blue-50/60 border-[#2563EB]'
-                        : 'bg-white border-slate-200 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-bold text-sm text-[#0B1F33]">
+              <div className="space-y-3">
+                {SERVICES_CATALOG.map((service) => {
+                  const isChecked = selectedServices.includes(service.id);
+                  return (
+                    <div
+                      key={service.id}
+                      onClick={() => toggleService(service.id)}
+                      className={`p-6 rounded-2xl border transition-all cursor-pointer select-none flex items-start justify-between gap-4 ${
+                        isChecked
+                          ? 'border-[#2563EB] bg-blue-50/40 shadow-xs'
+                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="space-y-1">
+                        <div className="font-bold text-base text-[#0B1F33]">
                           {service.name}
                         </div>
-                        <div className="text-xs text-slate-600 mt-1 leading-relaxed">
+                        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-medium">
                           {service.summary}
-                        </div>
+                        </p>
                       </div>
 
-                      <div className={`w-4 h-4 rounded-sm border shrink-0 mt-0.5 flex items-center justify-center text-[10px] font-bold ${
-                        isSelected ? 'bg-[#2563EB] border-[#2563EB] text-white' : 'border-slate-300 bg-white'
-                      }`}>
-                        {isSelected ? '✓' : ''}
+                      <div
+                        className={`w-6 h-6 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs ${
+                          isChecked
+                            ? 'bg-[#2563EB] border-[#2563EB] text-white'
+                            : 'border-slate-300 bg-white text-transparent'
+                        }`}
+                      >
+                        ✓
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Team Size */}
-            <div className="pt-2 space-y-2">
-              <label className="text-xs font-bold text-slate-700 block">
-                2. How many counselors or staff will use this?
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {/* Step 2: Team Size */}
+            <div>
+              <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
+                STEP 2
+              </div>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-[#0B1F33] mb-2">
+                Counseling & Faculty Team Size
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 font-medium mb-4">
+                Helps us allocate appropriate server capacity and Android tracking slots.
+              </p>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {TEAM_SIZES.map((size) => {
                   const isSelected = selectedTeamSize === size;
                   return (
@@ -176,10 +199,10 @@ export default function BookDemoPage() {
                       key={size}
                       type="button"
                       onClick={() => setSelectedTeamSize(size)}
-                      className={`p-2.5 rounded-lg border text-xs font-bold transition-colors ${
+                      className={`py-3.5 px-4 rounded-xl text-xs font-bold transition-all border ${
                         isSelected
-                          ? 'bg-[#0B1F33] border-[#0B1F33] text-white'
-                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                          ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                       }`}
                     >
                       {size}
@@ -189,121 +212,87 @@ export default function BookDemoPage() {
               </div>
             </div>
 
-            {/* Institute Name & Notes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Institute Name (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={instituteName}
-                  onChange={(e) => setInstituteName(e.target.value)}
-                  placeholder="e.g. Apex Classes"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#2563EB]"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">
-                  Current Software or Problems (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="e.g. Using Excel sheets right now"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#2563EB]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Right: WhatsApp Forwarding Box */}
-          <div className="lg:col-span-5 p-6 rounded-2xl border border-slate-200 bg-white space-y-4">
+            {/* Step 3: Optional Details */}
             <div>
-              <div className="font-bold text-sm text-[#0B1F33]">
-                Ready to talk?
+              <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
+                STEP 3
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Send your selected setup to our WhatsApp number (+91 81318 38253). We will reply within 10 minutes.
-              </p>
+              <h2 className="text-xl sm:text-2xl font-extrabold text-[#0B1F33] mb-4">
+                Institute Information (Optional)
+              </h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-mono font-bold text-slate-600 uppercase mb-1.5">
+                    Coaching / Academy Name
+                  </label>
+                  <input
+                    type="text"
+                    value={instituteName}
+                    onChange={(e) => setInstituteName(e.target.value)}
+                    placeholder="e.g. Apex Career Institute, Agartala"
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm text-[#0B1F33] focus:outline-none focus:border-[#2563EB]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono font-bold text-slate-600 uppercase mb-1.5">
+                    Specific Requirements or Questions
+                  </label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={3}
+                    placeholder="e.g. Need to migrate from Excel; want to launch Android app for 12 telecallers by next Monday."
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm text-[#0B1F33] focus:outline-none focus:border-[#2563EB]"
+                  />
+                </div>
+              </div>
             </div>
 
-            {/* Preview Box */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono whitespace-pre-line text-slate-700 leading-relaxed">
-              {whatsappMessage}
-            </div>
+          </div>
 
-            <a
-              href={whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm text-center block transition-colors shadow-sm"
-            >
-              Send on WhatsApp (+91 81318 38253)
-            </a>
+          {/* Right Column: Sticky Live WhatsApp Dispatch Board */}
+          <div className="lg:col-span-5 sticky top-28">
+            <div className="p-8 sm:p-10 rounded-3xl bg-[#0B1F33] text-white shadow-2xl space-y-6">
+              <div>
+                <div className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider mb-2">
+                  INSTANT WHATSAPP DISPATCH
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                  Ready to connect?
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 mt-2 leading-relaxed font-medium">
+                  Your customized scope will be sent directly to our team at <span className="text-white font-bold">+91 81318 38253</span>.
+                </p>
+              </div>
 
-            <div className="pt-3 border-t border-slate-100 text-center">
+              {/* Formatted Message Preview */}
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/10 font-mono text-xs text-slate-300 space-y-2 max-h-[300px] overflow-y-auto">
+                <div className="text-slate-400 text-[10px] uppercase font-bold">
+                  Generated Specification:
+                </div>
+                <div className="text-white font-semibold whitespace-pre-wrap leading-relaxed">
+                  {whatsappMessage}
+                </div>
+              </div>
+
+              {/* Action Button */}
               <a
-                href="tel:+918131838253"
-                className="text-xs font-bold text-[#2563EB] hover:underline"
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm tracking-wider uppercase flex items-center justify-center transition-all duration-150 shadow-lg shadow-emerald-900/30 active:scale-[0.98]"
               >
-                Or Call Us at +91 81318 38253
+                Forward Scope to WhatsApp →
               </a>
+
+              <div className="text-center text-[11px] font-mono text-slate-400">
+                Direct hotline: +91 81318 38253 • Response in &lt; 10 mins
+              </div>
             </div>
           </div>
 
-        </div>
-
-        {/* Clear, Readable Service Overviews for Sales Leads */}
-        <div className="pt-10 border-t border-slate-200 space-y-8">
-          <div>
-            <h2 className="text-2xl font-extrabold text-[#0B1F33]">
-              Simple Breakdown of Our Services
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1">
-              Everything your sales and counseling team needs to know, in plain English.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-5 rounded-xl border border-slate-200 bg-white space-y-2">
-              <div className="font-bold text-sm text-[#0B1F33]">
-                Android Call Tracker App
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Counselors install the app on their phone. When they make or receive calls with students, the duration is recorded automatically. When the call ends, a small popup asks them to tag the student (like &quot;Interested&quot;, &quot;Call Back Tomorrow&quot;, or &quot;Admitted&quot;). No manual Excel entry.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-xl border border-slate-200 bg-white space-y-2">
-              <div className="font-bold text-sm text-[#0B1F33]">
-                Counselor Lead Management (CRM)
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Whenever a student fills a form on your website, Facebook ads, or Google, their details show up on the counselor screen immediately. Leads are divided evenly among counselors so everyone gets calls to make.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-xl border border-slate-200 bg-white space-y-2">
-              <div className="font-bold text-sm text-[#0B1F33]">
-                WhatsApp Follow-Up & Fee Reminders
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Send course brochures and demo meeting reminders directly to the student&apos;s WhatsApp. When fees are due, the system sends an automatic payment link so parents can pay via Google Pay, PhonePe, or UPI in seconds.
-              </p>
-            </div>
-
-            <div className="p-5 rounded-xl border border-slate-200 bg-white space-y-2">
-              <div className="font-bold text-sm text-[#0B1F33]">
-                Anti-Piracy Video Protection (LMS)
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Your class recordings are protected. If a student tries to record their screen or share their login, their full name and roll number appear visibly floating across the video, stopping video leaks and piracy.
-              </p>
-            </div>
-          </div>
         </div>
 
       </main>

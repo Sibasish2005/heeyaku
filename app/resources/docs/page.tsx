@@ -8,120 +8,154 @@ import BookDemoButton from '@/components/landingpage/shared/BookDemoButton';
 
 export default function DocsPage() {
   return (
-    <div className="min-h-screen bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white flex flex-col">
+    <div className="min-h-screen bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white flex flex-col overflow-hidden">
       <Navbar />
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-6 sm:px-10 pt-32 pb-24">
-        {/* Simple Sales-Friendly Header */}
-        <div className="mb-14">
-          <p className="text-xs font-mono text-[#2563EB] font-bold uppercase tracking-wider mb-3">
-            Setup Guide & System Overview
-          </p>
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#0B1F33] mb-4">
-            How HEEYAKU Works With Your Institute
+      {/* Atmospheric Aurora Lighting */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-r from-blue-100/50 via-sky-100/40 to-indigo-100/40 blur-[140px] pointer-events-none -z-10" />
+
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-32 pb-24 lg:pb-32">
+        
+        {/* Full-Scale Hero Header */}
+        <div className="text-left max-w-3xl mb-12 sm:mb-16">
+          <div className="text-xs sm:text-sm font-mono font-bold text-[#2563EB] uppercase tracking-wider mb-3">
+            SETUP GUIDE & SYSTEM ARCHITECTURE
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-[-0.035em] text-[#0B1F33] leading-[1.08] mb-6">
+            How HEEYAKU Works. <br />
+            <span className="text-[#2563EB]">Plain-English Setup Guide.</span>
           </h1>
-          <p className="text-base sm:text-lg text-slate-600 font-medium max-w-2xl leading-relaxed">
-            Everything your admission team, telecallers, and academic coordinators need to know in plain English. No programming required.
+
+          <p className="text-base sm:text-xl text-slate-600 font-medium leading-relaxed">
+            Everything your admission counselors, academic heads, and institute managers need to understand our system. No technical background or programming required.
           </p>
         </div>
 
-        {/* 4 Core Setup Blocks */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
+        {/* 4 Full-Scale Architecture Bento Blocks (2x2 Grid) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16">
           
-          {/* 1. Lead Routing */}
-          <div className="p-8 rounded-2xl border border-slate-200 bg-[#F8FAFC]">
-            <div className="text-xs font-mono text-slate-500 font-bold mb-2 uppercase">
-              Step 1
+          {/* Block 1 */}
+          <div className="p-8 sm:p-12 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/80 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] space-y-6 flex flex-col justify-between">
+            <div>
+              <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
+                STEP 01 • INBOUND PIPELINE
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0B1F33] tracking-tight mb-3">
+                Lead Capture & Instant Distribution
+              </h2>
+              <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium mb-6">
+                When students fill out an inquiry form on Facebook, Instagram, Google Ads, or your website, their contact details land directly on your counselors&apos; screens in under 60 seconds.
+              </p>
+
+              <div className="space-y-3 pt-4 border-t border-slate-200 text-xs sm:text-sm text-slate-700 font-medium">
+                <div>• <strong>Fair lead sharing:</strong> Distributes new student inquiries evenly across counselors.</div>
+                <div>• <strong>Ad campaign tracking:</strong> Know exactly which ad campaign brought each enrolled student.</div>
+                <div>• <strong>Zero duplicates:</strong> Automatically merges repeat inquiries from the same phone number.</div>
+              </div>
             </div>
-            <h2 className="text-xl font-bold text-[#0B1F33] mb-3">
-              Lead Capture & Distribution
-            </h2>
-            <p className="text-sm text-slate-600 leading-relaxed font-medium mb-4">
-              When students fill out an inquiry form on Facebook, Instagram, Google Ads, or your website, their contact details arrive directly on your counselors&apos; screens in under 60 seconds.
-            </p>
-            <ul className="space-y-2 text-xs text-slate-600 font-medium">
-              <li>• Fair lead sharing: distribute new inquiries evenly across counselors.</li>
-              <li>• Ad campaign tracking: know exactly which ad brought in the lead.</li>
-              <li>• Zero duplicate leads: automatically merges repeat inquiries.</li>
-            </ul>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs text-slate-600 flex justify-between font-medium">
+              <span>Lead Response Time:</span>
+              <span className="font-bold text-[#2563EB]">Under 60 Seconds</span>
+            </div>
           </div>
 
-          {/* 2. Android Telecalling */}
-          <div className="p-8 rounded-2xl border border-slate-200 bg-[#F8FAFC]">
-            <div className="text-xs font-mono text-slate-500 font-bold mb-2 uppercase">
-              Step 2
+          {/* Block 2 */}
+          <div className="p-8 sm:p-12 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/80 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] space-y-6 flex flex-col justify-between">
+            <div>
+              <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
+                STEP 02 • TELEPHONY APP
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0B1F33] tracking-tight mb-3">
+                Counselor Android Calling App
+              </h2>
+              <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium mb-6">
+                Counselors install our Android APK directly on their smartphones. They make calls normally, and the app tracks call duration and reminds them to take notes.
+              </p>
+
+              <div className="space-y-3 pt-4 border-t border-slate-200 text-xs sm:text-sm text-slate-700 font-medium">
+                <div>• <strong>Automatic call tracking:</strong> Logs talk time, timestamp, and connected/missed status.</div>
+                <div>• <strong>Works offline:</strong> Stores call records locally if internet drops and syncs later.</div>
+                <div>• <strong>2-tap notes:</strong> Counselors tag Interested, Callback, or Enrolled immediately.</div>
+              </div>
             </div>
-            <h2 className="text-xl font-bold text-[#0B1F33] mb-3">
-              Counselor Calling App
-            </h2>
-            <p className="text-sm text-slate-600 leading-relaxed font-medium mb-4">
-              Counselors install our Android app on their phones. They tap to call directly from their daily student list without manually typing numbers.
-            </p>
-            <ul className="space-y-2 text-xs text-slate-600 font-medium">
-              <li>• Automatic call tracking: logs talk time, call outcome, and time of day.</li>
-              <li>• Works offline: stores call data locally if network drops and syncs later.</li>
-              <li>• 2-tap notes: counselors select Interested, Callback, or Enrolled immediately.</li>
-            </ul>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs text-slate-600 flex justify-between font-medium">
+              <span>Counselor Logging Accuracy:</span>
+              <span className="font-bold text-emerald-700">100% Automatic</span>
+            </div>
           </div>
 
-          {/* 3. WhatsApp Follow-ups */}
-          <div className="p-8 rounded-2xl border border-slate-200 bg-[#F8FAFC]">
-            <div className="text-xs font-mono text-slate-500 font-bold mb-2 uppercase">
-              Step 3
+          {/* Block 3 */}
+          <div className="p-8 sm:p-12 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/80 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] space-y-6 flex flex-col justify-between">
+            <div>
+              <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
+                STEP 03 • WHATSAPP & UPI
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0B1F33] tracking-tight mb-3">
+                WhatsApp Nurturing & Fee Links
+              </h2>
+              <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium mb-6">
+                Keep interested students warm without counselors copying messages manually. Send brochures, meeting links, and UPI payment links directly.
+              </p>
+
+              <div className="space-y-3 pt-4 border-t border-slate-200 text-xs sm:text-sm text-slate-700 font-medium">
+                <div>• <strong>Instant brochures:</strong> Send official course curriculum PDFs with one tap.</div>
+                <div>• <strong>Class reminders:</strong> Automated reminders sent 1 hour before scheduled demo classes.</div>
+                <div>• <strong>1-tap UPI payments:</strong> PhonePe and Google Pay links sent straight to parents on WhatsApp.</div>
+              </div>
             </div>
-            <h2 className="text-xl font-bold text-[#0B1F33] mb-3">
-              WhatsApp & Payment Links
-            </h2>
-            <p className="text-sm text-slate-600 leading-relaxed font-medium mb-4">
-              Keep interested students warm without counselors having to copy-paste messages all day.
-            </p>
-            <ul className="space-y-2 text-xs text-slate-600 font-medium">
-              <li>• Send course brochures and fee structures with one click.</li>
-              <li>• Automated reminders for upcoming demo classes.</li>
-              <li>• Direct UPI and card payment links sent directly to parents&apos; WhatsApp.</li>
-            </ul>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs text-slate-600 flex justify-between font-medium">
+              <span>Fee Settlement:</span>
+              <span className="font-bold text-emerald-700">Direct Bank Deposit</span>
+            </div>
           </div>
 
-          {/* 4. Reporting & Student Portal */}
-          <div className="p-8 rounded-2xl border border-slate-200 bg-[#F8FAFC]">
-            <div className="text-xs font-mono text-slate-500 font-bold mb-2 uppercase">
-              Step 4
+          {/* Block 4 */}
+          <div className="p-8 sm:p-12 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/80 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] space-y-6 flex flex-col justify-between">
+            <div>
+              <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
+                STEP 04 • SECURITY & REPORTS
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0B1F33] tracking-tight mb-3">
+                Reports & Anti-Piracy Lecture Portal
+              </h2>
+              <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium mb-6">
+                Institute owners get complete transparency over counselor talk times and students watch lecture recordings with dynamic watermark protection.
+              </p>
+
+              <div className="space-y-3 pt-4 border-t border-slate-200 text-xs sm:text-sm text-slate-700 font-medium">
+                <div>• <strong>Daily performance board:</strong> See talk time and conversion rate per counselor.</div>
+                <div>• <strong>Zero lock-in export:</strong> Download complete Excel and CSV records anytime.</div>
+                <div>• <strong>Floating watermarks:</strong> Student phone number floats across videos to stop Telegram leaks.</div>
+              </div>
             </div>
-            <h2 className="text-xl font-bold text-[#0B1F33] mb-3">
-              Reports & Student Portal
-            </h2>
-            <p className="text-sm text-slate-600 leading-relaxed font-medium mb-4">
-              Institute owners get full transparency over team performance and course material security.
-            </p>
-            <ul className="space-y-2 text-xs text-slate-600 font-medium">
-              <li>• Daily performance board: see talk time and conversion rate per counselor.</li>
-              <li>• Download complete Excel/CSV data anytime with zero lock-in.</li>
-              <li>• Anti-piracy lecture portal: student phone number floats over recorded classes.</li>
-            </ul>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs text-slate-600 flex justify-between font-medium">
+              <span>Lecture Security:</span>
+              <span className="font-bold text-[#2563EB]">Anti-Piracy Protected</span>
+            </div>
           </div>
 
         </div>
 
-        {/* Sales Help CTA Box */}
-        <div className="p-8 sm:p-10 rounded-2xl bg-[#0B1F33] text-white flex flex-col md:flex-row items-center justify-between gap-6">
-          <div>
-            <h3 className="text-xl sm:text-2xl font-bold mb-1">
+        {/* Full-Scale Action Banner */}
+        <div className="p-10 sm:p-14 rounded-3xl bg-[#0B1F33] text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
+          <div className="max-w-xl space-y-2">
+            <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Have questions about connecting your setup?
             </h3>
-            <p className="text-sm text-slate-300 font-medium">
-              Speak directly with our onboarding team at <span className="text-white font-bold">+91 81318 38253</span>.
+            <p className="text-sm sm:text-base text-slate-300 font-medium leading-relaxed">
+              Speak directly with our onboarding team at <span className="text-white font-bold">+91 81318 38253</span> or book an interactive walkthrough.
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <a
-              href="tel:+918131838253"
-              className="px-5 py-2.5 rounded-xl bg-white text-[#0B1F33] text-xs font-bold hover:bg-slate-100 transition-colors"
-            >
-              Call Us
-            </a>
+          <div className="flex items-center gap-4">
             <BookDemoButton text="Book a Demo" href="/book-demo" />
           </div>
         </div>
+
       </main>
 
       <Footer />

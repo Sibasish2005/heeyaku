@@ -4,151 +4,184 @@ import React from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/landingpage/navbar/Navbar';
 import Footer from '@/components/landingpage/footer/Footer';
-
-const TIERS = [
-  {
-    name: 'Starter Academy',
-    team: '1 to 5 Counselors',
-    price: '₹2,499',
-    period: '/ month',
-    desc: 'Perfect for local coaching centers and small test-prep branches.',
-    features: [
-      'Android Call Tracker app for up to 5 counselors',
-      'Automatic call duration and missed call logging',
-      'Lead assignment board with sub-60s notification',
-      'Post-call disposition notes (Interested, Callback, etc.)',
-      'Standard WhatsApp brochure dispatch',
-    ],
-  },
-  {
-    name: 'Growth Institute',
-    team: '6 to 20 Counselors',
-    price: '₹5,999',
-    period: '/ month',
-    desc: 'For growing institutes with dedicated telecalling teams.',
-    features: [
-      'Android Call Tracker app for up to 20 counselors',
-      'Round-robin and language-based lead distribution',
-      'Automated WhatsApp follow-up drips & fee payment links',
-      'Manager dashboard with daily call volume and talk time',
-      'Uninterrupted offline sync queue',
-    ],
-  },
-  {
-    name: 'Multi-Branch Enterprise',
-    team: '20+ Counselors',
-    price: 'Custom',
-    period: 'tailored pricing',
-    desc: 'For multi-city coaching brands, university admissions, and large bootcamps.',
-    features: [
-      'Unlimited counselors across multiple branches',
-      'Custom CRM data migration from your existing spreadsheets',
-      'Direct API access and custom webhook integrations',
-      'Piracy-protected video player with student roll-number watermark',
-      'Dedicated support lead and staff onboarding training',
-    ],
-  },
-];
+import BookDemoButton from '@/components/landingpage/shared/BookDemoButton';
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-white text-[#0B1F33] flex flex-col justify-between">
+    <div className="min-h-screen bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white flex flex-col overflow-hidden">
       <Navbar />
 
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-8 pt-32 pb-20">
+      {/* Atmospheric Aurora Lighting */}
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-r from-blue-100/50 via-sky-100/40 to-indigo-100/40 blur-[140px] pointer-events-none -z-10" />
+
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-32 pb-24 lg:pb-32">
         
-        {/* Simple Non-Tech Header */}
-        <div className="text-center max-w-2xl mx-auto mb-14">
-          <h1 className="text-3xl sm:text-5xl font-extrabold text-[#0B1F33] tracking-tight mb-4">
-            Simple, Transparent Pricing
+        {/* Full-Scale Hero Header */}
+        <div className="text-left max-w-3xl mb-12 sm:mb-16">
+          <div className="text-xs sm:text-sm font-mono font-bold text-[#2563EB] uppercase tracking-wider mb-3">
+            TRANSPARENT ADMISSION PRICING
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold tracking-[-0.035em] text-[#0B1F33] leading-[1.08] mb-6">
+            Simple, Honest Pricing. <br />
+            <span className="text-[#2563EB]">No Hidden Setup Fees.</span>
           </h1>
-          <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-            No hidden fees. Replace multiple messy subscriptions for calling apps, dialers, and spreadsheets with one unified system.
+
+          <p className="text-base sm:text-xl text-slate-600 font-medium leading-relaxed">
+            Choose the right plan for your coaching institute, academy, or multi-branch setup. Every plan includes full setup support and Android tracking.
           </p>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {TIERS.map((tier, idx) => (
-            <div
-              key={idx}
-              className={`p-6 sm:p-8 rounded-2xl border flex flex-col justify-between space-y-6 ${
-                idx === 1
-                  ? 'bg-[#0B1F33] text-white border-[#0B1F33] shadow-lg'
-                  : 'bg-slate-50/50 border-slate-200 text-[#0B1F33]'
-              }`}
-            >
-              <div className="space-y-4">
-                <div>
-                  <div className={`text-xs font-mono font-bold uppercase tracking-wider ${idx === 1 ? 'text-cyan-300' : 'text-slate-400'}`}>
-                    {tier.team}
-                  </div>
-                  <h2 className="text-xl font-bold mt-1">
-                    {tier.name}
-                  </h2>
-                  <p className={`text-xs mt-1 leading-relaxed ${idx === 1 ? 'text-slate-300' : 'text-slate-500'}`}>
-                    {tier.desc}
-                  </p>
-                </div>
+        {/* 3 Full-Scale Pricing Bento Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16 items-stretch">
+          
+          {/* Tier 1: Starter */}
+          <div className="p-8 sm:p-10 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/80 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] flex flex-col justify-between space-y-8">
+            <div>
+              <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
+                STARTER ACADEMY
+              </div>
+              <div className="text-3xl sm:text-4xl font-extrabold text-[#0B1F33] mb-1">
+                ₹2,499
+                <span className="text-sm font-normal text-slate-500"> / month</span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed mb-6">
+                Best for single-branch coaching centers getting started with telecalling.
+              </p>
 
-                <div className="flex items-baseline gap-1 pt-2">
-                  <span className="text-3xl sm:text-4xl font-extrabold">
-                    {tier.price}
-                  </span>
-                  <span className={`text-xs ${idx === 1 ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {tier.period}
-                  </span>
+              <div className="space-y-3 pt-4 border-t border-slate-200 text-xs sm:text-sm text-slate-700">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Up to 5 Counselor Android App Accounts</span>
                 </div>
-
-                <div className={`pt-4 border-t space-y-2 text-xs ${idx === 1 ? 'border-slate-800 text-slate-200' : 'border-slate-200 text-slate-700'}`}>
-                  {tier.features.map((feat, fIdx) => (
-                    <div key={fIdx} className="flex items-start gap-2">
-                      <span className={idx === 1 ? 'text-[#38BDF8] font-bold' : 'text-[#2563EB] font-bold'}>✓</span>
-                      <span>{feat}</span>
-                    </div>
-                  ))}
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Automatic Call Duration & Talk-Time Tracking</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Centralized Lead Dashboard with 2-Tap Notes</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>WhatsApp Brochure & Demo Reminders</span>
                 </div>
               </div>
-
-              <Link
-                href="/book-demo"
-                className={`w-full py-3 rounded-xl text-center text-xs font-bold transition-colors ${
-                  idx === 1
-                    ? 'bg-[#2563EB] hover:bg-blue-600 text-white'
-                    : 'bg-[#0B1F33] hover:bg-[#2563EB] text-white'
-                }`}
-              >
-                Get Started
-              </Link>
             </div>
-          ))}
-        </div>
 
-        {/* Direct Call Assistance Strip */}
-        <div className="p-8 rounded-2xl bg-slate-50 border border-slate-200 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div>
-            <h3 className="text-lg font-bold text-[#0B1F33]">
-              Need a custom plan for your counselors?
-            </h3>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Talk directly to our sales lead. We will set up a trial plan tailored for your team size.
-            </p>
+            <Link
+              href="/book-demo"
+              className="block w-full text-center py-3.5 rounded-2xl bg-white border border-slate-300 hover:border-[#2563EB] text-slate-800 text-xs sm:text-sm font-bold tracking-wider uppercase transition-colors"
+            >
+              Get Started
+            </Link>
           </div>
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+
+          {/* Tier 2: Growth (Featured) */}
+          <div className="p-8 sm:p-10 rounded-3xl border-2 border-[#2563EB] bg-white shadow-xl shadow-blue-500/10 flex flex-col justify-between space-y-8 relative">
+            <div>
+              <div className="text-xs font-mono font-bold text-[#2563EB] uppercase tracking-wider mb-2">
+                MOST POPULAR • GROWTH INSTITUTE
+              </div>
+              <div className="text-3xl sm:text-4xl font-extrabold text-[#0B1F33] mb-1">
+                ₹5,999
+                <span className="text-sm font-normal text-slate-500"> / month</span>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed mb-6">
+                For growing institutes with active counselors and lecture delivery.
+              </p>
+
+              <div className="space-y-3 pt-4 border-t border-slate-200 text-xs sm:text-sm text-slate-700">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Up to 15 Counselor Android App Accounts</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Direct Facebook & Google Ads Integration (Under 60s)</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Anti-Piracy Video Portal with Student Watermark</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Automated WhatsApp Fee Installment Links</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Dedicated Onboarding Manager via Phone & WhatsApp</span>
+                </div>
+              </div>
+            </div>
+
+            <Link
+              href="/book-demo"
+              className="block w-full text-center py-3.5 rounded-2xl bg-[#2563EB] hover:bg-blue-600 text-white text-xs sm:text-sm font-bold tracking-wider uppercase transition-colors shadow-md shadow-blue-500/20"
+            >
+              Start With Growth
+            </Link>
+          </div>
+
+          {/* Tier 3: Enterprise */}
+          <div className="p-8 sm:p-10 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/80 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] flex flex-col justify-between space-y-8">
+            <div>
+              <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
+                MULTI-BRANCH ENTERPRISE
+              </div>
+              <div className="text-3xl sm:text-4xl font-extrabold text-[#0B1F33] mb-1">
+                Custom
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed mb-6">
+                For academies with 15+ telecallers across multiple cities or franchises.
+              </p>
+
+              <div className="space-y-3 pt-4 border-t border-slate-200 text-xs sm:text-sm text-slate-700">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Unlimited Counselor & Faculty Accounts</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Multi-Branch Permission Hierarchies</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Custom Admission Website on Your Domain</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Custom CRM Fields, Batch Schedules & Reporting</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Priority 24/7 Hotline & WhatsApp Support</span>
+                </div>
+              </div>
+            </div>
+
             <a
               href="tel:+918131838253"
-              className="px-5 py-2.5 rounded-xl bg-[#0B1F33] text-white font-bold text-xs hover:bg-[#2563EB] transition-colors"
+              className="block w-full text-center py-3.5 rounded-2xl bg-[#0B1F33] hover:bg-[#1E293B] text-white text-xs sm:text-sm font-bold tracking-wider uppercase transition-colors"
             >
-              Call +91 81318 38253
+              Call for Custom Quote
             </a>
-            <a
-              href="https://wa.me/918131838253?text=Hi%20Heeyaku%2C%20I%20have%20a%20question%20about%20pricing%20plans%20for%20my%20institute."
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-5 py-2.5 rounded-xl bg-[#25D366] text-white font-bold text-xs hover:bg-[#20bd5a] transition-colors"
-            >
-              WhatsApp Support
-            </a>
+          </div>
+
+        </div>
+
+        {/* Bottom Contact Strip */}
+        <div className="p-10 sm:p-14 rounded-3xl bg-[#0B1F33] text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl">
+          <div className="max-w-xl space-y-2">
+            <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+              Have questions about pricing or customization?
+            </h3>
+            <p className="text-sm sm:text-base text-slate-300 font-medium leading-relaxed">
+              Call our advisory desk directly at <span className="text-white font-bold">+91 81318 38253</span> or book an interactive walkthrough.
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <BookDemoButton text="Book a Demo" href="/book-demo" />
           </div>
         </div>
 
