@@ -17,12 +17,16 @@ export async function POST(req: NextRequest) {
 
     const trimmedId = String(identifier).trim();
     const normalizedId = trimmedId.toUpperCase();
+    const withEmpPrefix = !normalizedId.startsWith('EMP-') && /^\d+$/.test(normalizedId)
+      ? `EMP-${normalizedId}`
+      : null;
 
-    // Look up employee by employeeCode (EMP-XXXX) or email
+    // Look up employee by employeeCode (EMP-XXXX), numeric code, or email
     const employee = await prisma.employee.findFirst({
       where: {
         OR: [
           { employeeCode: { equals: normalizedId, mode: 'insensitive' } },
+          ...(withEmpPrefix ? [{ employeeCode: { equals: withEmpPrefix, mode: 'insensitive' as const } }] : []),
           { email: { equals: trimmedId, mode: 'insensitive' } },
         ],
       },

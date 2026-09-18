@@ -1,11 +1,23 @@
-import React from 'react';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
-import LeadTable from '@/components/admin/leads/LeadTable';
+import LeadTable, { ActiveEmployee } from '@/components/admin/leads/LeadTable';
+
+type LeadQueryResult = Prisma.LeadGetPayload<{
+  include: {
+    assignedEmployee: {
+      select: {
+        id: true;
+        employeeCode: true;
+        name: true;
+      };
+    };
+  };
+}>;
 
 export const metadata = {
-  title: 'Leads CRM Pipeline | HEEYAKU Admin',
-  description: 'Manage prospect pipelines, status transitions, and tele-caller distribution.',
+  title: 'Lead Management & CRM Pipeline | HEEYAKU Admin',
+  description: 'Manage sales leads, assignments, and follow-ups.',
 };
 
 export const dynamic = 'force-dynamic';
@@ -20,8 +32,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   await assertAdminAccess();
   const { employeeId } = await searchParams;
 
-  let leads: any[] = [];
-  let activeEmployees: any[] = [];
+  let leads: LeadQueryResult[] = [];
+  let activeEmployees: ActiveEmployee[] = [];
 
   try {
     const [fetchedLeads, fetchedEmployees] = await Promise.all([

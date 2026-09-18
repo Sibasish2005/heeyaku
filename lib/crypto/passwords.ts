@@ -13,7 +13,7 @@ export function generateRandomPassword(length: number = 10): string {
   const allChars = uppercase + lowercase + numbers + symbols;
 
   // Ensure at least one of each character set
-  let password = [
+  const password = [
     uppercase[crypto.randomInt(0, uppercase.length)],
     lowercase[crypto.randomInt(0, lowercase.length)],
     numbers[crypto.randomInt(0, numbers.length)],

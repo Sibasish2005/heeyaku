@@ -43,27 +43,44 @@ export default function EditLeadDialog({
   onClose,
   onLeadUpdated,
 }: EditLeadDialogProps) {
+  if (!isOpen || !lead) return null;
+
+  return (
+    <EditLeadDialogContent
+      key={lead.id}
+      lead={lead}
+      activeEmployees={activeEmployees}
+      onClose={onClose}
+      onLeadUpdated={onLeadUpdated}
+    />
+  );
+}
+
+function EditLeadDialogContent({
+  lead,
+  activeEmployees,
+  onClose,
+  onLeadUpdated,
+}: {
+  lead: NonNullable<EditLeadDialogProps['lead']>;
+  activeEmployees: ActiveEmployee[];
+  onClose: () => void;
+  onLeadUpdated?: () => void;
+}) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<EditLeadFormData>({
-    name: '', phoneNumber: '', email: '', company: '',
-    source: 'MANUAL', status: 'NEW', notes: '', assignedEmployeeId: '',
+    name: lead.name,
+    phoneNumber: lead.phoneNumber,
+    email: lead.email || '',
+    company: lead.company || '',
+    source: lead.source,
+    status: lead.status,
+    notes: lead.notes || '',
+    assignedEmployeeId: lead.assignedEmployeeId || '',
   });
-
-  useEffect(() => {
-    if (lead) {
-      setFormData({
-        name: lead.name, phoneNumber: lead.phoneNumber, email: lead.email || '',
-        company: lead.company || '', source: lead.source, status: lead.status,
-        notes: lead.notes || '', assignedEmployeeId: lead.assignedEmployeeId || '',
-      });
-      setError(null);
-    }
-  }, [lead]);
-
-  if (!isOpen || !lead) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

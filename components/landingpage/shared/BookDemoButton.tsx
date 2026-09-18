@@ -110,14 +110,16 @@ function DotMatrixText({ text = "Book a Demo" }: { text?: string }) {
   const dotGap = 2.6;
   const charSpacing = 3.2;
 
-  let totalWidth = 0;
-  const charData = text.split('').map((char) => {
-    const grid = DOT_FONT[char] || DOT_FONT[' '] || [];
-    const width = (grid[0]?.length || 3) * dotGap;
-    const startX = totalWidth;
-    totalWidth += width + charSpacing;
-    return { grid, startX };
-  });
+  const { charData, totalWidth } = text.split('').reduce(
+    (acc, char) => {
+      const grid = DOT_FONT[char] || DOT_FONT[' '] || [];
+      const width = (grid[0]?.length || 3) * dotGap;
+      acc.charData.push({ grid, startX: acc.totalWidth });
+      acc.totalWidth += width + charSpacing;
+      return acc;
+    },
+    { charData: [] as { grid: number[][]; startX: number }[], totalWidth: 0 }
+  );
 
   return (
     <svg

@@ -23,9 +23,9 @@ export async function GET(req: NextRequest) {
     }
 
     let employeeId = payload.employeeId;
-    const existingEmp = await prisma.employee.findUnique({ where: { id: employeeId } });
-    if (!existingEmp && (payload.employeeCode || payload.email)) {
-      const fallbackEmp = await prisma.employee.findFirst({
+    let employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!employee && (payload.employeeCode || payload.email)) {
+      employee = await prisma.employee.findFirst({
         where: {
           OR: [
             ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
@@ -33,14 +33,37 @@ export async function GET(req: NextRequest) {
           ],
         },
       });
-      if (fallbackEmp) {
-        employeeId = fallbackEmp.id;
-      }
     }
+
+    if (!employee) {
+      return NextResponse.json(
+        { success: false, error: 'Employee account not found.' },
+        { status: 401 }
+      );
+    }
+    employeeId = employee.id;
+
+    // Collect all matching employee IDs to ensure leads are never orphaned across DB resets
+    const matchingEmployees = await prisma.employee.findMany({
+      where: {
+        OR: [
+          { id: payload.employeeId },
+          { id: employee.id },
+          ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
+          ...(payload.email ? [{ email: payload.email }] : []),
+          ...(employee.employeeCode ? [{ employeeCode: employee.employeeCode }] : []),
+        ],
+      },
+      select: { id: true },
+    });
+
+    const employeeIds = Array.from(
+      new Set([payload.employeeId, employee.id, ...matchingEmployees.map((e) => e.id)])
+    ).filter(Boolean);
 
     const leads = await prisma.lead.findMany({
       where: {
-        assignedEmployeeId: employeeId,
+        assignedEmployeeId: { in: employeeIds },
       },
       orderBy: {
         updatedAt: 'desc',

@@ -1,7 +1,7 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
-import EmployeeTable from '@/components/admin/employees/EmployeeTable';
+import EmployeeTable, { EmployeeListItem } from '@/components/admin/employees/EmployeeTable';
 
 export const metadata = {
   title: 'Employee Directory & Access Control | HEEYAKU Admin',
@@ -17,19 +17,35 @@ export default async function EmployeesPage() {
   let activeEmployees = 0;
   let totalAssignedLeads = 0;
   let totalCallsCount = 0;
+  let connectedCallsCount = 0;
   let totalTalkTimeSeconds = 0;
-  let formattedEmployees: any[] = [];
+  let initialTeams: string[] = [];
+  let formattedEmployees: EmployeeListItem[] = [];
 
   try {
-    const [total, active, assigned, callsTotal, talkTimeAgg, initialEmployeesList] = await Promise.all([
+    const [
+      total,
+      active,
+      assigned,
+      callsTotal,
+      connectedCallsTotal,
+      talkTimeAgg,
+      teamsRaw,
+      initialEmployeesList,
+    ] = await Promise.all([
       prisma.employee.count(),
       prisma.employee.count({ where: { isActive: true } }),
       prisma.lead.count({ where: { assignedEmployeeId: { not: null } } }),
       prisma.callLog.count(),
+      prisma.callLog.count({ where: { connected: true } }),
       prisma.callLog.aggregate({
         _sum: {
           durationSeconds: true,
         },
+      }),
+      prisma.employee.findMany({
+        select: { team: true },
+        distinct: ['team'],
       }),
       prisma.employee.findMany({
         take: 10,
@@ -65,10 +81,12 @@ export default async function EmployeesPage() {
     activeEmployees = active;
     totalAssignedLeads = assigned;
     totalCallsCount = callsTotal;
+    connectedCallsCount = connectedCallsTotal;
     totalTalkTimeSeconds = talkTimeAgg._sum.durationSeconds || 0;
+    initialTeams = Array.from(new Set(teamsRaw.map((t) => t.team).filter(Boolean))) as string[];
 
     formattedEmployees = initialEmployeesList.map((e) => {
-      const empTalkTime = e.callLogs.reduce((acc, c) => acc + c.durationSeconds, 0);
+      const empTalkTime = e.callLogs.reduce((acc, c) => acc + (c.durationSeconds || 0), 0);
       return {
         id: e.id,
         employeeCode: e.employeeCode,
@@ -92,15 +110,14 @@ export default async function EmployeesPage() {
   }
 
   const formatRibbonTalkTime = (totalSec: number) => {
-    if (!totalSec || totalSec <= 0) return '0m';
+    if (!totalSec || totalSec <= 0) return '0s';
     const hours = Math.floor(totalSec / 3600);
     const minutes = Math.floor((totalSec % 3600) / 60);
+    const seconds = totalSec % 60;
     if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
   };
-
-
-  const inactiveEmployees = Math.max(0, totalEmployees - activeEmployees);
 
   return (
     <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-8 space-y-8">
@@ -135,7 +152,14 @@ export default async function EmployeesPage() {
 
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors duration-150">
           <div className="text-xs font-semibold text-muted-foreground">Calls Logged</div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 font-mono tracking-tight">{totalCallsCount}</div>
+          <div className="flex items-baseline gap-2">
+            <div className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 font-mono tracking-tight">{totalCallsCount}</div>
+            {totalCallsCount > 0 && (
+              <span className="text-xs font-bold text-muted-foreground font-mono">
+                ({connectedCallsCount} conn)
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors duration-150">
@@ -146,11 +170,11 @@ export default async function EmployeesPage() {
         </div>
       </div>
 
-
       {/* Main Table View */}
       <EmployeeTable
         initialEmployees={formattedEmployees}
         totalEmployeesCount={totalEmployees}
+        initialTeams={initialTeams}
       />
     </main>
   );
