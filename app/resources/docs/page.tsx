@@ -1,158 +1,124 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/landingpage/navbar/Navbar';
 import Footer from '@/components/landingpage/footer/Footer';
 import BookDemoButton from '@/components/landingpage/shared/BookDemoButton';
-import { 
-  BookOpen, 
-  Terminal, 
-  Code2, 
-  ArrowRight, 
-  ShieldCheck, 
-  KeyRound,
-  Copy,
-  Check,
-  Smartphone,
-  Cpu
-} from 'lucide-react';
 
 export default function DocsPage() {
-  const [copied, setCopied] = useState(false);
-
-  const sampleSyncPayload = `POST /api/employee/calls/sync
-Authorization: Bearer <HMAC_SHA256_TOKEN>
-Content-Type: application/json
-
-{
-  "calls": [
-    {
-      "phoneNumber": "+919876543210",
-      "durationSeconds": 245,
-      "connected": true,
-      "outcomeId": "interested",
-      "outcomeLabel": "Interested in Batch",
-      "notes": "Student requested fee structure",
-      "startedAt": 1726650000000
-    }
-  ]
-}`;
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(sampleSyncPayload);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
-    <div className="min-h-screen bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white flex flex-col">
       <Navbar />
 
-      {/* Ambient Aurora Glow */}
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[1000px] h-[450px] bg-gradient-to-r from-blue-100/50 via-sky-100/40 to-indigo-100/40 blur-[140px] pointer-events-none -z-10" />
-
-      <main className="flex-1 w-full max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 pt-32 pb-24">
-        {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-[#2563EB] text-xs font-mono font-bold uppercase tracking-wider mb-6 shadow-xs">
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>DEVELOPER ARCHITECTURE & APIS</span>
-          </div>
-
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-[-0.035em] text-[#0B1F33] leading-[1.08] mb-6">
-            Engineered for Developers. <br />
-            <span className="text-[#2563EB]">Documented for Scale</span>.
+      <main className="flex-1 w-full max-w-5xl mx-auto px-6 sm:px-10 pt-32 pb-24">
+        {/* Simple Sales-Friendly Header */}
+        <div className="mb-14">
+          <p className="text-xs font-mono text-[#2563EB] font-bold uppercase tracking-wider mb-3">
+            Setup Guide & System Overview
+          </p>
+          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#0B1F33] mb-4">
+            How HEEYAKU Works With Your Institute
           </h1>
-
-          <p className="text-base sm:text-lg text-slate-600 font-medium leading-relaxed max-w-2xl mx-auto">
-            Integrate custom webhooks, mobile call logs, and CRM lead distribution pipelines with HEEYAKU's collocated Mumbai APIs.
+          <p className="text-base sm:text-lg text-slate-600 font-medium max-w-2xl leading-relaxed">
+            Everything your admission team, telecallers, and academic coordinators need to know in plain English. No programming required.
           </p>
         </div>
 
-        {/* Technical Architecture Specs */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 items-start">
+        {/* 4 Core Setup Blocks */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
           
-          {/* Left Navigation / Overview */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="p-6 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/70 backdrop-blur-md space-y-4">
-              <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider">
-                CORE SPECIFICATIONS
-              </div>
-              <ul className="space-y-3 text-xs font-medium text-slate-600">
-                <li className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200">
-                  <span>API Base URL</span>
-                  <span className="font-mono text-[#2563EB] font-bold">/api/employee</span>
-                </li>
-                <li className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200">
-                  <span>Auth Protocol</span>
-                  <span className="font-mono text-emerald-600 font-bold">HMAC-SHA256</span>
-                </li>
-                <li className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200">
-                  <span>Latency Target</span>
-                  <span className="font-mono text-[#0B1F33] font-bold">&lt; 25ms (Mumbai)</span>
-                </li>
-                <li className="flex items-center justify-between p-2 rounded-xl bg-white border border-slate-200">
-                  <span>Rate Limiting</span>
-                  <span className="font-mono text-indigo-600 font-bold">Sliding Window</span>
-                </li>
-              </ul>
+          {/* 1. Lead Routing */}
+          <div className="p-8 rounded-2xl border border-slate-200 bg-[#F8FAFC]">
+            <div className="text-xs font-mono text-slate-500 font-bold mb-2 uppercase">
+              Step 1
             </div>
-
-            <div className="p-6 rounded-3xl border border-slate-200 bg-white space-y-3">
-              <h4 className="font-bold text-sm text-[#0B1F33] flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                <span>Security Assurance</span>
-              </h4>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Token signatures are validated with constant-time equality checks (<code className="text-[#2563EB] font-mono">crypto.timingSafeEqual</code>) preventing side-channel attacks.
-              </p>
-            </div>
+            <h2 className="text-xl font-bold text-[#0B1F33] mb-3">
+              Lead Capture & Distribution
+            </h2>
+            <p className="text-sm text-slate-600 leading-relaxed font-medium mb-4">
+              When students fill out an inquiry form on Facebook, Instagram, Google Ads, or your website, their contact details arrive directly on your counselors&apos; screens in under 60 seconds.
+            </p>
+            <ul className="space-y-2 text-xs text-slate-600 font-medium">
+              <li>• Fair lead sharing: distribute new inquiries evenly across counselors.</li>
+              <li>• Ad campaign tracking: know exactly which ad brought in the lead.</li>
+              <li>• Zero duplicate leads: automatically merges repeat inquiries.</li>
+            </ul>
           </div>
 
-          {/* Right Code Block Canvas */}
-          <div className="lg:col-span-8">
-            <div className="rounded-3xl border border-slate-800 bg-slate-950 text-white shadow-2xl overflow-hidden font-mono">
-              <div className="flex items-center justify-between px-6 py-4 bg-slate-900 border-b border-slate-800">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full bg-rose-500/80" />
-                  <span className="w-3 h-3 rounded-full bg-amber-500/80" />
-                  <span className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                  <span className="ml-2 text-xs text-slate-400">batch_call_sync.http</span>
-                </div>
-                <button
-                  onClick={copyToClipboard}
-                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors px-2 py-1 rounded bg-slate-800"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copied ? 'Copied' : 'Copy'}</span>
-                </button>
-              </div>
-
-              <div className="p-6 text-xs sm:text-sm text-slate-300 overflow-x-auto leading-relaxed">
-                <pre>{sampleSyncPayload}</pre>
-              </div>
-
-              <div className="px-6 py-3 bg-slate-900/60 border-t border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                <span>Returns HTTP 200 with synced IDs and resolved lead status</span>
-                <span className="text-emerald-400">JSON Schema Validated</span>
-              </div>
+          {/* 2. Android Telecalling */}
+          <div className="p-8 rounded-2xl border border-slate-200 bg-[#F8FAFC]">
+            <div className="text-xs font-mono text-slate-500 font-bold mb-2 uppercase">
+              Step 2
             </div>
+            <h2 className="text-xl font-bold text-[#0B1F33] mb-3">
+              Counselor Calling App
+            </h2>
+            <p className="text-sm text-slate-600 leading-relaxed font-medium mb-4">
+              Counselors install our Android app on their phones. They tap to call directly from their daily student list without manually typing numbers.
+            </p>
+            <ul className="space-y-2 text-xs text-slate-600 font-medium">
+              <li>• Automatic call tracking: logs talk time, call outcome, and time of day.</li>
+              <li>• Works offline: stores call data locally if network drops and syncs later.</li>
+              <li>• 2-tap notes: counselors select Interested, Callback, or Enrolled immediately.</li>
+            </ul>
+          </div>
+
+          {/* 3. WhatsApp Follow-ups */}
+          <div className="p-8 rounded-2xl border border-slate-200 bg-[#F8FAFC]">
+            <div className="text-xs font-mono text-slate-500 font-bold mb-2 uppercase">
+              Step 3
+            </div>
+            <h2 className="text-xl font-bold text-[#0B1F33] mb-3">
+              WhatsApp & Payment Links
+            </h2>
+            <p className="text-sm text-slate-600 leading-relaxed font-medium mb-4">
+              Keep interested students warm without counselors having to copy-paste messages all day.
+            </p>
+            <ul className="space-y-2 text-xs text-slate-600 font-medium">
+              <li>• Send course brochures and fee structures with one click.</li>
+              <li>• Automated reminders for upcoming demo classes.</li>
+              <li>• Direct UPI and card payment links sent directly to parents&apos; WhatsApp.</li>
+            </ul>
+          </div>
+
+          {/* 4. Reporting & Student Portal */}
+          <div className="p-8 rounded-2xl border border-slate-200 bg-[#F8FAFC]">
+            <div className="text-xs font-mono text-slate-500 font-bold mb-2 uppercase">
+              Step 4
+            </div>
+            <h2 className="text-xl font-bold text-[#0B1F33] mb-3">
+              Reports & Student Portal
+            </h2>
+            <p className="text-sm text-slate-600 leading-relaxed font-medium mb-4">
+              Institute owners get full transparency over team performance and course material security.
+            </p>
+            <ul className="space-y-2 text-xs text-slate-600 font-medium">
+              <li>• Daily performance board: see talk time and conversion rate per counselor.</li>
+              <li>• Download complete Excel/CSV data anytime with zero lock-in.</li>
+              <li>• Anti-piracy lecture portal: student phone number floats over recorded classes.</li>
+            </ul>
           </div>
 
         </div>
 
-        {/* Bottom Banner */}
-        <div className="p-10 sm:p-12 rounded-3xl bg-[#0B1F33] text-white flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl shadow-slate-900/10">
-          <div className="max-w-xl space-y-2">
-            <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Need custom webhook or ERP architecture?
+        {/* Sales Help CTA Box */}
+        <div className="p-8 sm:p-10 rounded-2xl bg-[#0B1F33] text-white flex flex-col md:flex-row items-center justify-between gap-6">
+          <div>
+            <h3 className="text-xl sm:text-2xl font-bold mb-1">
+              Have questions about connecting your setup?
             </h3>
-            <p className="text-sm text-slate-300 leading-relaxed font-medium">
-              Our engineering team provides dedicated webhook integration assistance.
+            <p className="text-sm text-slate-300 font-medium">
+              Speak directly with our onboarding team at <span className="text-white font-bold">+91 81318 38253</span>.
             </p>
           </div>
-          <div>
+          <div className="flex items-center gap-3">
+            <a
+              href="tel:+918131838253"
+              className="px-5 py-2.5 rounded-xl bg-white text-[#0B1F33] text-xs font-bold hover:bg-slate-100 transition-colors"
+            >
+              Call Us
+            </a>
             <BookDemoButton text="Book a Demo" href="/book-demo" />
           </div>
         </div>

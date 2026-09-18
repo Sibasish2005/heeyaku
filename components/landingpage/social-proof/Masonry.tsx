@@ -99,7 +99,7 @@ export default function Masonry({
     const gridItems = items.map(child => {
       const col = colHeights.indexOf(Math.min(...colHeights));
       const x = col * (columnWidth + gap);
-      const height = child.height;
+      const height = columns === 1 ? Math.min(child.height, 220) : child.height;
       const y = colHeights[col];
 
       colHeights[col] += height + gap;

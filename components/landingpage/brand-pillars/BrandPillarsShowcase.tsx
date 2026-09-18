@@ -1,173 +1,131 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import HeeyakuLogo from '../shared/HeeyakuLogo';
-import { ArrowRight, Sparkles, Zap, Shield, Users, GraduationCap, Globe, Cpu } from 'lucide-react';
 import Link from 'next/link';
 
 export default function BrandPillarsShowcase() {
   return (
-    <section className="relative w-full bg-white py-20 lg:py-28 text-[#0B1F33] selection:bg-[#2563EB] selection:text-white overflow-hidden border-t border-slate-200/80">
-      {/* Subtle Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-blue-100/40 via-cyan-100/30 to-indigo-100/40 blur-[150px] pointer-events-none" />
-
-      <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12">
-        {/* Section Header with Official Brand Tagline */}
-        <div className="text-left max-w-3xl mb-12 sm:mb-16">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-[-0.03em] text-[#0B1F33] leading-tight">
-            Technology that <span className="text-[#2563EB]">connects</span> today. <br className="hidden sm:inline" />
-            Growth that <span className="text-[#0284C7]">lasts</span> tomorrow.
-          </h2>
-
-          <p className="mt-4 text-xs sm:text-sm font-bold tracking-widest text-slate-700 uppercase">
-            TECHNOLOGY THAT CONNECTS • SYSTEMS THAT EMPOWER • GROWTH THAT LASTS
+    <section className="relative w-full bg-white py-16 lg:py-24 text-[#0B1F33] selection:bg-[#2563EB] selection:text-white border-t border-slate-200">
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 lg:px-12">
+        {/* Section Header */}
+        <div className="max-w-3xl mb-12">
+          <p className="text-xs font-mono text-[#2563EB] font-bold uppercase tracking-wider mb-2">
+            Built for Admissions & Learning
           </p>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-[#0B1F33] leading-tight">
+            Technology that connects today. <br />
+            Growth that lasts tomorrow.
+          </h2>
         </div>
 
-        {/* Unified Continuous Architectural Showcase (Cardless Open Canvas) */}
-        <div className="relative rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/70 backdrop-blur-md overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)]">
-          <div className="grid grid-cols-1 lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-200/80 items-stretch">
-            
-            {/* PILLAR 1: DON'T JUST GET LEADS. CONVERT THEM. */}
-            <Link
-              href="/solutions/crm"
-              className="p-8 sm:p-10 flex flex-col justify-between space-y-8 bg-white/60 hover:bg-white transition-all duration-200 group cursor-pointer"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <HeeyakuLogo size={26} color="#0B1F33" dotColor="#2563EB" withText={false} />
-                  <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-[#2563EB] border border-blue-200">
-                    CONVERSION CRM
-                  </span>
-                </div>
-
-                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight mb-3 uppercase text-[#0B1F33] group-hover:text-[#2563EB] transition-colors">
-                  DON&apos;T JUST GET LEADS. <br />
-                  <span className="text-[#2563EB]">CONVERT THEM.</span>
-                </h3>
-
-                <p className="text-sm text-slate-700 leading-relaxed font-medium mb-6">
-                  Build a high-velocity system that routes inquiries in seconds and never lets an opportunity slip away.
-                </p>
-
-                {/* Inline Visual Counselor Asset */}
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-600 font-semibold">
-                    <span>Active Inbound Routing</span>
-                    <span className="text-emerald-700 font-bold">1.4m SLA</span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex -space-x-2 overflow-hidden">
-                      <img className="inline-block h-6 w-6 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=64&h=64&q=75" alt="Sarah K." width="24" height="24" loading="lazy" decoding="async" />
-                      <img className="inline-block h-6 w-6 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=64&h=64&q=75" alt="Alex M." width="24" height="24" loading="lazy" decoding="async" />
-                      <img className="inline-block h-6 w-6 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=64&h=64&q=75" alt="Ananya D." width="24" height="24" loading="lazy" decoding="async" />
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-700 font-semibold">3 Counselors Dialing</span>
-                  </div>
-                </div>
+        {/* 3 Clear Pillars (Zero Badges, Zero Icons) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Pillar 1 */}
+          <Link
+            href="/solutions/crm"
+            className="p-8 rounded-2xl border border-slate-200 bg-[#F8FAFC] hover:bg-white transition-colors flex flex-col justify-between group"
+          >
+            <div>
+              <div className="text-xs font-mono text-slate-500 font-bold uppercase mb-4">
+                Pillar 1 • Telecalling & Leads
               </div>
 
-              <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-mono text-slate-600">
-                <span className="text-[#2563EB] font-bold">Explore CRM Architecture</span>
-                <ArrowRight className="w-4 h-4 text-[#2563EB] group-hover:translate-x-1.5 transition-transform" />
-              </div>
-            </Link>
+              <h3 className="text-2xl font-extrabold tracking-tight text-[#0B1F33] group-hover:text-[#2563EB] transition-colors mb-3">
+                Call interested students in under 60 seconds.
+              </h3>
 
-            {/* PILLAR 2: ONE SYSTEM. ALL CONNECTED. REAL GROWTH. */}
-            <Link
-              href="/platform"
-              className="p-8 sm:p-10 flex flex-col justify-between space-y-8 bg-white/80 hover:bg-white transition-all duration-200 group cursor-pointer"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <HeeyakuLogo size={26} color="#0B1F33" dotColor="#2563EB" withText={false} />
-                  <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    UNIFIED STACK
-                  </span>
+              <p className="text-sm text-slate-600 font-medium leading-relaxed mb-6">
+                When students fill out an inquiry form, route it instantly to counselors&apos; phones. Never let hot leads sit cold in a spreadsheet.
+              </p>
+
+              <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-1.5 text-xs text-slate-600">
+                <div className="flex justify-between font-medium">
+                  <span>Average Callback Speed:</span>
+                  <span className="font-bold text-[#2563EB]">1.4 Minutes</span>
                 </div>
-
-                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight mb-3 uppercase text-[#0B1F33] group-hover:text-[#2563EB] transition-colors">
-                  ONE SYSTEM. <br />
-                  <span className="text-[#2563EB]">ALL CONNECTED.</span> <br />
-                  REAL GROWTH.
-                </h3>
-
-                <p className="text-sm text-slate-700 leading-relaxed font-medium mb-4">
-                  CRM, LMS, websites, and automations sharing single-source data in real time.
-                </p>
-
-                {/* Radial Hub Diagram */}
-                <div className="relative py-4 flex items-center justify-center">
-                  <div className="relative w-36 h-36 rounded-full border border-dashed border-slate-300 flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-[#0B1F33] flex items-center justify-center shadow-md">
-                      <HeeyakuLogo size={18} color="#FFFFFF" dotColor="#38BDF8" withText={false} />
-                    </div>
-                    <div className="absolute top-0 -translate-y-1/2 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[9px] font-bold font-mono text-[#2563EB] shadow-xs">
-                      CRM
-                    </div>
-                    <div className="absolute right-0 translate-x-1/2 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[9px] font-bold font-mono text-[#0B1F33] shadow-xs">
-                      WEB
-                    </div>
-                    <div className="absolute bottom-0 translate-y-1/2 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[9px] font-bold font-mono text-[#2563EB] shadow-xs">
-                      AUTO
-                    </div>
-                    <div className="absolute left-0 -translate-x-1/2 px-2 py-0.5 rounded-md bg-white border border-slate-200 text-[9px] font-bold font-mono text-[#0B1F33] shadow-xs">
-                      LMS
-                    </div>
-                  </div>
+                <div className="flex justify-between font-medium">
+                  <span>Call Logging:</span>
+                  <span className="font-bold text-emerald-700">100% Automatic</span>
                 </div>
               </div>
+            </div>
 
-              <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-mono text-slate-600">
-                <span className="text-slate-800 font-bold">View Platform Telemetry</span>
-                <ArrowRight className="w-4 h-4 text-[#0B1F33] group-hover:translate-x-1.5 transition-transform" />
+            <div className="pt-6 mt-6 border-t border-slate-200 text-xs font-bold text-[#2563EB]">
+              Explore Calling CRM →
+            </div>
+          </Link>
+
+          {/* Pillar 2 */}
+          <Link
+            href="/platform"
+            className="p-8 rounded-2xl border border-slate-200 bg-[#F8FAFC] hover:bg-white transition-colors flex flex-col justify-between group"
+          >
+            <div>
+              <div className="text-xs font-mono text-slate-500 font-bold uppercase mb-4">
+                Pillar 2 • One Central Platform
               </div>
-            </Link>
 
-            {/* PILLAR 3: AUTOMATE FOLLOW UPS. BUILD TRUST. CLOSE MORE. */}
-            <Link
-              href="/solutions/automation"
-              className="p-8 sm:p-10 flex flex-col justify-between space-y-8 bg-white/60 hover:bg-white transition-all duration-200 group cursor-pointer"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-6">
-                  <HeeyakuLogo size={26} color="#0B1F33" dotColor="#38BDF8" withText={false} />
-                  <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200">
-                    AUTONOMOUS AI
-                  </span>
+              <h3 className="text-2xl font-extrabold tracking-tight text-[#0B1F33] group-hover:text-[#2563EB] transition-colors mb-3">
+                Calling app, website, and classes in one place.
+              </h3>
+
+              <p className="text-sm text-slate-600 font-medium leading-relaxed mb-6">
+                No need to pay for 5 different software tools. Your admission board, student video portal, and fee links stay synced automatically.
+              </p>
+
+              <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-1.5 text-xs text-slate-600">
+                <div className="flex justify-between font-medium">
+                  <span>Student Screen Watermark:</span>
+                  <span className="font-bold text-emerald-700">Anti-Piracy Protected</span>
                 </div>
-
-                <h3 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight mb-3 uppercase text-[#0B1F33] group-hover:text-[#0284C7] transition-colors">
-                  AUTOMATE FOLLOW UPS. <br />
-                  <span className="text-[#0284C7]">BUILD TRUST.</span> <br />
-                  CLOSE MORE.
-                </h3>
-
-                <p className="text-sm text-slate-700 leading-relaxed font-medium mb-6">
-                  Intelligent WhatsApp and SMS drip sequences that re-engage leads on autopilot.
-                </p>
-
-                {/* Inline Visual Automation Drip */}
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-600">
-                    <span>WhatsApp Cloud Drip</span>
-                    <span className="text-cyan-700 font-bold">+38% Uplift</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] font-mono text-slate-600">
-                    <span className="text-emerald-700 font-bold">✓✓ Delivered</span>
-                    <span>• Scholarship incentive dropped</span>
-                  </div>
+                <div className="flex justify-between font-medium">
+                  <span>Fee Receipts:</span>
+                  <span className="font-bold text-[#0B1F33]">Instant WhatsApp Delivery</span>
                 </div>
               </div>
+            </div>
 
-              <div className="pt-4 border-t border-slate-200/80 flex items-center justify-between text-xs font-mono text-slate-600">
-                <span className="text-cyan-700 font-bold">Inspect Workflow Bots</span>
-                <ArrowRight className="w-4 h-4 text-cyan-700 group-hover:translate-x-1.5 transition-transform" />
+            <div className="pt-6 mt-6 border-t border-slate-200 text-xs font-bold text-[#2563EB]">
+              View All Features →
+            </div>
+          </Link>
+
+          {/* Pillar 3 */}
+          <Link
+            href="/solutions/automation"
+            className="p-8 rounded-2xl border border-slate-200 bg-[#F8FAFC] hover:bg-white transition-colors flex flex-col justify-between group"
+          >
+            <div>
+              <div className="text-xs font-mono text-slate-500 font-bold uppercase mb-4">
+                Pillar 3 • Follow-ups
               </div>
-            </Link>
 
-          </div>
+              <h3 className="text-2xl font-extrabold tracking-tight text-[#0B1F33] group-hover:text-[#2563EB] transition-colors mb-3">
+                Brochures and fee links sent on WhatsApp.
+              </h3>
+
+              <p className="text-sm text-slate-600 font-medium leading-relaxed mb-6">
+                Keep parents and students updated with automated WhatsApp messages for demo class schedules, syllabus details, and UPI fee links.
+              </p>
+
+              <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-1.5 text-xs text-slate-600">
+                <div className="flex justify-between font-medium">
+                  <span>Brochure Delivery:</span>
+                  <span className="font-bold text-emerald-700">Instant on Inquiry</span>
+                </div>
+                <div className="flex justify-between font-medium">
+                  <span>Fee Collection:</span>
+                  <span className="font-bold text-[#2563EB]">1-Tap UPI Payment</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 mt-6 border-t border-slate-200 text-xs font-bold text-[#2563EB]">
+              Explore Automations →
+            </div>
+          </Link>
+
         </div>
       </div>
     </section>

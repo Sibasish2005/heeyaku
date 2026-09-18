@@ -24,7 +24,6 @@ export default function Home() {
     <SmoothScroll>
       <div 
         className="landing-page-root relative w-full bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white"
-        style={{ zoom: '90%' }}
       >
         {/* Global Translucent Sticky Navbar with Morphicons */}
         <Navbar />

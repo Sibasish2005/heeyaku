@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import HeeyakuLogo from '../shared/HeeyakuLogo';
-import { Layers, Cpu, Globe, Smartphone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MorphIcon } from 'morphicons/react';
 import { Show, UserButton } from '@clerk/nextjs';
@@ -14,8 +13,6 @@ const ICONS = {
   chevronDown: 'M6 9l6 6 6-6',
   chevronUp: 'M18 15l-6-6-6 6',
 };
-
-
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -85,49 +82,34 @@ export default function Navbar() {
                   animate={{ opacity: 1, transform: 'scale(1)' }}
                   exit={{ opacity: 0, transform: 'scale(0.95)' }}
                   transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                  className="absolute top-full left-0 w-72 pt-2 z-50"
+                  className="absolute top-full left-0 w-64 pt-2 z-50"
                 >
                   <div className="bg-white/95 backdrop-blur-2xl rounded-2xl border border-slate-200 p-3 shadow-2xl space-y-1 text-[#0B1F33]">
                     <Link
                       href="/solutions/crm"
                       onClick={() => setSolutionsOpen(false)}
-                      className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors duration-150 group active:scale-[0.98]"
+                      className="block p-2.5 rounded-xl hover:bg-slate-50 transition-colors duration-150 group active:scale-[0.98]"
                     >
-                      <div className="p-2 rounded-lg bg-[#2563EB]/10 text-[#2563EB] group-hover:bg-[#2563EB] group-hover:text-white transition-colors duration-150">
-                        <Layers className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-[#0B1F33]">Custom CRM & LMS</div>
-                        <div className="text-[11px] text-slate-500">Built specifically for e-learning scale</div>
-                      </div>
+                      <div className="text-xs font-bold text-[#0B1F33]">Counselor CRM & Leads</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">Track calls and speed-to-lead</div>
                     </Link>
 
                     <Link
                       href="/solutions/automation"
                       onClick={() => setSolutionsOpen(false)}
-                      className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors duration-150 group active:scale-[0.98]"
+                      className="block p-2.5 rounded-xl hover:bg-slate-50 transition-colors duration-150 group active:scale-[0.98]"
                     >
-                      <div className="p-2 rounded-lg bg-[#2563EB]/10 text-[#2563EB] group-hover:bg-[#2563EB] group-hover:text-white transition-colors duration-150">
-                        <Cpu className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-[#0B1F33]">End-to-End Automation</div>
-                        <div className="text-[11px] text-slate-500">Eliminate operational leakage</div>
-                      </div>
+                      <div className="text-xs font-bold text-[#0B1F33]">WhatsApp & Payments</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">Brochures and fee collection links</div>
                     </Link>
 
                     <Link
                       href="/solutions/web"
                       onClick={() => setSolutionsOpen(false)}
-                      className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors duration-150 group active:scale-[0.98]"
+                      className="block p-2.5 rounded-xl hover:bg-slate-50 transition-colors duration-150 group active:scale-[0.98]"
                     >
-                      <div className="p-2 rounded-lg bg-[#2563EB]/10 text-[#2563EB] group-hover:bg-[#2563EB] group-hover:text-white transition-colors duration-150">
-                        <Globe className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-[#0B1F33]">High-Converting Web</div>
-                        <div className="text-[11px] text-slate-500">Next-gen performance interfaces</div>
-                      </div>
+                      <div className="text-xs font-bold text-[#0B1F33]">Admission Websites</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">Fast-loading mobile enrollment pages</div>
                     </Link>
                   </div>
                 </motion.div>
@@ -170,7 +152,7 @@ export default function Navbar() {
                   animate={{ opacity: 1, transform: 'scale(1)' }}
                   exit={{ opacity: 0, transform: 'scale(0.95)' }}
                   transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                  className="absolute top-full left-0 w-56 pt-2 z-50"
+                  className="absolute top-full left-0 w-52 pt-2 z-50"
                 >
                   <div className="bg-white/95 backdrop-blur-2xl rounded-2xl border border-slate-200 p-2.5 shadow-2xl space-y-1 text-[#0B1F33]">
                     <Link
@@ -185,14 +167,14 @@ export default function Navbar() {
                       onClick={() => setResourcesOpen(false)}
                       className="block px-3 py-2 text-xs font-semibold text-[#0B1F33] hover:text-[#2563EB] hover:bg-slate-100 rounded-lg transition-colors duration-150 active:scale-[0.98]"
                     >
-                      Documentation
+                      Setup Guide
                     </Link>
                     <Link
                       href="/resources/blog"
                       onClick={() => setResourcesOpen(false)}
                       className="block px-3 py-2 text-xs font-semibold text-[#0B1F33] hover:text-[#2563EB] hover:bg-slate-100 rounded-lg transition-colors duration-150 active:scale-[0.98]"
                     >
-                      Insights & Blog
+                      Guides & Articles
                     </Link>
                   </div>
                 </motion.div>
@@ -209,20 +191,19 @@ export default function Navbar() {
         </div>
 
         {/* Right: Actions */}
-        <div className="hidden md:flex items-center gap-2.5">
-          {/* Download App CTA */}
+        <div className="hidden md:flex items-center gap-3">
+          {/* Download App Link */}
           <Link
             href="/download"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold tracking-wider text-[#2563EB] hover:text-[#1D4ED8] bg-blue-50/90 hover:bg-blue-100 border border-blue-200/60 rounded-full transition-all duration-150 active:scale-95 cursor-pointer"
+            className="inline-flex items-center justify-center px-3.5 py-1.5 text-xs font-bold text-[#2563EB] hover:text-[#1D4ED8] bg-blue-50/90 hover:bg-blue-100 border border-blue-200/60 rounded-full transition-all duration-150 active:scale-95 cursor-pointer"
           >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span>App</span>
+            Calling App
           </Link>
 
           {/* Book Demo Header Link */}
           <Link
             href="/book-demo"
-            className="inline-flex items-center justify-center px-3.5 py-1.5 text-xs font-bold tracking-wider text-slate-700 hover:text-[#2563EB] hover:bg-slate-100 rounded-full transition-colors duration-150 cursor-pointer"
+            className="inline-flex items-center justify-center px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:text-[#2563EB] hover:bg-slate-100 rounded-full transition-colors duration-150 cursor-pointer"
           >
             Book Demo
           </Link>
@@ -298,7 +279,7 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="px-3 py-2.5 rounded-lg text-base font-semibold text-[#0B1F33] hover:bg-slate-100 hover:text-[#2563EB] transition-colors duration-150 active:scale-[0.98]"
               >
-                Resources
+                Case Studies
               </Link>
               <Link
                 href="/pricing"
@@ -310,10 +291,9 @@ export default function Navbar() {
               <Link
                 href="/download"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-base font-bold text-[#2563EB] bg-blue-50/90 hover:bg-blue-100 transition-colors duration-150 active:scale-[0.98]"
+                className="px-3 py-2.5 rounded-xl text-base font-bold text-[#2563EB] bg-blue-50/90 hover:bg-blue-100 transition-colors duration-150 active:scale-[0.98]"
               >
-                <Smartphone className="w-4 h-4" />
-                <span>Download Mobile App (APK)</span>
+                Download Calling App (APK)
               </Link>
               <Link
                 href="/book-demo"
@@ -325,7 +305,6 @@ export default function Navbar() {
             </div>
 
             <div className="pt-4 border-t border-slate-200 flex flex-col gap-3">
-
               <div className="pt-1">
                 <Show when="signed-out">
                   <div>

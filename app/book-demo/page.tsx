@@ -4,499 +4,308 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/landingpage/navbar/Navbar';
 import Footer from '@/components/landingpage/footer/Footer';
-import { 
-  Calendar, Clock, ShieldCheck, CheckCircle2, 
-  Smartphone, ArrowRight, Sparkles, Building2, 
-  Mail, Phone, User, Users, Check, ExternalLink 
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
-const TIME_SLOTS = [
-  '10:00 AM - 10:45 AM IST',
-  '02:00 PM - 02:45 PM IST',
-  '04:30 PM - 05:15 PM IST',
-  '06:30 PM - 07:15 PM IST',
+const SERVICES_CATALOG = [
+  {
+    id: 'calltracker',
+    name: 'Android Call Tracker',
+    summary: 'Tracks counselor calls automatically. Pops up right after each call so counselors can mark if the student is interested, needs a callback, or closed.',
+  },
+  {
+    id: 'crm',
+    name: 'Counselor Lead CRM',
+    summary: 'Pulls leads from Facebook and Google in 30 seconds and assigns them to active telecallers so no student waits or gets forgotten.',
+  },
+  {
+    id: 'whatsapp',
+    name: 'WhatsApp Follow-Up Automation',
+    summary: 'Sends course brochures, meeting links, and fee installment payment links directly to students on WhatsApp.',
+  },
+  {
+    id: 'web',
+    name: 'Admission Website & Fee Checkout',
+    summary: 'Fast course pages where students can view your syllabus and pay admission fees instantly with UPI or cards.',
+  },
+  {
+    id: 'lms',
+    name: 'Piracy-Protected Class Videos',
+    summary: 'Puts the student name and phone number across video lectures to prevent screen recording and course sharing.',
+  },
 ];
 
 const TEAM_SIZES = [
   '1 - 5 Counselors',
   '6 - 15 Counselors',
   '16 - 50 Counselors',
-  '50+ Counselors (Enterprise)',
-];
-
-const FOCUS_AREAS = [
-  { id: 'calltracker', label: 'Android CallTracker & Offline Sync', desc: 'Automatic call recording, zero-leakage dialer, counselor dispositions' },
-  { id: 'crm', label: 'Inbound CRM & Sub-60s Routing', desc: 'Meta/Google webhook ingestion, round-robin rules, SLA escalations' },
-  { id: 'whatsapp', label: 'WhatsApp Cloud API Drip Bots', desc: 'Automated 2-way nurture flows, fee reminder links, template verification' },
-  { id: 'fullstack', label: 'Full Operating System Bundle', desc: 'Unified CRM, DRM video LMS, high-speed portals, and custom automations' },
+  '50+ Counselors',
 ];
 
 export default function BookDemoPage() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    institute: '',
-    teamSize: TEAM_SIZES[1],
-    primaryInterest: FOCUS_AREAS[0].label,
-    preferredSlot: TIME_SLOTS[1],
-    preferredDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    notes: '',
-  });
+  const [selectedServices, setSelectedServices] = useState<string[]>([
+    'calltracker',
+    'crm',
+  ]);
+  const [selectedTeamSize, setSelectedTeamSize] = useState(TEAM_SIZES[1]);
+  const [instituteName, setInstituteName] = useState('');
+  const [notes, setNotes] = useState('');
 
-  const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [bookingRef, setBookingRef] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setLoading(true);
-
-    try {
-      const res = await fetch('/api/demo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit demo request.');
+  const toggleService = (id: string) => {
+    if (selectedServices.includes(id)) {
+      if (selectedServices.length > 1) {
+        setSelectedServices(selectedServices.filter(s => s !== id));
       }
-
-      setBookingRef(data.bookingId);
-      setSubmitted(true);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
+    } else {
+      setSelectedServices([...selectedServices, id]);
     }
   };
 
+  const selectedServiceNames = SERVICES_CATALOG
+    .filter(s => selectedServices.includes(s.id))
+    .map(s => s.name);
+
+  const whatsappMessage = `Hi Heeyaku,\n\nI want to see a live demo for my institute.\n\nServices needed:\n${selectedServiceNames.map(s => `- ${s}`).join('\n')}\n\nTeam Size: ${selectedTeamSize}${instituteName ? `\nInstitute: ${instituteName}` : ''}${notes ? `\nNotes: ${notes}` : ''}\n\nPlease share demo access and pricing.`;
+
+  const whatsappUrl = `https://wa.me/918131838253?text=${encodeURIComponent(whatsappMessage)}`;
+
   return (
-    <div className="min-h-screen bg-white text-[#0B1F33] selection:bg-[#2563EB] selection:text-white flex flex-col justify-between">
+    <div className="min-h-screen bg-white text-[#0B1F33] flex flex-col justify-between">
       <Navbar />
 
-      <main className="relative pt-32 pb-24 px-6 sm:px-10 lg:px-12 max-w-7xl mx-auto w-full">
-        {/* Soft Ambient Radial Glow */}
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[900px] h-[360px] bg-gradient-to-r from-blue-100/50 via-sky-100/40 to-indigo-100/40 blur-[140px] pointer-events-none" />
-
-        {/* Header Badge & Title */}
-        <div className="relative z-10 text-center max-w-3xl mx-auto mb-16 sm:mb-20">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 text-xs font-mono font-bold text-[#2563EB] mb-6 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-pulse" />
-            <span>ARCHITECTURE CONSULTATION & PRODUCT DEMO</span>
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-[-0.035em] text-[#0B1F33] leading-tight mb-5">
-            See HEEYAKU Live in Action. <br />
-            <span className="text-[#2563EB]">Built for Your Academy.</span>
+      <main className="pt-32 pb-24 px-4 sm:px-8 max-w-5xl mx-auto w-full">
+        
+        {/* Simple, Non-Techy Header */}
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <h1 className="text-3xl sm:text-5xl font-extrabold text-[#0B1F33] tracking-tight mb-4">
+            Book a Demo
           </h1>
-
-          <p className="text-base sm:text-lg text-slate-600 leading-relaxed font-medium">
-            Schedule a focused 30-minute technical walkthrough with an infrastructure specialist. Inspect the native Android telephony client, test real-time lead routing, and review your migration plan.
+          <p className="text-base sm:text-lg text-slate-600">
+            Tell us what your institute needs. Call us directly or send your requirements on WhatsApp for an immediate response.
           </p>
         </div>
 
-        {/* 2-Column Canvas */}
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-          
-          {/* Left Column: What you'll experience & Direct Contacts */}
-          <div className="lg:col-span-5 space-y-8">
-            
-            {/* Consultation Scope Box */}
-            <div className="p-8 rounded-3xl bg-[#F8FAFC]/80 border border-slate-200/90 shadow-sm space-y-6">
-              <h2 className="text-xl font-extrabold text-[#0B1F33] tracking-tight">
-                What Happens in the 30-Minute Session
-              </h2>
-
-              <div className="space-y-4">
-                <div className="flex items-start gap-3.5">
-                  <div className="p-2 rounded-xl bg-blue-50 text-[#2563EB] border border-blue-200 shrink-0 mt-0.5">
-                    <Smartphone className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-[#0B1F33]">Live Android CallTracker Walkthrough</h3>
-                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      We simulate a live incoming/outgoing counselor call, inspect automatic timestamp capture, and review the post-call disposition prompt with offline SQLite queue.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3.5">
-                  <div className="p-2 rounded-xl bg-sky-50 text-[#0284C7] border border-sky-200 shrink-0 mt-0.5">
-                    <Clock className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-[#0B1F33]">Sub-60s Speed-to-Lead Test</h3>
-                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      Submit a test inquiry live from your browser and watch the sub-second webhook handoff route the lead to an active counselor with SLA timers.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3.5">
-                  <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200 shrink-0 mt-0.5">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-[#0B1F33]">Tailored Architecture & Migration Audit</h3>
-                    <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                      Review your existing spreadsheet or legacy software setup and receive a 14-day zero-downtime data migration blueprint with exact team tier pricing.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Verified SLA guarantee */}
-              <div className="pt-5 border-t border-slate-200/80 flex items-center justify-between text-xs font-mono text-slate-600">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span>Collocated Mumbai Tier (`ap-south-1`)</span>
-                </span>
-                <span className="text-[#2563EB] font-bold">Zero Sales Fluff</span>
-              </div>
+        {/* Direct Phone Call Strip */}
+        <div className="mb-12 p-6 sm:p-8 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+          <div>
+            <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-1">
+              Direct Sales & Support Line
             </div>
-
-            {/* Direct Support Card */}
-            <div className="p-6 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-4">
-              <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-500">
-                NEED IMMEDIATE ARCHITECTURE ANSWERS?
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-                  <span className="text-slate-500 block font-medium">Engineering Desk</span>
-                  <a href="mailto:support@heeyaku.com" className="font-mono font-bold text-[#2563EB] hover:underline mt-0.5 block">
-                    support@heeyaku.com
-                  </a>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
-                  <span className="text-slate-500 block font-medium">Direct Telephone / WhatsApp</span>
-                  <span className="font-mono font-bold text-[#0B1F33] mt-0.5 block">
-                    +91 98765 43210
-                  </span>
-                </div>
-              </div>
+            <div className="text-2xl sm:text-3xl font-extrabold text-[#0B1F33]">
+              +91 81318 38253
             </div>
-
-            {/* Direct APK Link Reminder */}
-            <div className="p-5 rounded-2xl bg-blue-50/70 border border-blue-200/80 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Smartphone className="w-5 h-5 text-[#2563EB]" />
-                <div className="text-xs">
-                  <span className="font-bold text-[#0B1F33] block">Want to test the APK right now?</span>
-                  <span className="text-slate-600">Download the Android client directly onto your device.</span>
-                </div>
-              </div>
-              <Link
-                href="/download"
-                className="px-3.5 py-1.5 rounded-xl bg-white border border-blue-200 text-xs font-bold text-[#2563EB] hover:bg-blue-50 transition-colors shadow-xs shrink-0"
-              >
-                Download APK
-              </Link>
+            <div className="text-xs text-slate-500 mt-1">
+              Monday to Saturday: 9:00 AM – 8:00 PM IST
             </div>
-
           </div>
 
-          {/* Right Column: Interactive Booking Form */}
-          <div className="lg:col-span-7">
-            <div className="rounded-3xl border border-slate-200/90 bg-white p-8 sm:p-10 shadow-[0_15px_50px_rgba(0,0,0,0.03)]">
-              
-              <AnimatePresence mode="wait">
-                {submitted ? (
-                  <motion.div
-                    key="success-card"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="text-center py-10 space-y-6"
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <a
+              href="tel:+918131838253"
+              className="px-6 py-3 rounded-xl bg-[#0B1F33] hover:bg-[#2563EB] text-white font-bold text-sm transition-colors"
+            >
+              Call +91 81318 38253
+            </a>
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm transition-colors"
+            >
+              WhatsApp Us
+            </a>
+          </div>
+        </div>
+
+        {/* Two-Column Plan & Dispatch Box */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
+          
+          {/* Left: What services do you need? */}
+          <div className="lg:col-span-7 space-y-6">
+            <div>
+              <h2 className="text-xl font-bold text-[#0B1F33] mb-1">
+                1. Select what you want to setup
+              </h2>
+              <p className="text-xs text-slate-500">
+                Click to pick the tools you need for your counselors and teachers.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {SERVICES_CATALOG.map((service) => {
+                const isSelected = selectedServices.includes(service.id);
+                return (
+                  <div
+                    key={service.id}
+                    onClick={() => toggleService(service.id)}
+                    className={`p-4 rounded-xl border transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-blue-50/60 border-[#2563EB]'
+                        : 'bg-white border-slate-200 hover:border-slate-300'
+                    }`}
                   >
-                    <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 mx-auto flex items-center justify-center">
-                      <Check className="w-8 h-8 stroke-[2.5]" />
-                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-sm text-[#0B1F33]">
+                          {service.name}
+                        </div>
+                        <div className="text-xs text-slate-600 mt-1 leading-relaxed">
+                          {service.summary}
+                        </div>
+                      </div>
 
-                    <div>
-                      <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-600 block mb-1">
-                        DEMO REQUEST CONFIRMED
-                      </span>
-                      <h3 className="text-2xl sm:text-3xl font-extrabold text-[#0B1F33] tracking-tight">
-                        We look forward to meeting with you, {formData.name.split(' ')[0]}!
-                      </h3>
-                      <p className="text-sm text-slate-600 mt-2 max-w-md mx-auto leading-relaxed">
-                        Your architecture walkthrough for <span className="font-bold text-[#0B1F33]">{formData.institute}</span> has been logged. Our solutions team will send calendar invites directly to <span className="font-mono text-[#2563EB]">{formData.email}</span>.
-                      </p>
-                    </div>
-
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 max-w-md mx-auto text-left text-xs font-mono space-y-1.5">
-                      <div className="flex justify-between text-slate-500">
-                        <span>REFERENCE ID:</span>
-                        <span className="font-bold text-[#0B1F33]">{bookingRef}</span>
-                      </div>
-                      <div className="flex justify-between text-slate-500">
-                        <span>PREFERRED DATE:</span>
-                        <span className="text-slate-800 font-semibold">{formData.preferredDate}</span>
-                      </div>
-                      <div className="flex justify-between text-slate-500">
-                        <span>SELECTED WINDOW:</span>
-                        <span className="text-slate-800 font-semibold">{formData.preferredSlot}</span>
-                      </div>
-                      <div className="flex justify-between text-slate-500">
-                        <span>FOCUS AREA:</span>
-                        <span className="text-[#2563EB] font-bold">{formData.primaryInterest}</span>
+                      <div className={`w-4 h-4 rounded-sm border shrink-0 mt-0.5 flex items-center justify-center text-[10px] font-bold ${
+                        isSelected ? 'bg-[#2563EB] border-[#2563EB] text-white' : 'border-slate-300 bg-white'
+                      }`}>
+                        {isSelected ? '✓' : ''}
                       </div>
                     </div>
+                  </div>
+                );
+              })}
+            </div>
 
-                    <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
-                      <Link
-                        href="/download"
-                        className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-bold uppercase tracking-wider transition-all shadow-md active:scale-95"
-                      >
-                        <Smartphone className="w-4 h-4" />
-                        <span>Download Android APK</span>
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSubmitted(false);
-                          setFormData({
-                            name: '',
-                            email: '',
-                            phone: '',
-                            institute: '',
-                            teamSize: TEAM_SIZES[1],
-                            primaryInterest: FOCUS_AREAS[0].label,
-                            preferredSlot: TIME_SLOTS[1],
-                            preferredDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-                            notes: '',
-                          });
-                        }}
-                        className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-700 transition-colors"
-                      >
-                        Book Another Session
-                      </button>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <form key="booking-form" onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                      <h2 className="text-2xl font-extrabold text-[#0B1F33] tracking-tight">
-                        Reserve Your 30-Minute Consultation
-                      </h2>
-                      <p className="text-xs sm:text-sm text-slate-600 mt-1 font-medium">
-                        Fill in your details below to schedule your personalized product walkthrough.
-                      </p>
-                    </div>
-
-                    {errorMsg && (
-                      <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
-                        {errorMsg}
-                      </div>
-                    )}
-
-                    {/* Full Name & Work Email */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Full Name *</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          placeholder="e.g. Dr. Rajesh Verma"
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                          <Mail className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Work Email *</span>
-                        </label>
-                        <input
-                          type="email"
-                          required
-                          value={formData.email}
-                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                          placeholder="rajesh@apexclasses.in"
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Phone/WhatsApp & Institute Name */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Phone / WhatsApp *</span>
-                        </label>
-                        <input
-                          type="tel"
-                          required
-                          value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                          placeholder="+91 98765 43210"
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Institute / Academy Name *</span>
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={formData.institute}
-                          onChange={(e) => setFormData({ ...formData, institute: e.target.value })}
-                          placeholder="Apex Career Institute"
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Team Size */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-slate-400" />
-                        <span>Counseling & Sales Team Size</span>
-                      </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                        {TEAM_SIZES.map((size) => {
-                          const isSelected = formData.teamSize === size;
-                          return (
-                            <button
-                              key={size}
-                              type="button"
-                              onClick={() => setFormData({ ...formData, teamSize: size })}
-                              className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center cursor-pointer ${
-                                isSelected
-                                  ? 'bg-blue-50 border-[#2563EB] text-[#2563EB] shadow-xs'
-                                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-                              }`}
-                            >
-                              {size}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Primary Interest */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                        Primary System Requirement
-                      </label>
-                      <div className="space-y-2">
-                        {FOCUS_AREAS.map((fa) => {
-                          const isSelected = formData.primaryInterest === fa.label;
-                          return (
-                            <div
-                              key={fa.id}
-                              onClick={() => setFormData({ ...formData, primaryInterest: fa.label })}
-                              className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
-                                isSelected
-                                  ? 'bg-blue-50/90 border-[#2563EB] shadow-xs'
-                                  : 'bg-white border-slate-200/90 hover:bg-slate-50'
-                              }`}
-                            >
-                              <div>
-                                <div className="text-xs font-extrabold text-[#0B1F33]">{fa.label}</div>
-                                <div className="text-[11px] text-slate-500 mt-0.5">{fa.desc}</div>
-                              </div>
-                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ml-3 ${
-                                isSelected ? 'border-[#2563EB] bg-[#2563EB] text-white' : 'border-slate-300'
-                              }`}>
-                                {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Preferred Date & Time Slot */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Preferred Date</span>
-                        </label>
-                        <input
-                          type="date"
-                          value={formData.preferredDate}
-                          min={new Date().toISOString().split('T')[0]}
-                          onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Time Window</span>
-                        </label>
-                        <select
-                          value={formData.preferredSlot}
-                          onChange={(e) => setFormData({ ...formData, preferredSlot: e.target.value })}
-                          className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] bg-white"
-                        >
-                          {TIME_SLOTS.map((slot) => (
-                            <option key={slot} value={slot}>
-                              {slot}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Notes (Optional) */}
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                        Current Software Stack or Specific Needs (Optional)
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                        placeholder="e.g. Currently tracking 8 telecallers on Google Sheets. Need automatic call duration logs."
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] transition-all resize-none"
-                      />
-                    </div>
-
-                    {/* Submit Button */}
+            {/* Team Size */}
+            <div className="pt-2 space-y-2">
+              <label className="text-xs font-bold text-slate-700 block">
+                2. How many counselors or staff will use this?
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {TEAM_SIZES.map((size) => {
+                  const isSelected = selectedTeamSize === size;
+                  return (
                     <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full py-3.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-60 text-white font-bold text-sm tracking-wide transition-all shadow-[0_4px_20px_rgba(37,99,235,0.3)] hover:shadow-[0_8px_30px_rgba(37,99,235,0.4)] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer"
+                      key={size}
+                      type="button"
+                      onClick={() => setSelectedTeamSize(size)}
+                      className={`p-2.5 rounded-lg border text-xs font-bold transition-colors ${
+                        isSelected
+                          ? 'bg-[#0B1F33] border-[#0B1F33] text-white'
+                          : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
+                      }`}
                     >
-                      {loading ? (
-                        <span>Submitting Request...</span>
-                      ) : (
-                        <>
-                          <span>Confirm Architecture Consultation</span>
-                          <ArrowRight className="w-4 h-4" />
-                        </>
-                      )}
+                      {size}
                     </button>
+                  );
+                })}
+              </div>
+            </div>
 
-                    <p className="text-[11px] text-slate-600 text-center font-medium">
-                      No pushy sales reps. You will be speaking directly with an engineer or solutions architect.
-                    </p>
-                  </form>
-                )}
-              </AnimatePresence>
+            {/* Institute Name & Notes */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Institute Name (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={instituteName}
+                  onChange={(e) => setInstituteName(e.target.value)}
+                  placeholder="e.g. Apex Classes"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#2563EB]"
+                />
+              </div>
 
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Current Software or Problems (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="e.g. Using Excel sheets right now"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-[#2563EB]"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Right: WhatsApp Forwarding Box */}
+          <div className="lg:col-span-5 p-6 rounded-2xl border border-slate-200 bg-white space-y-4">
+            <div>
+              <div className="font-bold text-sm text-[#0B1F33]">
+                Ready to talk?
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Send your selected setup to our WhatsApp number (+91 81318 38253). We will reply within 10 minutes.
+              </p>
+            </div>
+
+            {/* Preview Box */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono whitespace-pre-line text-slate-700 leading-relaxed">
+              {whatsappMessage}
+            </div>
+
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm text-center block transition-colors shadow-sm"
+            >
+              Send on WhatsApp (+91 81318 38253)
+            </a>
+
+            <div className="pt-3 border-t border-slate-100 text-center">
+              <a
+                href="tel:+918131838253"
+                className="text-xs font-bold text-[#2563EB] hover:underline"
+              >
+                Or Call Us at +91 81318 38253
+              </a>
             </div>
           </div>
 
         </div>
+
+        {/* Clear, Readable Service Overviews for Sales Leads */}
+        <div className="pt-10 border-t border-slate-200 space-y-8">
+          <div>
+            <h2 className="text-2xl font-extrabold text-[#0B1F33]">
+              Simple Breakdown of Our Services
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1">
+              Everything your sales and counseling team needs to know, in plain English.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-5 rounded-xl border border-slate-200 bg-white space-y-2">
+              <div className="font-bold text-sm text-[#0B1F33]">
+                Android Call Tracker App
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Counselors install the app on their phone. When they make or receive calls with students, the duration is recorded automatically. When the call ends, a small popup asks them to tag the student (like &quot;Interested&quot;, &quot;Call Back Tomorrow&quot;, or &quot;Admitted&quot;). No manual Excel entry.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-xl border border-slate-200 bg-white space-y-2">
+              <div className="font-bold text-sm text-[#0B1F33]">
+                Counselor Lead Management (CRM)
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Whenever a student fills a form on your website, Facebook ads, or Google, their details show up on the counselor screen immediately. Leads are divided evenly among counselors so everyone gets calls to make.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-xl border border-slate-200 bg-white space-y-2">
+              <div className="font-bold text-sm text-[#0B1F33]">
+                WhatsApp Follow-Up & Fee Reminders
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Send course brochures and demo meeting reminders directly to the student&apos;s WhatsApp. When fees are due, the system sends an automatic payment link so parents can pay via Google Pay, PhonePe, or UPI in seconds.
+              </p>
+            </div>
+
+            <div className="p-5 rounded-xl border border-slate-200 bg-white space-y-2">
+              <div className="font-bold text-sm text-[#0B1F33]">
+                Anti-Piracy Video Protection (LMS)
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Your class recordings are protected. If a student tries to record their screen or share their login, their full name and roll number appear visibly floating across the video, stopping video leaks and piracy.
+              </p>
+            </div>
+          </div>
+        </div>
+
       </main>
 
       <Footer />

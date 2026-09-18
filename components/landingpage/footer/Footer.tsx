@@ -23,7 +23,7 @@ export default function Footer() {
           </Link>
           <span className="hidden sm:inline text-slate-700">|</span>
           <span className="text-slate-400 font-medium text-xs">
-            Unified OS for E-Learning & Training Academies
+            Admission CRM, LMS & Calling Platform for Institutes
           </span>
         </div>
 
@@ -31,19 +31,15 @@ export default function Footer() {
         <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-7 font-medium text-xs text-slate-300">
           <Link href="/solutions/crm" className="hover:text-white transition-colors">Solutions</Link>
           <Link href="/platform" className="hover:text-white transition-colors">Platform</Link>
-          <Link href="/download" className="hover:text-white transition-colors text-[#38BDF8] font-bold">Android App</Link>
+          <Link href="/download" className="hover:text-white transition-colors text-[#38BDF8] font-bold">Calling App</Link>
           <Link href="/pricing" className="hover:text-white transition-colors">Pricing</Link>
-          <Link href="/resources/docs" className="hover:text-white transition-colors">Docs</Link>
+          <Link href="/resources/docs" className="hover:text-white transition-colors">Setup Guide</Link>
           <Link href="/book-demo" className="hover:text-white transition-colors">Book a Demo</Link>
         </div>
 
-        {/* Right: Operational System Status Pill & Copyright */}
-        <div className="flex items-center gap-4 text-[11px] font-mono">
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/90 border border-slate-800 text-emerald-400 font-semibold shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>99.98% SLA</span>
-          </div>
-          <span className="text-slate-400">© 2026 Heeyaku Inc.</span>
+        {/* Right: Copyright */}
+        <div className="flex items-center gap-4 text-[11px] font-mono text-slate-400">
+          <span>© 2026 Heeyaku Inc.</span>
         </div>
 
       </div>

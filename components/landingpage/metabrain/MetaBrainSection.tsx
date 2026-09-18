@@ -1,188 +1,154 @@
 'use client';
 
 import React, { useState } from 'react';
-import { BrainCircuit, Cpu, Database, Zap, Check, Send } from 'lucide-react';
-import TiltedCard from '../shared/TiltedCard';
-import { motion, AnimatePresence } from 'framer-motion';
+
+const TELEMETRY_VIEWS = [
+  {
+    id: 'telephony',
+    title: 'Automatic Call Duration & Logs',
+    desc: 'The Android app captures talk time, call timestamp, and connected/missed status automatically.',
+    metric: '100% Automatic',
+  },
+  {
+    id: 'disposition',
+    title: 'Quick 2-Tap Call Outcomes',
+    desc: 'Counselors select Interested, Callback, or Enrolled right after hanging up without opening a spreadsheet.',
+    metric: 'Under 5 Seconds',
+  },
+  {
+    id: 'sla',
+    title: 'Instant Reminder to Call New Leads',
+    desc: 'Alerts counselors immediately when a fresh student inquiry arrives from an ad.',
+    metric: 'Under 2 Minutes',
+  },
+];
+
+const COUNSELOR_DATA = [
+  { name: 'Sarah K.', calls: 32, duration: '2h 14m', connectRate: '78%', activeLead: 'Aditi Sharma', status: 'In Call' },
+  { name: 'Alex M.', calls: 27, duration: '1h 48m', connectRate: '71%', activeLead: 'Rohan Mehta', status: 'Ready' },
+  { name: 'Ananya D.', calls: 38, duration: '2h 55m', connectRate: '84%', activeLead: 'Priya Patel', status: 'Updating Note' },
+];
 
 export default function MetaBrainSection() {
-  const [activeQuery, setActiveQuery] = useState('counselor');
-  const [dispatched, setDispatched] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-
-  const triggerToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
-  };
+  const [activeTab, setActiveTab] = useState('telephony');
 
   return (
-    <section id="metabrain" className="relative w-full bg-[#F8FAFC] py-24 lg:py-32 text-[#0B1F33] selection:bg-[#2563EB] selection:text-white overflow-hidden border-t border-slate-200/80">
-      {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-24 right-6 z-50 px-4 py-2.5 rounded-xl bg-[#0B1F33] text-white text-xs font-mono font-bold shadow-2xl border border-cyan-400 flex items-center gap-2"
-          >
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span>{toast}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Background Neural Glow */}
-      <div className="absolute top-1/3 left-1/3 w-[600px] h-[600px] bg-cyan-100/50 blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-100/50 blur-[150px] pointer-events-none" />
-
-      <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
+    <section id="analytics" className="relative w-full bg-[#F8FAFC] py-16 lg:py-24 text-[#0B1F33] selection:bg-[#2563EB] selection:text-white border-t border-slate-200">
+      <div className="max-w-7xl mx-auto px-4 xs:px-6 sm:px-10 lg:px-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
           
-          {/* Left Column: Copy */}
-          <div className="lg:col-span-6 space-y-6 sm:space-y-8">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-[-0.03em] text-[#0B1F33] leading-tight">
-              Heeyaku MetaBrain: <br />
-              <span className="text-[#2563EB]">
-                Your Business, Amplified.
-              </span>
-            </h2>
-
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-              Connect every element of your workflow into a dynamic internal knowledge base and automated operational assistant that watches your pipeline 24/7.
+          {/* Left Column: Clear Sales Copy (No Badges, No Icons) */}
+          <div className="lg:col-span-6 space-y-6">
+            <p className="text-xs font-mono text-[#2563EB] font-bold uppercase tracking-wider">
+              Automatic Call Tracking
             </p>
 
-            {/* Clickable Interactive Feature Nodes */}
-            <div className="space-y-3.5 pt-4 border-t border-slate-200">
-              <div 
-                onClick={() => {
-                  setActiveQuery('counselor');
-                  triggerToast('⚡ Synthesized: Counselor Performance & Routing');
-                }}
-                className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 active:scale-98 ${
-                  activeQuery === 'counselor' ? 'bg-blue-50/80 border-blue-300 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <div className="p-2 rounded-xl bg-blue-50 border border-blue-200 text-[#2563EB] mt-0.5">
-                  <Cpu className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-[#0B1F33]">Intelligent Context Synthesis</h3>
-                  <p className="text-xs text-slate-600 mt-0.5">Learns curriculum, student FAQs, pricing tier rules, and sales scripts.</p>
-                </div>
-              </div>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-[#0B1F33] leading-tight">
+              Complete Visibility Over Daily Calls. Zero Guesswork.
+            </h2>
 
-              <div 
-                onClick={() => {
-                  setActiveQuery('knowledge');
-                  triggerToast('⚡ Knowledge Graph: 14,280 indexed student docs');
-                }}
-                className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 active:scale-98 ${
-                  activeQuery === 'knowledge' ? 'bg-cyan-50/80 border-cyan-300 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <div className="p-2 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-700 mt-0.5">
-                  <Database className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-[#0B1F33]">Continuous Knowledge Graph</h3>
-                  <p className="text-xs text-slate-600 mt-0.5">Turns counselor call transcripts and support chats into searchable memory.</p>
-                </div>
-              </div>
+            <p className="text-sm sm:text-base text-slate-600 leading-relaxed font-medium">
+              Eliminate manual call reporting and missing student follow-ups. Every call made by your counselors on their Android phones is automatically recorded with duration, time, and student notes.
+            </p>
 
-              <div 
-                onClick={() => {
-                  setActiveQuery('agent');
-                  triggerToast('⚡ Autonomous Agent: 12 scholarship vouchers dispatched');
-                }}
-                className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-start gap-3.5 active:scale-98 ${
-                  activeQuery === 'agent' ? 'bg-indigo-50/80 border-indigo-300 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <div className="p-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 mt-0.5">
-                  <Zap className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-[#0B1F33]">Autonomous Agent Actions</h3>
-                  <p className="text-xs text-slate-600 mt-0.5">Drafts personalized counselor replies and flags high-risk student churn.</p>
-                </div>
-              </div>
+            {/* Selectors */}
+            <div className="space-y-3 pt-2">
+              {TELEMETRY_VIEWS.map((item) => {
+                const isSelected = activeTab === item.id;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`p-4 rounded-xl border transition-colors cursor-pointer ${
+                      isSelected 
+                        ? 'bg-white border-[#2563EB] shadow-xs' 
+                        : 'bg-white/60 border-slate-200 hover:bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-sm text-[#0B1F33]">{item.title}</h3>
+                      <span className="text-xs font-mono font-bold text-[#2563EB]">
+                        {item.metric}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1 leading-relaxed font-medium">{item.desc}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* Right Column: React Bits TiltedCard 3D Interactive UI with Live Action Buttons */}
-          <div className="lg:col-span-6 flex justify-center">
-            <TiltedCard
-              imageSrc="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=600&q=75"
-              altText="MetaBrain Neural Dashboard"
-              captionText="⚡ Live MetaBrain Telemetry"
-              containerHeight="480px"
-              imageHeight="480px"
-              rotateAmplitude={12}
-              scaleOnHover={1.02}
-              displayOverlayContent={true}
-              overlayContent={
-                <div className="w-full h-full p-6 sm:p-8 flex flex-col justify-between bg-gradient-to-t from-[#0B1F33]/95 via-[#0B1F33]/60 to-transparent">
-                  {/* Top Bar */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-md border border-slate-200 text-xs font-mono text-[#0B1F33] font-bold">
-                      <BrainCircuit className="w-4 h-4 text-[#2563EB]" />
-                      <span>Node #MB-820 • Active</span>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-emerald-700 text-white font-bold shadow-sm">
-                      ● 99.4% Accuracy
-                    </span>
-                  </div>
+          {/* Right Column: Clean Live Counselor Roster */}
+          <div className="lg:col-span-6 w-full">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7 shadow-xs space-y-5">
+              
+              {/* Card Header Bar */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 text-xs font-mono">
+                <span className="font-bold text-[#0B1F33]">TODAY’S COUNSELING TEAM</span>
+                <span className="text-slate-500">Live Status</span>
+              </div>
 
-                  {/* Bottom AI Output & Interactive Action Pill */}
-                  <div className="p-4.5 rounded-2xl bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-2xl space-y-3 text-[#0B1F33]">
-                    <div className="flex items-center justify-between text-[11px] font-mono text-[#2563EB] font-bold">
-                      <span>⚡ MetaBrain Live Synthesis</span>
-                      <span className="text-slate-600 font-medium">0.28s</span>
+              {/* Counselors Performance Feed */}
+              <div className="space-y-2.5">
+                {COUNSELOR_DATA.map((counselor, idx) => (
+                  <div 
+                    key={idx}
+                    className="p-3.5 rounded-xl bg-[#F8FAFC] border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                  >
+                    <div>
+                      <div className="font-bold text-[#0B1F33] flex items-center gap-2">
+                        <span>{counselor.name}</span>
+                        <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600">
+                          {counselor.status}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">
+                        Calling: <span className="font-medium text-slate-700">{counselor.activeLead}</span>
+                      </div>
                     </div>
 
-                    <p className="text-xs text-slate-800 leading-relaxed font-sans font-medium">
-                      {activeQuery === 'counselor'
-                        ? '"28 high-intent leads in decision stage. Average counselor first-touch response time is 1.4 minutes."'
-                        : activeQuery === 'knowledge'
-                        ? '"Curriculum graph synchronized across 14,280 documents. Student question patterns indexed for auto-replies."'
-                        : '"12 automatic scholarship vouchers dispatched via WhatsApp. 4 payments settled in the last hour."'}
-                    </p>
-
-                    {/* Interactive Optimistic Action Buttons */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDispatched(true);
-                          triggerToast('✓ WhatsApp drip sequence dispatched to 28 leads');
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold font-mono transition-all flex items-center gap-1.5 active:scale-95 shadow-sm ${
-                          dispatched
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : 'bg-[#2563EB] text-white hover:bg-blue-600'
-                        }`}
-                      >
-                        {dispatched ? <Check className="w-3.5 h-3.5" /> : <Send className="w-3.5 h-3.5" />}
-                        <span>{dispatched ? 'Dispatched' : 'Dispatch WhatsApp Bot'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          triggerToast('● 28 Student dossiers loaded in CRM');
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold font-mono active:scale-95 transition-all"
-                      >
-                        View Dossiers
-                      </button>
+                    <div className="flex items-center gap-4 text-[11px] font-mono shrink-0">
+                      <div>
+                        <span className="text-slate-500 block text-[9px] uppercase">Calls</span>
+                        <span className="font-bold text-[#0B1F33]">{counselor.calls}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[9px] uppercase">Talk Time</span>
+                        <span className="font-bold text-[#2563EB]">{counselor.duration}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[9px] uppercase">Connected</span>
+                        <span className="font-bold text-emerald-700">{counselor.connectRate}</span>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Disposition Breakdown Mini Bar */}
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-[#0B1F33]">
+                  <span>Today&apos;s Call Summary</span>
+                  <span className="font-mono text-[11px] text-[#2563EB]">97 Calls Completed</span>
                 </div>
-              }
-            />
+                
+                {/* Visual Proportion Bar */}
+                <div className="w-full h-2.5 rounded-full bg-slate-200 overflow-hidden flex">
+                  <div style={{ width: '42%' }} className="bg-[#2563EB] h-full" />
+                  <div style={{ width: '28%' }} className="bg-[#38BDF8] h-full" />
+                  <div style={{ width: '18%' }} className="bg-emerald-600 h-full" />
+                  <div style={{ width: '12%' }} className="bg-slate-400 h-full" />
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-600 pt-1">
+                  <span>Interested: 42%</span>
+                  <span>Callback: 28%</span>
+                  <span>Enrolled: 18%</span>
+                  <span>Unreachable: 12%</span>
+                </div>
+              </div>
+
+            </div>
           </div>
 
         </div>

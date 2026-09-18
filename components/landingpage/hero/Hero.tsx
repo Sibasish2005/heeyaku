@@ -48,9 +48,9 @@ export default function Hero() {
           </p>
         </div>
 
-        {/* High-Intent SEO Sub-headline */}
+        {/* High-Intent Clear Sub-headline */}
         <p className="text-xs sm:text-base md:text-lg text-slate-600 font-medium max-w-2xl leading-relaxed mb-6 sm:mb-10">
-          The all-in-one customized operating system engineered for academies, coaching institutes, and bootcamps. Unified lead conversion CRM, DRM video LMS, high-speed websites, and automated WhatsApp workflows.
+          The complete admission platform for coaching centers and institutes. Track counselor calls automatically, stop lecture piracy, and collect fees through WhatsApp.
         </p>
 
         {/* Capsule "Book a Demo" CTA Button */}
