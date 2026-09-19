@@ -3,9 +3,28 @@ import { prisma } from '@/lib/prisma';
 import { verifyExternalApiKey } from '@/lib/auth/external-api';
 import { toLast10Digits } from '@/lib/lead/phone';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
-import { generateNextLeadCode } from '@/lib/lead/code';
 
 export const dynamic = 'force-dynamic';
+
+const LEAD_CODE_PREFIX = 'LD';
+const LEAD_CODE_START = 1;
+const LEAD_CODE_PAD = 5;
+
+/**
+ * Gets the next sequential lead code number from the database.
+ */
+async function getNextLeadCodeStart(): Promise<number> {
+  const latest = await prisma.lead.findFirst({
+    where: { leadCode: { startsWith: `${LEAD_CODE_PREFIX}-` } },
+    orderBy: { createdAt: 'desc' },
+    select: { leadCode: true },
+  });
+
+  if (!latest) return LEAD_CODE_START;
+
+  const numericPart = parseInt(latest.leadCode.replace(`${LEAD_CODE_PREFIX}-`, ''), 10);
+  return isNaN(numericPart) ? LEAD_CODE_START : numericPart + 1;
+}
 
 interface IncomingSheetRow {
   rowNumber?: number;
@@ -45,6 +64,7 @@ export async function POST(req: NextRequest) {
       leadCode: string;
       name: string;
       phoneNumber: string;
+      phoneDigits: string;
       email: string | null;
       company: string | null;
       source: string;
@@ -74,22 +94,25 @@ export async function POST(req: NextRequest) {
       // Single efficient database batch lookup to check for existing leads
       const existingLeads = await prisma.lead.findMany({
         where: {
-          OR: allCandidateDigits.map(digits => ({
-            phoneNumber: { contains: digits },
-          })),
+          phoneDigits: {
+            in: allCandidateDigits,
+          },
         },
-        select: { id: true, leadCode: true, phoneNumber: true },
+        select: { leadCode: true, phoneDigits: true },
       });
 
       const existingPhoneSet = new Set<string>();
       const existingCodeMap = new Map<string, string>();
       for (const lead of existingLeads) {
-        const digits = toLast10Digits(lead.phoneNumber);
-        if (digits) {
-          existingPhoneSet.add(digits);
-          existingCodeMap.set(digits, lead.leadCode);
+        if (lead.phoneDigits) {
+          existingPhoneSet.add(lead.phoneDigits);
+          existingCodeMap.set(lead.phoneDigits, lead.leadCode);
         }
       }
+
+      // Pre-calculate sequential lead codes to avoid N database queries in a loop
+      const nextCodeStart = await getNextLeadCodeStart();
+      let newLeadIndex = 0;
 
       // Separate new rows to insert vs existing
       for (const [digits, row] of candidateMap.entries()) {
@@ -101,12 +124,15 @@ export async function POST(req: NextRequest) {
             action: 'existing',
           });
         } else {
-          const leadCode = await generateNextLeadCode();
+          const leadCode = `${LEAD_CODE_PREFIX}-${String(nextCodeStart + newLeadIndex).padStart(LEAD_CODE_PAD, '0')}`;
+          newLeadIndex++;
+          
           const cleanPhone = row.phoneNumber.trim();
           validRowsToInsert.push({
             leadCode,
             name: row.name?.trim() || 'New Lead',
             phoneNumber: cleanPhone,
+            phoneDigits: digits,
             email: row.email?.trim() || null,
             company: row.company?.trim() || null,
             source: row.source?.trim() || 'GOOGLE_SHEETS',
@@ -122,12 +148,15 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Execute single bulk insert if there are new rows
+      // Execute bulk inserts in chunks of 500 to avoid query limits
       if (validRowsToInsert.length > 0) {
-        await prisma.lead.createMany({
-          data: validRowsToInsert,
-          skipDuplicates: true,
-        });
+        for (let i = 0; i < validRowsToInsert.length; i += 500) {
+          const insertBatch = validRowsToInsert.slice(i, i + 500);
+          await prisma.lead.createMany({
+            data: insertBatch,
+            skipDuplicates: true,
+          });
+        }
         invalidateDashboardMetricsCache();
       }
     }
