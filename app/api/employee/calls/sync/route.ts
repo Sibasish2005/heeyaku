@@ -127,9 +127,12 @@ export async function POST(req: NextRequest) {
       }
 
       let idCandidate: string | null = null;
-      if (c.id && typeof c.id === 'string' && !c.id.includes('_')) {
-        idCandidate = c.id;
-        candidateIds.push(c.id);
+      if (c.id && typeof c.id === 'string') {
+        const trimmed = c.id.trim();
+        if (trimmed) {
+          idCandidate = trimmed;
+          candidateIds.push(trimmed);
+        }
       }
 
       parsedCalls.push({
@@ -281,43 +284,22 @@ export async function POST(req: NextRequest) {
       const targetLeadId = matchedLead ? matchedLead.id : null;
       const existingLog = findExistingLog(item, targetLeadId);
 
-      let isConnected = item.rawIsConnected;
+      // A call is connected if it has talk time (> 0s) or native telephony reported it connected
+      const isConnected = item.duration > 0 || item.rawIsConnected;
       const leadKey = targetLeadId;
       const phoneKey = item.last10.length >= 8 ? item.last10 : null;
 
       if (isConnected) {
-        const earliestLeadConn = leadKey ? connectedEntityEarliestTime.get(leadKey) : undefined;
-        const earliestPhoneConn = phoneKey ? connectedEntityEarliestTime.get(phoneKey) : undefined;
-        const earliestConnected = Math.min(
-          earliestLeadConn ?? Infinity,
-          earliestPhoneConn ?? Infinity
-        );
-
-        // If there is already a connected call at or before this call, this call cannot be connected
-        if (earliestConnected < item.startedAt.getTime()) {
-          isConnected = false;
-        } else {
-          // This call is the earliest connected call for this lead
-          isConnected = true;
-          if (leadKey) connectedEntityEarliestTime.set(leadKey, item.startedAt.getTime());
-          if (phoneKey) connectedEntityEarliestTime.set(phoneKey, item.startedAt.getTime());
-
-          // Demote any subsequent connected calls in DB for this assigned lead
-          if (leadKey) {
-            await prisma.callLog.updateMany({
-              where: {
-                leadId: leadKey,
-                connected: true,
-                ...(existingLog ? { id: { not: existingLog.id } } : {}),
-                startedAt: { gt: item.startedAt },
-              },
-              data: { connected: false },
-            });
-          }
-        }
+        if (leadKey) connectedEntityEarliestTime.set(leadKey, item.startedAt.getTime());
+        if (phoneKey) connectedEntityEarliestTime.set(phoneKey, item.startedAt.getTime());
       }
 
-      // Sanitize call outcome for unconnected calls
+      const hasConnectedCall =
+        isConnected ||
+        (leadKey ? connectedEntityEarliestTime.has(leadKey) : false) ||
+        (phoneKey ? connectedEntityEarliestTime.has(phoneKey) : false);
+
+      // Sanitize call outcome for unconnected calls only if lead has never had a connected call
       let callOutcomeId = item.outcomeId;
       let callOutcomeLabel = item.outcomeLabel;
       const CONNECTED_OUTCOMES_SET = new Set([
@@ -330,7 +312,7 @@ export async function POST(req: NextRequest) {
         'not_qualified',
       ]);
 
-      if (!isConnected && callOutcomeId && CONNECTED_OUTCOMES_SET.has(callOutcomeId.toLowerCase())) {
+      if (!hasConnectedCall && callOutcomeId && CONNECTED_OUTCOMES_SET.has(callOutcomeId.toLowerCase())) {
         callOutcomeId = 'no_answer';
         callOutcomeLabel = 'No Answer';
       }
@@ -343,7 +325,7 @@ export async function POST(req: NextRequest) {
             leadId: targetLeadId,
             contactName: item.raw.contactName || item.raw.name || existingLog.contactName,
             durationSeconds: Math.max(existingLog.durationSeconds, item.duration),
-            connected: isConnected,
+            connected: existingLog.connected || isConnected,
             outcomeId: callOutcomeId || existingLog.outcomeId,
             outcomeLabel: callOutcomeLabel || existingLog.outcomeLabel,
             notes: item.notes || existingLog.notes,
@@ -354,6 +336,7 @@ export async function POST(req: NextRequest) {
       } else {
         const createdCall = await prisma.callLog.create({
           data: {
+            ...(item.idCandidate ? { id: item.idCandidate } : {}),
             employeeId,
             leadId: targetLeadId,
             phoneNumber: item.rawNumber,
