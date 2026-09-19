@@ -54,6 +54,9 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
         },
       },
       callLogs: {
+        where: {
+          leadId: { not: null },
+        },
         orderBy: {
           startedAt: 'desc',
         },

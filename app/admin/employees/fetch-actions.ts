@@ -83,7 +83,7 @@ export async function fetchEmployeesChunkAction(params: {
           _count: {
             select: {
               leads: true,
-              callLogs: true,
+              callLogs: { where: { leadId: { not: null } } },
             },
           },
         },
@@ -95,7 +95,7 @@ export async function fetchEmployeesChunkAction(params: {
     const talkTimes = employeeIds.length > 0
       ? await prisma.callLog.groupBy({
           by: ['employeeId'],
-          where: { employeeId: { in: employeeIds } },
+          where: { employeeId: { in: employeeIds }, leadId: { not: null } },
           _sum: { durationSeconds: true },
         })
       : [];

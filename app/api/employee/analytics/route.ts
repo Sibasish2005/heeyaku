@@ -34,10 +34,16 @@ export async function GET(req: NextRequest) {
     // 2. Start of Day in Indian Standard Time (IST, UTC+05:30)
     const startOfTodayMs = getStartOfTodayISTMs();
 
-    // 3. Fetch all call logs for this employee
+    // 3. Fetch all call logs for this employee with matched lead status (assigned lead calls only)
     const callLogs = await prisma.callLog.findMany({
       where: {
         employeeId: { in: employeeIds },
+        leadId: { not: null },
+      },
+      include: {
+        lead: {
+          select: { id: true, status: true, name: true, leadCode: true },
+        },
       },
       orderBy: { startedAt: 'desc' },
       take: 1000,
@@ -108,25 +114,29 @@ export async function GET(req: NextRequest) {
           totalAttempts += 1;
           totalConnected += 1;
 
-          for (const c of leadLogs) {
-            totalDurationSeconds += c.durationSeconds || 0;
-          }
-          connectedDurationSeconds += connectedLog.durationSeconds || 0;
+          const realTalkSecs = connectedLog.durationSeconds || 0;
+          connectedDurationSeconds += realTalkSecs;
+          totalDurationSeconds += realTalkSecs; // Only real connected talk time is counted
 
-          const outcome = connectedLog.outcomeId || leadLogs[leadLogs.length - 1].outcomeId;
-          if (outcome) {
-            const key = outcome.trim().toLowerCase();
+          const rawOutcome =
+            connectedLog.outcomeId ||
+            connectedLog.lead?.status ||
+            leadLogs[leadLogs.length - 1].outcomeId ||
+            leadLogs[leadLogs.length - 1].lead?.status;
+          if (rawOutcome) {
+            const key = rawOutcome.trim().toLowerCase().replace(/-/g, '_');
             outcomeDistribution[key] = (outcomeDistribution[key] || 0) + 1;
           }
         } else {
-          // For leads that were NEVER connected, count each call attempt
+          // For leads that were NEVER connected, count each call attempt with 0 talk time
           for (const c of leadLogs) {
             totalAttempts += 1;
             totalUnconnected += 1;
-            totalDurationSeconds += c.durationSeconds || 0;
+            // Unconnected calls (ringing/missed/busy) have 0 real call duration
 
-            if (c.outcomeId) {
-              const key = c.outcomeId.trim().toLowerCase();
+            const rawOutcome = c.outcomeId || c.lead?.status;
+            if (rawOutcome) {
+              const key = rawOutcome.trim().toLowerCase().replace(/-/g, '_');
               outcomeDistribution[key] = (outcomeDistribution[key] || 0) + 1;
             }
           }
@@ -153,35 +163,40 @@ export async function GET(req: NextRequest) {
     const todayMetrics = computeMetrics(todayLogs);
     const lifetimeMetrics = computeMetrics(callLogs);
 
-    // 6. Format calls for mobile client with authoritative connected status
+    // 6. Format calls for mobile client with authoritative connected status and real call duration
     const formattedCalls = callLogs.map((c) => {
       const isConnected = firstConnectedCallIds.has(c.id);
+      const realDuration = isConnected ? (c.durationSeconds || 0) : 0;
       const startedAtMs = new Date(c.startedAt).getTime();
       const endedAtMs = c.endedAt
         ? new Date(c.endedAt).getTime()
-        : startedAtMs + (c.durationSeconds || 0) * 1000;
+        : startedAtMs + realDuration * 1000;
+
+      const resolvedOutcomeId = (c.outcomeId || c.lead?.status || '').toLowerCase().replace(/-/g, '_');
+      const resolvedOutcomeLabel = c.outcomeLabel || c.lead?.status || undefined;
 
       return {
         id: c.id,
         employeeId: c.employeeId,
         leadId: c.leadId || undefined,
         phoneNumber: c.phoneNumber || '',
-        contactName: c.contactName || '',
+        contactName: c.contactName || c.lead?.name || '',
         callType: c.callType,
         startedAt: startedAtMs,
         endedAt: endedAtMs,
-        durationSeconds: c.durationSeconds || 0,
+        durationSeconds: realDuration,
+        realDurationSeconds: realDuration,
         connected: isConnected,
-        outcomeId: c.outcomeId ? c.outcomeId.toLowerCase() : undefined,
-        outcomeLabel: c.outcomeLabel || undefined,
+        outcomeId: resolvedOutcomeId || undefined,
+        outcomeLabel: resolvedOutcomeLabel,
         notes: c.notes || undefined,
         createdAt: new Date(c.createdAt).getTime(),
         isAppInitiated: true,
         synced: true,
         // Compatibility aliases for legacy mobile components
         number: c.phoneNumber || '',
-        name: c.contactName || '',
-        duration: c.durationSeconds || 0,
+        name: c.contactName || c.lead?.name || '',
+        duration: realDuration,
         date: startedAtMs,
       };
     });

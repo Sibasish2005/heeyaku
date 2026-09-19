@@ -3,6 +3,7 @@
 import React from 'react';
 import Masonry, { MasonryItem } from './Masonry';
 import CountUpNumber from '../shared/CountUpNumber';
+import RealCallDurationTimer from './RealCallDurationTimer';
 
 const EDTECH_SHOWCASE_ITEMS: MasonryItem[] = [
   {
@@ -80,36 +81,6 @@ const INDUSTRY_VERTICALS = [
   'School & Tuition Chains',
 ];
 
-const STATS = [
-  {
-    numValue: 60,
-    suffix: 's',
-    decimals: 0,
-    label: 'First Call Speed',
-    desc: 'Average time to reach new leads',
-  },
-  {
-    numValue: 100,
-    suffix: '%',
-    decimals: 0,
-    label: 'Call Duration Logged',
-    desc: 'Recorded via Android app',
-  },
-  {
-    numValue: 0,
-    suffix: '',
-    decimals: 0,
-    label: 'Lost Inquiries',
-    desc: 'Zero spreadsheet gaps',
-  },
-  {
-    numValue: 100,
-    suffix: '%',
-    decimals: 0,
-    label: 'Watermarked Videos',
-    desc: 'Stops lecture screen leaks',
-  },
-];
 
 export default function SocialProofBar() {
   return (
@@ -132,29 +103,55 @@ export default function SocialProofBar() {
           </div>
         </div>
 
-        {/* 4 Numbers Grid (Zero Icons, Zero Badges) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {STATS.map((stat) => (
-            <div
-              key={stat.label}
-              className="p-6 rounded-2xl bg-[#F8FAFC] border border-slate-200 hover:border-blue-200 transition-colors"
-            >
+        {/* 4 Numbers Grid with Live Real Call Duration Timer */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+          {/* Card 1: First Call Speed */}
+          <div className="p-6 rounded-2xl bg-[#F8FAFC] border border-slate-200 hover:border-blue-200 transition-colors flex flex-col justify-between">
+            <div>
               <div className="text-xs font-mono font-bold uppercase text-slate-500 mb-2">
-                {stat.label}
+                First Call Speed
               </div>
               <div className="text-3xl sm:text-4xl font-extrabold text-[#0B1F33]">
-                <CountUpNumber
-                  value={stat.numValue}
-                  decimals={stat.decimals}
-                  suffix={stat.suffix}
-                  duration={2.0}
-                />
-              </div>
-              <div className="text-xs text-slate-500 mt-2 font-medium">
-                {stat.desc}
+                <CountUpNumber value={60} decimals={0} suffix="s" duration={2.0} />
               </div>
             </div>
-          ))}
+            <div className="text-xs text-slate-500 mt-4 font-medium">
+              Average time counselors take to dial fresh student inquiries.
+            </div>
+          </div>
+
+          {/* Card 2: Interactive Real Call Duration Tracker */}
+          <RealCallDurationTimer />
+
+          {/* Card 3: Lost Inquiries */}
+          <div className="p-6 rounded-2xl bg-[#F8FAFC] border border-slate-200 hover:border-blue-200 transition-colors flex flex-col justify-between">
+            <div>
+              <div className="text-xs font-mono font-bold uppercase text-slate-500 mb-2">
+                Lost Inquiries
+              </div>
+              <div className="text-3xl sm:text-4xl font-extrabold text-[#0B1F33]">
+                <CountUpNumber value={0} decimals={0} suffix="" duration={2.0} />
+              </div>
+            </div>
+            <div className="text-xs text-slate-500 mt-4 font-medium">
+              Zero spreadsheet gaps. Uncontacted leads alert team managers automatically.
+            </div>
+          </div>
+
+          {/* Card 4: Watermarked Videos */}
+          <div className="p-6 rounded-2xl bg-[#F8FAFC] border border-slate-200 hover:border-blue-200 transition-colors flex flex-col justify-between">
+            <div>
+              <div className="text-xs font-mono font-bold uppercase text-slate-500 mb-2">
+                Lecture Protection
+              </div>
+              <div className="text-3xl sm:text-4xl font-extrabold text-[#0B1F33]">
+                <CountUpNumber value={100} decimals={0} suffix="%" duration={2.0} />
+              </div>
+            </div>
+            <div className="text-xs text-slate-500 mt-4 font-medium">
+              Dynamic student phone watermarking on every video player frame.
+            </div>
+          </div>
         </div>
 
         {/* Masonry Showcase Section */}

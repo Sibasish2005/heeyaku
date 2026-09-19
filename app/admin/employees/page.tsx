@@ -36,9 +36,10 @@ export default async function EmployeesPage() {
       prisma.employee.count(),
       prisma.employee.count({ where: { isActive: true } }),
       prisma.lead.count({ where: { assignedEmployeeId: { not: null } } }),
-      prisma.callLog.count(),
-      prisma.callLog.count({ where: { connected: true } }),
+      prisma.callLog.count({ where: { leadId: { not: null } } }),
+      prisma.callLog.count({ where: { connected: true, leadId: { not: null } } }),
       prisma.callLog.aggregate({
+        where: { leadId: { not: null } },
         _sum: {
           durationSeconds: true,
         },
@@ -65,7 +66,7 @@ export default async function EmployeesPage() {
           _count: {
             select: {
               leads: true,
-              callLogs: true,
+              callLogs: { where: { leadId: { not: null } } },
             },
           },
         },
@@ -76,7 +77,7 @@ export default async function EmployeesPage() {
     const talkTimes = employeeIds.length > 0
       ? await prisma.callLog.groupBy({
           by: ['employeeId'],
-          where: { employeeId: { in: employeeIds } },
+          where: { employeeId: { in: employeeIds }, leadId: { not: null } },
           _sum: { durationSeconds: true },
         })
       : [];

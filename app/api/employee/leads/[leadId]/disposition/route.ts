@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyEmployeeToken } from '@/lib/auth/employee-token';
 import { resolveEmployeeIdentity } from '@/lib/employee/resolve';
 import { LeadStatus } from '@prisma/client';
+import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
 
 const VALID_STATUSES = new Set(Object.values(LeadStatus));
 
@@ -98,6 +99,26 @@ export async function POST(
         updatedAt: new Date(),
       },
     });
+
+    // Sync outcome to the latest CallLog for this lead so KPIs and call history match
+    const latestCallLog = await prisma.callLog.findFirst({
+      where: { leadId, employeeId: { in: resolved.allIds } },
+      orderBy: { startedAt: 'desc' },
+    });
+
+    if (latestCallLog) {
+      await prisma.callLog.update({
+        where: { id: latestCallLog.id },
+        data: {
+          outcomeId: targetStatus.toLowerCase(),
+          outcomeLabel: targetStatus,
+          notes: notes?.trim() || latestCallLog.notes,
+        },
+      });
+    }
+
+    // Invalidate dashboard metrics cache so admin KPIs immediately update
+    invalidateDashboardMetricsCache();
 
     return NextResponse.json({
       success: true,
