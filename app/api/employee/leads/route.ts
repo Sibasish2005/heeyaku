@@ -53,13 +53,26 @@ export async function GET(req: NextRequest) {
         assignedAt: true,
         createdAt: true,
         updatedAt: true,
+        callLogs: {
+          where: {
+            connected: true,
+            durationSeconds: { gt: 0 },
+          },
+          select: { id: true },
+          take: 1,
+        },
       },
     });
 
+    const enrichedLeads = leads.map(({ callLogs, ...l }) => ({
+      ...l,
+      hasConnectedCall: (callLogs && callLogs.length > 0) || false,
+    }));
+
     return NextResponse.json({
       success: true,
-      count: leads.length,
-      leads,
+      count: enrichedLeads.length,
+      leads: enrichedLeads,
     });
   } catch (error) {
     console.error('Error fetching employee leads:', error);

@@ -72,10 +72,46 @@ export async function POST(
       );
     }
 
-    // Validate status
+    // Validate status & enforce connected call requirement
+    const CONNECTED_STATUSES = new Set<LeadStatus>([
+      'CONTACTED',
+      'INTERESTED',
+      'FOLLOW_UP',
+      'CALL_BACK',
+      'CONVERTED',
+      'NOT_INTERESTED',
+      'NOT_QUALIFIED',
+    ]);
+
     let targetStatus: LeadStatus = existingLead.status;
     if (status && VALID_STATUSES.has(status as LeadStatus)) {
-      targetStatus = status as LeadStatus;
+      const requestedStatus = status as LeadStatus;
+      if (CONNECTED_STATUSES.has(requestedStatus)) {
+        // Enforce verified connected call (duration > 0s)
+        const connectedCall = await prisma.callLog.findFirst({
+          where: {
+            OR: [
+              { leadId, connected: true, durationSeconds: { gt: 0 } },
+              { phoneNumber: existingLead.phoneNumber, connected: true, durationSeconds: { gt: 0 } },
+              ...(existingLead.phoneDigits
+                ? [{ phoneNumber: { endsWith: existingLead.phoneDigits }, connected: true, durationSeconds: { gt: 0 } }]
+                : []),
+            ],
+          },
+          select: { id: true },
+        });
+
+        if (!connectedCall) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Cannot update disposition to Contacted or connected outcome without a verified connected call (talk time > 0s). Please call the student first.',
+            },
+            { status: 400 }
+          );
+        }
+      }
+      targetStatus = requestedStatus;
     }
 
     // Format new notes
@@ -107,11 +143,21 @@ export async function POST(
     });
 
     if (latestCallLog) {
+      const isCallConnected = latestCallLog.connected && latestCallLog.durationSeconds > 0;
+      let callOutcomeId = targetStatus.toLowerCase();
+      let callOutcomeLabel: string = targetStatus;
+
+      // If this specific latest call was not connected, do not label it as contacted/interested
+      if (!isCallConnected && CONNECTED_STATUSES.has(targetStatus)) {
+        callOutcomeId = 'no_answer';
+        callOutcomeLabel = 'No Answer';
+      }
+
       await prisma.callLog.update({
         where: { id: latestCallLog.id },
         data: {
-          outcomeId: targetStatus.toLowerCase(),
-          outcomeLabel: targetStatus,
+          outcomeId: callOutcomeId,
+          outcomeLabel: callOutcomeLabel,
           notes: notes?.trim() || latestCallLog.notes,
         },
       });

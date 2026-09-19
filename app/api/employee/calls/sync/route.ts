@@ -317,6 +317,24 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Sanitize call outcome for unconnected calls
+      let callOutcomeId = item.outcomeId;
+      let callOutcomeLabel = item.outcomeLabel;
+      const CONNECTED_OUTCOMES_SET = new Set([
+        'contacted',
+        'interested',
+        'follow_up',
+        'call_back',
+        'converted',
+        'not_interested',
+        'not_qualified',
+      ]);
+
+      if (!isConnected && callOutcomeId && CONNECTED_OUTCOMES_SET.has(callOutcomeId.toLowerCase())) {
+        callOutcomeId = 'no_answer';
+        callOutcomeLabel = 'No Answer';
+      }
+
       let targetCallId = '';
       if (existingLog) {
         const updated = await prisma.callLog.update({
@@ -326,8 +344,8 @@ export async function POST(req: NextRequest) {
             contactName: item.raw.contactName || item.raw.name || existingLog.contactName,
             durationSeconds: Math.max(existingLog.durationSeconds, item.duration),
             connected: isConnected,
-            outcomeId: item.outcomeId || existingLog.outcomeId,
-            outcomeLabel: item.outcomeLabel || existingLog.outcomeLabel,
+            outcomeId: callOutcomeId || existingLog.outcomeId,
+            outcomeLabel: callOutcomeLabel || existingLog.outcomeLabel,
             notes: item.notes || existingLog.notes,
             endedAt: item.endedAt || existingLog.endedAt,
           },
@@ -343,8 +361,8 @@ export async function POST(req: NextRequest) {
             callType: item.callType,
             durationSeconds: item.duration,
             connected: isConnected,
-            outcomeId: item.outcomeId,
-            outcomeLabel: item.outcomeLabel,
+            outcomeId: callOutcomeId,
+            outcomeLabel: callOutcomeLabel,
             notes: item.notes,
             startedAt: item.startedAt,
             endedAt: item.endedAt,
@@ -359,8 +377,30 @@ export async function POST(req: NextRequest) {
       // Sync lead status & outcome: update lead status and append notes
       if (matchedLead) {
         let targetStatus: LeadStatus | undefined = undefined;
-        if (item.outcomeId) {
-          targetStatus = OUTCOME_TO_LEAD_STATUS[item.outcomeId] || OUTCOME_TO_LEAD_STATUS[item.outcomeId.toLowerCase()];
+        if (callOutcomeId) {
+          const mapped = OUTCOME_TO_LEAD_STATUS[callOutcomeId] || OUTCOME_TO_LEAD_STATUS[callOutcomeId.toLowerCase()];
+          const isConnectedStatus = [
+            'CONTACTED',
+            'INTERESTED',
+            'FOLLOW_UP',
+            'CALL_BACK',
+            'CONVERTED',
+            'NOT_INTERESTED',
+            'NOT_QUALIFIED',
+          ].includes(mapped);
+
+          if (isConnectedStatus) {
+            const hasPriorConnected =
+              (targetLeadId && connectedEntityEarliestTime.has(targetLeadId)) ||
+              (phoneKey && connectedEntityEarliestTime.has(phoneKey));
+            if (isConnected || hasPriorConnected) {
+              targetStatus = mapped;
+            } else {
+              targetStatus = 'NO_ANSWER';
+            }
+          } else {
+            targetStatus = mapped;
+          }
         } else if (isConnected && (matchedLead.status === 'NEW' || matchedLead.status === 'ASSIGNED')) {
           targetStatus = 'CONTACTED';
         }
