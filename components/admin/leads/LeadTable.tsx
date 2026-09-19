@@ -111,10 +111,10 @@ export default function LeadTable({
           toast.success('Synced successfully! Leads are already up to date.', { id: toastId });
         }
       } else {
-        toast.error(res.error || 'Failed to sync with Google Sheet.', { id: toastId, duration: 6000 });
+        toast.error(res.error || 'Something went wrong while syncing. Please try again.', { id: toastId, duration: 4000 });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Network error syncing with Google Sheet.', { id: toastId });
+      toast.error('Something went wrong while syncing. Please try again.', { id: toastId, duration: 4000 });
     } finally {
       setIsSyncingSheets(false);
     }

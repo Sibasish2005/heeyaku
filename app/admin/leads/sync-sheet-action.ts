@@ -76,14 +76,14 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
     if (res.status === 401 || res.status === 403 || res.headers.get('content-type')?.includes('text/html')) {
       return {
         success: false,
-        error: "Google Sheet is restricted. In your Google Sheet, click 'Share' (top right) and set General access to 'Anyone with the link' (Viewer).",
+        error: 'Something went wrong while syncing. Please try again.',
       };
     }
 
     if (!res.ok) {
       return {
         success: false,
-        error: `Could not reach Google Sheet (HTTP ${res.status}). Please check the link.`,
+        error: 'Something went wrong while syncing. Please try again.',
       };
     }
 
