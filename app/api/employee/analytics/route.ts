@@ -38,7 +38,6 @@ export async function GET(req: NextRequest) {
     const callLogs = await prisma.callLog.findMany({
       where: {
         employeeId: { in: employeeIds },
-        leadId: { not: null },
       },
       include: {
         lead: {

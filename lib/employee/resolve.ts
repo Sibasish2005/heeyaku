@@ -11,13 +11,30 @@ export interface ResolvedEmployee {
   employee: Employee | null;
 }
 
+interface CachedResolvedEmployee {
+  resolved: ResolvedEmployee;
+  expiresAt: number;
+}
+
+const employeeIdentityCache = new Map<string, CachedResolvedEmployee>();
+const RESOLVE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Resiliently resolves an employee and all associated IDs (including matching
  * records across database reseeds or employeeCode/email aliases).
+ * In-memory cached with 5-minute TTL to eliminate repetitive DB lookups on high-frequency mobile requests.
  */
 export async function resolveEmployeeIdentity(
   payload: EmployeeTokenPayload
 ): Promise<ResolvedEmployee | null> {
+  const cacheKey = payload.employeeId || payload.employeeCode || payload.email || '';
+  if (cacheKey) {
+    const cached = employeeIdentityCache.get(cacheKey);
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.resolved;
+    }
+  }
+
   let employee = await prisma.employee.findUnique({
     where: { id: payload.employeeId },
   });
@@ -58,7 +75,7 @@ export async function resolveEmployeeIdentity(
     ])
   ).filter(Boolean);
 
-  return {
+  const result: ResolvedEmployee = {
     primaryId: employee?.id || payload.employeeId,
     allIds,
     employeeCode: employee?.employeeCode || payload.employeeCode,
@@ -66,4 +83,13 @@ export async function resolveEmployeeIdentity(
     email: employee?.email || payload.email,
     employee: employee || null,
   };
+
+  if (cacheKey) {
+    employeeIdentityCache.set(cacheKey, {
+      resolved: result,
+      expiresAt: Date.now() + RESOLVE_CACHE_TTL_MS,
+    });
+  }
+
+  return result;
 }

@@ -183,45 +183,39 @@ export async function POST(req: NextRequest) {
       return undefined;
     };
 
-    // STRICT APP-ONLY FILTER:
-    // Only calls to leads assigned to this employee in the app are counted or logged.
-    // Personal calls, external calls, and unassigned calls are strictly filtered out and never saved.
+    // App-initiated call queue processing
     interface QualifiedCall {
       item: ParsedCall;
-      matchedLead: typeof employeeLeads[0];
+      matchedLead: typeof employeeLeads[0] | null;
     }
 
     const assignedCalls: QualifiedCall[] = [];
     for (const item of parsedCalls) {
-      const matchedLead = findMatchedAssignedLead(item.last10, item.raw.leadId);
-      if (matchedLead) {
-        assignedCalls.push({ item, matchedLead });
-      }
+      const matchedLead = findMatchedAssignedLead(item.last10, item.raw.leadId) || null;
+      assignedCalls.push({ item, matchedLead });
     }
 
-    // If none of the calls belong to assigned leads in the app, exit immediately
     if (assignedCalls.length === 0) {
       return NextResponse.json({
         success: true,
         syncedCount: 0,
         syncedIds: [],
-        message: 'No assigned lead calls found to sync.',
+        message: 'No calls found to sync.',
       });
     }
 
-    // 3. Batch pre-fetch existing call logs for assigned calls only
+    // 3. Batch pre-fetch existing call logs for deduplication
     const assignedCandidateIds = assignedCalls.map(a => a.item.idCandidate).filter(Boolean) as string[];
     const minTimestamp = new Date(Math.min(...assignedCalls.map(a => a.item.startedAt.getTime())) - 120 * 1000);
     const maxTimestamp = new Date(Math.max(...assignedCalls.map(a => a.item.startedAt.getTime())) + 120 * 1000);
 
     const [existingById, existingByTime] = await Promise.all([
       assignedCandidateIds.length > 0
-        ? prisma.callLog.findMany({ where: { id: { in: assignedCandidateIds }, leadId: { not: null } } })
+        ? prisma.callLog.findMany({ where: { id: { in: assignedCandidateIds } } })
         : Promise.resolve([]),
       prisma.callLog.findMany({
         where: {
           employeeId,
-          leadId: { not: null },
           startedAt: { gte: minTimestamp, lte: maxTimestamp },
         },
       }),
@@ -232,15 +226,15 @@ export async function POST(req: NextRequest) {
       existingLogsMap.set(log.id, log);
     }
 
-    // Helper to find existing call log for an assigned lead
-    const findExistingLog = (item: ParsedCall, leadId: string) => {
+    // Helper to find existing call log
+    const findExistingLog = (item: ParsedCall, leadId?: string | null) => {
       if (item.idCandidate && existingLogsMap.has(item.idCandidate)) {
         return existingLogsMap.get(item.idCandidate);
       }
       if (item.last10.length >= 8) {
         const itemTime = item.startedAt.getTime();
         return existingByTime.find(log => {
-          if (log.leadId !== leadId) return false;
+          if (leadId && log.leadId && log.leadId !== leadId) return false;
           const logTime = log.startedAt.getTime();
           const logLast10 = toLast10Digits(log.phoneNumber);
           const sameNum = logLast10.endsWith(item.last10) || item.last10.endsWith(logLast10);
@@ -250,16 +244,20 @@ export async function POST(req: NextRequest) {
       return undefined;
     };
 
-    // 4. Batch check prior connected calls for assigned leads only
-    const targetLeadIds = Array.from(new Set(assignedCalls.map(a => a.matchedLead.id)));
+    // 4. Batch check prior connected calls for assigned leads
+    const targetLeadIds = Array.from(
+      new Set(assignedCalls.map(a => a.matchedLead?.id).filter(Boolean) as string[])
+    );
 
-    const existingConnectedInDb = await prisma.callLog.findMany({
-      where: {
-        connected: true,
-        leadId: { in: targetLeadIds },
-      },
-      select: { id: true, leadId: true, phoneNumber: true, startedAt: true },
-    });
+    const existingConnectedInDb = targetLeadIds.length > 0
+      ? await prisma.callLog.findMany({
+          where: {
+            connected: true,
+            leadId: { in: targetLeadIds },
+          },
+          select: { id: true, leadId: true, phoneNumber: true, startedAt: true },
+        })
+      : [];
 
     // In-memory set of entities (lead ID or phone last10) that already have a connected call
     const connectedEntityEarliestTime = new Map<string, number>();
@@ -280,7 +278,7 @@ export async function POST(req: NextRequest) {
     const syncedIds: string[] = [];
 
     for (const { item, matchedLead } of assignedCalls) {
-      const targetLeadId = matchedLead.id;
+      const targetLeadId = matchedLead ? matchedLead.id : null;
       const existingLog = findExistingLog(item, targetLeadId);
 
       let isConnected = item.rawIsConnected;
@@ -288,7 +286,7 @@ export async function POST(req: NextRequest) {
       const phoneKey = item.last10.length >= 8 ? item.last10 : null;
 
       if (isConnected) {
-        const earliestLeadConn = connectedEntityEarliestTime.get(leadKey);
+        const earliestLeadConn = leadKey ? connectedEntityEarliestTime.get(leadKey) : undefined;
         const earliestPhoneConn = phoneKey ? connectedEntityEarliestTime.get(phoneKey) : undefined;
         const earliestConnected = Math.min(
           earliestLeadConn ?? Infinity,
@@ -301,19 +299,21 @@ export async function POST(req: NextRequest) {
         } else {
           // This call is the earliest connected call for this lead
           isConnected = true;
-          connectedEntityEarliestTime.set(leadKey, item.startedAt.getTime());
+          if (leadKey) connectedEntityEarliestTime.set(leadKey, item.startedAt.getTime());
           if (phoneKey) connectedEntityEarliestTime.set(phoneKey, item.startedAt.getTime());
 
           // Demote any subsequent connected calls in DB for this assigned lead
-          await prisma.callLog.updateMany({
-            where: {
-              leadId: leadKey,
-              connected: true,
-              ...(existingLog ? { id: { not: existingLog.id } } : {}),
-              startedAt: { gt: item.startedAt },
-            },
-            data: { connected: false },
-          });
+          if (leadKey) {
+            await prisma.callLog.updateMany({
+              where: {
+                leadId: leadKey,
+                connected: true,
+                ...(existingLog ? { id: { not: existingLog.id } } : {}),
+                startedAt: { gt: item.startedAt },
+              },
+              data: { connected: false },
+            });
+          }
         }
       }
 
