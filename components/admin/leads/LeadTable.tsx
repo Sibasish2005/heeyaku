@@ -12,6 +12,7 @@ import { ActiveEmployee, LeadListItem } from './table/types';
 import { exportLeadsDataset } from './table/exportHelper';
 import { getLeadTableColumns } from './table/leadTableColumns';
 import { unassignLeadsAction } from '@/app/admin/leads/assignment-actions';
+import { syncGoogleSheetDirectAction } from '@/app/admin/leads/sync-sheet-action';
 import { toast } from 'sonner';
 
 export type { ActiveEmployee, LeadListItem } from './table/types';
@@ -41,7 +42,7 @@ export default function LeadTable({
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [isSheetsSyncOpen, setIsSheetsSyncOpen] = useState(false);
+  const [isSyncingSheets, setIsSyncingSheets] = useState(false);
   const [editingLead, setEditingLead] = useState<LeadListItem | null>(null);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
@@ -97,6 +98,28 @@ export default function LeadTable({
     }
   };
 
+  const handleSyncSheets = async () => {
+    setIsSyncingSheets(true);
+    const toastId = toast.loading('Syncing with Google Sheets...');
+    try {
+      const res = await syncGoogleSheetDirectAction();
+      if (res.success) {
+        if (res.count && res.count > 0) {
+          toast.success(`Synced successfully! ${res.count} new lead(s) added from Google Sheet.`, { id: toastId });
+          setTimeout(() => window.location.reload(), 600);
+        } else {
+          toast.success('Synced successfully! Leads are already up to date.', { id: toastId });
+        }
+      } else {
+        toast.error(res.error || 'Failed to sync with Google Sheet.', { id: toastId, duration: 6000 });
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Network error syncing with Google Sheet.', { id: toastId });
+    } finally {
+      setIsSyncingSheets(false);
+    }
+  };
+
   return (
     <div className="space-y-6 relative">
       <LeadTableFloatingBar
@@ -118,7 +141,8 @@ export default function LeadTable({
         onExport={(fmt) => exportLeadsDataset(fmt, filteredLeads, 'Filtered')}
         onCreateOpen={() => setIsCreateOpen(true)}
         onImportOpen={() => setIsImportOpen(true)}
-        onSheetsSyncOpen={() => setIsSheetsSyncOpen(true)}
+        onSyncSheets={handleSyncSheets}
+        isSyncingSheets={isSyncingSheets}
       />
 
       <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-2xs overflow-hidden">
@@ -163,14 +187,12 @@ export default function LeadTable({
         editingLead={editingLead}
         isBulkAssignOpen={isBulkAssignOpen}
         isImportOpen={isImportOpen}
-        isSheetsSyncOpen={isSheetsSyncOpen}
         selectedIds={selectedIds}
         activeEmployees={activeEmployees}
         onCloseCreate={() => setIsCreateOpen(false)}
         onCloseEdit={() => setEditingLead(null)}
         onCloseBulkAssign={() => setIsBulkAssignOpen(false)}
         onCloseImport={() => setIsImportOpen(false)}
-        onCloseSheetsSync={() => setIsSheetsSyncOpen(false)}
         onAssigned={(count, employeeName) => {
           toast.success(
             `Successfully assigned ${count} lead${count > 1 ? 's' : ''}${employeeName ? ` to ${employeeName}` : ''}.`

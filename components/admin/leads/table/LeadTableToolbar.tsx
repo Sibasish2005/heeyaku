@@ -21,7 +21,8 @@ interface LeadTableToolbarProps {
   onExport: (format: 'xlsx' | 'csv') => void;
   onCreateOpen: () => void;
   onImportOpen: () => void;
-  onSheetsSyncOpen?: () => void;
+  onSyncSheets?: () => void;
+  isSyncingSheets?: boolean;
 }
 
 const STATUS_OPTIONS = [
@@ -63,7 +64,8 @@ export default function LeadTableToolbar({
   onExport,
   onCreateOpen,
   onImportOpen,
-  onSheetsSyncOpen,
+  onSyncSheets,
+  isSyncingSheets = false,
 }: LeadTableToolbarProps) {
   const hasActiveFilters =
     searchQuery.trim() !== '' ||
@@ -135,15 +137,16 @@ export default function LeadTableToolbar({
             </div>
           </div>
 
-          {onSheetsSyncOpen && (
+          {onSyncSheets && (
             <button
               type="button"
-              onClick={onSheetsSyncOpen}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl transition-colors shadow-2xs cursor-pointer"
-              title="Configure Google Sheets Two-Way Auto-Sync"
+              onClick={onSyncSheets}
+              disabled={isSyncingSheets}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-60 border border-emerald-500/20 rounded-xl transition-colors shadow-2xs cursor-pointer"
+              title="Sync leads directly from your connected Google Sheet"
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Sheets Sync</span>
+              <FileSpreadsheet className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 ${isSyncingSheets ? 'animate-spin' : ''}`} />
+              <span>{isSyncingSheets ? 'Syncing...' : 'Sync Sheet'}</span>
             </button>
           )}
 
