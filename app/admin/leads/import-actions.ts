@@ -243,16 +243,16 @@ export async function executeImportAction(input: {
       select: { leadCode: true },
     });
 
-    let currentNumber = 1001;
-    if (latestLead && latestLead.leadCode.startsWith('LED-')) {
-      const parsed = parseInt(latestLead.leadCode.replace('LED-', ''), 10);
+    let currentNumber = 1;
+    if (latestLead && latestLead.leadCode.startsWith('LD-')) {
+      const parsed = parseInt(latestLead.leadCode.replace('LD-', ''), 10);
       if (!isNaN(parsed)) {
         currentNumber = parsed + 1;
       }
     }
 
     const recordsToInsert = leads.map((lead, idx) => ({
-      leadCode: `LED-${currentNumber + idx}`,
+      leadCode: `LD-${String(currentNumber + idx).padStart(5, '0')}`,
       name: lead.name,
       phoneNumber: lead.phoneNumber,
       email: lead.email || null,

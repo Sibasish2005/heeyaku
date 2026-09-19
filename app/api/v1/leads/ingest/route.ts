@@ -3,17 +3,11 @@ import { prisma } from '@/lib/prisma';
 import { verifyExternalApiKey } from '@/lib/auth/external-api';
 import { toLast10Digits } from '@/lib/lead/phone';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
+import { generateNextLeadCode } from '@/lib/lead/code';
 
 export const dynamic = 'force-dynamic';
 
-function generateLeadCode(): string {
-  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-  let code = 'LD-';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
+
 
 /**
  * Public/External REST API for Ingesting Leads into HEEYAKU.
@@ -90,7 +84,7 @@ export async function POST(req: NextRequest) {
         });
       } else {
         // Create new lead
-        const leadCode = generateLeadCode();
+        const leadCode = await generateNextLeadCode();
         const created = await prisma.lead.create({
           data: {
             leadCode,

@@ -51,6 +51,7 @@ model Lead {
   leadCode           String      @unique
   name               String
   phoneNumber        String
+  phoneDigits        String?     // Normalized last 10 digits for exact-match dedup
   email              String?
   company            String?
   source             String      @default("MANUAL")
@@ -66,6 +67,7 @@ model Lead {
 
   @@index([leadCode])
   @@index([phoneNumber])
+  @@index([phoneDigits])
   @@index([status])
   @@index([assignedEmployeeId])
   @@index([createdAt])
@@ -73,6 +75,17 @@ model Lead {
   @@index([assignedEmployeeId, status])
   @@index([assignedEmployeeId, updatedAt])
   @@map("leads")
+}
+
+model SyncMeta {
+  id            String   @id @default(cuid())
+  syncType      String   @unique  // e.g. "google_sheets"
+  lastRowCount  Int      @default(0)
+  lastSyncedAt  DateTime @default(now())
+  sheetHash     String?  // Hash of the last synced content for change detection
+  updatedAt     DateTime @updatedAt
+
+  @@map("sync_meta")
 }
 
 enum CallType {
