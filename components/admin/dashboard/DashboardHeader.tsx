@@ -28,9 +28,9 @@ export default function DashboardHeader({ adminName }: DashboardHeaderProps) {
       <div className="flex items-center gap-2.5">
         <Link 
           href="/admin/employees"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-2xs active:scale-[0.98]"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-foreground bg-card border border-border hover:bg-muted/80 rounded-lg transition-colors shadow-2xs active:scale-[0.98]"
         >
-          <Users className="w-3.5 h-3.5 text-slate-500" />
+          <Users className="w-3.5 h-3.5 text-muted-foreground" />
           <span>Business Development Associates</span>
         </Link>
         <Link 

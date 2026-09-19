@@ -58,16 +58,16 @@ export default function DashboardKpiMetrics({
         return (
           <div
             key={idx}
-            className="bg-white rounded-xl border border-slate-200/80 p-4 sm:p-5 flex items-start justify-between shadow-2xs hover:border-slate-300 transition-colors"
+            className="bg-card text-card-foreground rounded-xl border border-border p-4 sm:p-5 flex items-start justify-between shadow-2xs hover:border-primary/40 transition-colors"
           >
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block">
                 {stat.label}
               </span>
-              <div className="text-2xl font-black text-slate-900 tracking-tight">
+              <div className="text-2xl font-black text-foreground tracking-tight">
                 {stat.value}
               </div>
-              <div className="text-[11px] font-medium text-slate-400">
+              <div className="text-[11px] font-medium text-muted-foreground/80">
                 {stat.meta}
               </div>
             </div>
