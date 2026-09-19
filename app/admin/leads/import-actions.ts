@@ -1,9 +1,11 @@
 'use server';
 
+import Papa from 'papaparse';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
 import { normalizePhoneNumber, isValidPhoneNumber, zodPhoneNumberSchema } from '@/lib/lead/phone';
+import { RawImportRow, parseGoogleSheetUrl } from '@/lib/lead/import-parser';
 import { revalidatePath } from 'next/cache';
 
 export interface PreparedImportLead {
@@ -37,6 +39,12 @@ export interface ImportPreviewResult {
   validRows: PreparedImportLead[];
   duplicates: DuplicateReport[];
   invalidRows: InvalidRowReport[];
+}
+
+export interface FetchGoogleSheetResult {
+  sheetTitle: string;
+  headers: string[];
+  rows: RawImportRow[];
 }
 
 export type ActionResponse<T = unknown> = {
@@ -255,6 +263,7 @@ export async function executeImportAction(input: {
       leadCode: `LD-${String(currentNumber + idx).padStart(5, '0')}`,
       name: lead.name,
       phoneNumber: lead.phoneNumber,
+      phoneDigits: lead.normalizedPhone || normalizePhoneNumber(lead.phoneNumber),
       email: lead.email || null,
       company: lead.company || null,
       source: lead.source || 'File Import',
@@ -291,6 +300,102 @@ export async function executeImportAction(input: {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to insert imported leads.',
+    };
+  }
+}
+
+/**
+ * Server action to fetch public Google Sheet CSV data and return column headers and rows.
+ */
+export async function fetchGoogleSheetDataAction(
+  sheetUrl: string
+): Promise<ActionResponse<FetchGoogleSheetResult>> {
+  try {
+    await assertAdminAccess();
+
+    const parsedUrl = parseGoogleSheetUrl(sheetUrl);
+    if ('error' in parsedUrl) {
+      return { success: false, error: parsedUrl.error };
+    }
+
+    const res = await fetch(parsedUrl.exportUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Heeyaku-CRM/1.0',
+      },
+      cache: 'no-store',
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      return {
+        success: false,
+        error: 'Access denied. Please click "Share" in Google Sheets and set General access to "Anyone with the link can view".',
+      };
+    }
+
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('text/html')) {
+      return {
+        success: false,
+        error: 'The Google Sheet requires sign-in. In Google Sheets, click "Share" and change General access to "Anyone with the link can view" (Viewer).',
+      };
+    }
+
+    if (!res.ok) {
+      return {
+        success: false,
+        error: `Could not fetch spreadsheet from Google (HTTP ${res.status}). Please check the link.`,
+      };
+    }
+
+    const csvText = await res.text();
+    if (!csvText || !csvText.trim()) {
+      return {
+        success: false,
+        error: 'The Google Sheet is empty or contains no readable data.',
+      };
+    }
+
+    const parsed = Papa.parse<RawImportRow>(csvText, {
+      header: true,
+      skipEmptyLines: 'greedy',
+      transformHeader: (header) => header.trim(),
+    });
+
+    const headers = (parsed.meta.fields || []).filter((h) => h && h.trim().length > 0);
+    const rows = (parsed.data || []).filter((row) => {
+      return Object.values(row).some((val) => val !== undefined && val !== null && String(val).trim() !== '');
+    });
+
+    if (headers.length === 0 || rows.length === 0) {
+      return {
+        success: false,
+        error: 'No data rows or column headers found in this Google Sheet tab. Please ensure Row 1 has headers.',
+      };
+    }
+
+    let sheetTitle = parsedUrl.sheetIdentifier;
+    const contentDisposition = res.headers.get('content-disposition');
+    if (contentDisposition) {
+      const match = contentDisposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) {
+        sheetTitle = decodeURIComponent(match[1].replace(/\.csv$/i, ''));
+      }
+    }
+
+    return {
+      success: true,
+      data: {
+        sheetTitle,
+        headers,
+        rows,
+      },
+    };
+  } catch (error) {
+    console.error('Error fetching Google Sheet:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unexpected error fetching Google Sheet data.',
     };
   }
 }

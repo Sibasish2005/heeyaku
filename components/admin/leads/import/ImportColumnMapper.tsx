@@ -11,6 +11,7 @@ interface ImportColumnMapperProps {
   headers: string[];
   mapping: ColumnMapping;
   loading: boolean;
+  isGoogleSheet?: boolean;
   onMappingChange: (mapping: ColumnMapping) => void;
   onBack: () => void;
   onProceed: () => void;
@@ -22,6 +23,7 @@ export default function ImportColumnMapper({
   headers,
   mapping,
   loading,
+  isGoogleSheet = false,
   onMappingChange,
   onBack,
   onProceed,
@@ -29,25 +31,27 @@ export default function ImportColumnMapper({
   const headerOptions = headers.map((h) => ({ value: h, label: h }));
   const requiredOptions = [{ value: '', label: 'Select Column...' }, ...headerOptions];
   const skipOptions = [{ value: '', label: 'Skip / Not Provided' }, ...headerOptions];
-  const sourceOptions = [{ value: '', label: 'Default to "File Import"' }, ...headerOptions];
+  const defaultSourceLabel = isGoogleSheet ? 'Default to "Google Sheets"' : 'Default to "File Import"';
+  const sourceOptions = [{ value: '', label: defaultSourceLabel }, ...headerOptions];
 
   const canProceed = Boolean(mapping.nameCol && mapping.phoneCol);
 
   return (
     <div className="p-6 space-y-5 overflow-y-auto">
       <div className="p-3.5 rounded-xl bg-muted/40 border border-border/80 text-xs text-foreground flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FileSpreadsheet className="w-4 h-4 text-[#2563EB] shrink-0" />
-          <span>
-            File: <span className="font-semibold text-foreground">{fileName}</span> ({rowCount.toLocaleString()} rows found)
+        <div className="flex items-center gap-2 min-w-0">
+          <FileSpreadsheet className={`w-4 h-4 shrink-0 ${isGoogleSheet ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#2563EB]'}`} />
+          <span className="truncate">
+            {isGoogleSheet ? 'Sheet: ' : 'File: '}
+            <span className="font-semibold text-foreground">{fileName}</span> ({rowCount.toLocaleString()} rows found)
           </span>
         </div>
         <button
           onClick={onBack}
           type="button"
-          className="text-[11px] font-semibold text-[#2563EB] hover:underline"
+          className="text-[11px] font-semibold text-[#2563EB] hover:underline shrink-0 ml-2 cursor-pointer"
         >
-          Change File
+          Change Source
         </button>
       </div>
 
@@ -102,7 +106,7 @@ export default function ImportColumnMapper({
             value={mapping.sourceCol || ''}
             onValueChange={(val) => onMappingChange({ ...mapping, sourceCol: val || undefined })}
             options={sourceOptions}
-            placeholder='Default to "File Import"'
+            placeholder={defaultSourceLabel}
           />
         </div>
 

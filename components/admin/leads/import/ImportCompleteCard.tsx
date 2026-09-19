@@ -37,7 +37,7 @@ export default function ImportCompleteCard({
           onClick={onReset}
           className="px-4 py-2 text-xs font-medium text-foreground bg-muted hover:bg-muted/80 rounded-xl transition-colors cursor-pointer"
         >
-          Import Another File
+          Import More Leads
         </button>
         <button
           onClick={onClose}

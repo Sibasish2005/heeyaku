@@ -45,3 +45,8 @@ next-env.d.ts
 
 # scratch directory
 /scratch/
+
+# database maintenance scripts
+/scripts/clean-leads*
+/scripts/db-clean*
+/scripts/clear-database*

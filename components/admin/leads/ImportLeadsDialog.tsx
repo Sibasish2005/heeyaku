@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { X, UploadCloud } from 'lucide-react';
 import { parseImportFile, autoDetectColumnMapping, ColumnMapping, RawImportRow } from '@/lib/lead/import-parser';
-import { validateAndPreviewImportAction, executeImportAction, ImportPreviewResult } from '@/app/admin/leads/import-actions';
+import { validateAndPreviewImportAction, executeImportAction, fetchGoogleSheetDataAction, ImportPreviewResult } from '@/app/admin/leads/import-actions';
 import ImportDropzone from './import/ImportDropzone';
 import ImportColumnMapper from './import/ImportColumnMapper';
 import ImportPreviewTabs from './import/ImportPreviewTabs';
@@ -33,6 +33,8 @@ export default function ImportLeadsDialog({
 }: ImportLeadsDialogProps) {
   const [step, setStep] = useState<Step>('DROPZONE');
   const [file, setFile] = useState<File | null>(null);
+  const [sourceName, setSourceName] = useState('');
+  const [isGoogleSheet, setIsGoogleSheet] = useState(false);
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<RawImportRow[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({ nameCol: '', phoneCol: '' });
@@ -47,6 +49,8 @@ export default function ImportLeadsDialog({
   const handleReset = () => {
     setStep('DROPZONE');
     setFile(null);
+    setSourceName('');
+    setIsGoogleSheet(false);
     setHeaders([]); setRawRows([]); setMapping({ nameCol: '', phoneCol: '' });
     setPreviewResult(null); setAssignedEmployeeId(''); setImportSummary(null); setError(null);
   };
@@ -56,12 +60,38 @@ export default function ImportLeadsDialog({
       setLoading(true); setError(null);
       const parsed = await parseImportFile(selectedFile);
       if (!parsed.headers.length || !parsed.rows.length) throw new Error('Spreadsheet appears empty.');
-      setFile(selectedFile); setHeaders(parsed.headers); setRawRows(parsed.rows);
+      setFile(selectedFile);
+      setSourceName(selectedFile.name);
+      setIsGoogleSheet(false);
+      setHeaders(parsed.headers);
+      setRawRows(parsed.rows);
       setMapping(autoDetectColumnMapping(parsed.headers));
       setStep('MAPPING');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to parse file.');
     } finally { setLoading(false); }
+  };
+
+  const handleGoogleSheetSubmit = async (url: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetchGoogleSheetDataAction(url);
+      if (!res.success || !res.data) {
+        throw new Error(res.error || 'Failed to fetch data from Google Sheet.');
+      }
+      setFile(null);
+      setSourceName(res.data.sheetTitle);
+      setIsGoogleSheet(true);
+      setHeaders(res.data.headers);
+      setRawRows(res.data.rows);
+      setMapping(autoDetectColumnMapping(res.data.headers));
+      setStep('MAPPING');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch Google Sheet.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleProceedToPreview = async () => {
@@ -70,13 +100,14 @@ export default function ImportLeadsDialog({
     }
     try {
       setLoading(true); setError(null);
+      const defaultSource = isGoogleSheet ? 'Google Sheets' : 'File Import';
       const mappedRows = rawRows.map((r, i) => ({
         rowNumber: i + 2,
         name: String(r[mapping.nameCol] || ''),
         phoneNumber: String(r[mapping.phoneCol] || ''),
         email: mapping.emailCol ? String(r[mapping.emailCol] || '') : undefined,
         company: mapping.companyCol ? String(r[mapping.companyCol] || '') : undefined,
-        source: mapping.sourceCol ? String(r[mapping.sourceCol] || '') : undefined,
+        source: mapping.sourceCol ? String(r[mapping.sourceCol] || '') : defaultSource,
         notes: mapping.notesCol ? String(r[mapping.notesCol] || '') : undefined,
       }));
       const res = await validateAndPreviewImportAction(mappedRows);
@@ -118,7 +149,7 @@ export default function ImportLeadsDialog({
             <div className="min-w-0">
               <h3 className="text-sm sm:text-base font-bold text-foreground">Bulk Import Leads</h3>
               <p className="text-xs text-muted-foreground font-medium truncate">
-                {step === 'DROPZONE' && 'Upload CSV or XLSX file'}
+                {step === 'DROPZONE' && 'Upload CSV, Excel, or link a Google Sheet'}
                 {step === 'MAPPING' && 'Match your spreadsheet columns'}
                 {step === 'PREVIEW' && 'Review validation results before import'}
                 {step === 'DONE' && 'Import complete'}
@@ -136,14 +167,22 @@ export default function ImportLeadsDialog({
           </div>
         )}
 
-        {step === 'DROPZONE' && <ImportDropzone onFileSelect={handleFileSelect} onDownloadSample={handleDownloadSample} />}
+        {step === 'DROPZONE' && (
+          <ImportDropzone
+            onFileSelect={handleFileSelect}
+            onGoogleSheetSubmit={handleGoogleSheetSubmit}
+            onDownloadSample={handleDownloadSample}
+            loading={loading}
+          />
+        )}
         {step === 'MAPPING' && (
           <ImportColumnMapper
-            fileName={file?.name}
+            fileName={sourceName || file?.name || 'Spreadsheet'}
             rowCount={rawRows.length}
             headers={headers}
             mapping={mapping}
             loading={loading}
+            isGoogleSheet={isGoogleSheet}
             onMappingChange={setMapping}
             onBack={() => setStep('DROPZONE')}
             onProceed={handleProceedToPreview}

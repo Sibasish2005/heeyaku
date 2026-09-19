@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "clean:leads": "npx tsx scripts/clean-leads.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
