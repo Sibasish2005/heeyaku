@@ -38,6 +38,7 @@ export default function LeadTable({
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkAssignOpen, setIsBulkAssignOpen] = useState(false);
+  const [isAutoAssignOpen, setIsAutoAssignOpen] = useState(false);
   const [isUnassigning, setIsUnassigning] = useState(false);
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -141,6 +142,7 @@ export default function LeadTable({
         onExport={(fmt) => exportLeadsDataset(fmt, filteredLeads, 'Filtered')}
         onCreateOpen={() => setIsCreateOpen(true)}
         onImportOpen={() => setIsImportOpen(true)}
+        onAutoAssignOpen={() => setIsAutoAssignOpen(true)}
         onSyncSheets={handleSyncSheets}
         isSyncingSheets={isSyncingSheets}
       />
@@ -186,12 +188,14 @@ export default function LeadTable({
         isCreateOpen={isCreateOpen}
         editingLead={editingLead}
         isBulkAssignOpen={isBulkAssignOpen}
+        isAutoAssignOpen={isAutoAssignOpen}
         isImportOpen={isImportOpen}
         selectedIds={selectedIds}
         activeEmployees={activeEmployees}
         onCloseCreate={() => setIsCreateOpen(false)}
         onCloseEdit={() => setEditingLead(null)}
         onCloseBulkAssign={() => setIsBulkAssignOpen(false)}
+        onCloseAutoAssign={() => setIsAutoAssignOpen(false)}
         onCloseImport={() => setIsImportOpen(false)}
         onAssigned={(count, employeeName) => {
           toast.success(

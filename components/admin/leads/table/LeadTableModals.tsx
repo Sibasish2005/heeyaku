@@ -5,18 +5,21 @@ import CreateLeadDialog from '../CreateLeadDialog';
 import EditLeadDialog from '../EditLeadDialog';
 import BulkAssignDialog from '../BulkAssignDialog';
 import ImportLeadsDialog from '../ImportLeadsDialog';
+import AutoAssignDialog from '../AutoAssignDialog';
 import { ActiveEmployee, LeadListItem } from './types';
 
 interface LeadTableModalsProps {
   isCreateOpen: boolean;
   editingLead: LeadListItem | null;
   isBulkAssignOpen: boolean;
+  isAutoAssignOpen: boolean;
   isImportOpen: boolean;
   selectedIds: string[];
   activeEmployees: ActiveEmployee[];
   onCloseCreate: () => void;
   onCloseEdit: () => void;
   onCloseBulkAssign: () => void;
+  onCloseAutoAssign: () => void;
   onCloseImport: () => void;
   onAssigned: (count: number, employeeName?: string) => void;
 }
@@ -25,12 +28,14 @@ export default function LeadTableModals({
   isCreateOpen,
   editingLead,
   isBulkAssignOpen,
+  isAutoAssignOpen,
   isImportOpen,
   selectedIds,
   activeEmployees,
   onCloseCreate,
   onCloseEdit,
   onCloseBulkAssign,
+  onCloseAutoAssign,
   onCloseImport,
   onAssigned,
 }: LeadTableModalsProps) {
@@ -57,6 +62,13 @@ export default function LeadTableModals({
         activeEmployees={activeEmployees}
         onClose={onCloseBulkAssign}
         onAssigned={onAssigned}
+      />
+
+      <AutoAssignDialog
+        isOpen={isAutoAssignOpen}
+        activeEmployees={activeEmployees}
+        onClose={onCloseAutoAssign}
+        onAssigned={(count) => onAssigned(count)}
       />
 
       <ImportLeadsDialog

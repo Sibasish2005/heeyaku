@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Plus, Upload, Download, Filter, RotateCcw, X, FileSpreadsheet } from 'lucide-react';
+import { Search, Plus, Upload, Download, Filter, RotateCcw, X, FileSpreadsheet, Bot } from 'lucide-react';
 import { ActiveEmployee } from './types';
 import ShadcnDropdownSelect from '@/components/ui/shadcn-dropdown-select';
 
@@ -21,6 +21,7 @@ interface LeadTableToolbarProps {
   onExport: (format: 'xlsx' | 'csv') => void;
   onCreateOpen: () => void;
   onImportOpen: () => void;
+  onAutoAssignOpen: () => void;
   onSyncSheets?: () => void;
   isSyncingSheets?: boolean;
 }
@@ -64,6 +65,7 @@ export default function LeadTableToolbar({
   onExport,
   onCreateOpen,
   onImportOpen,
+  onAutoAssignOpen,
   onSyncSheets,
   isSyncingSheets = false,
 }: LeadTableToolbarProps) {
@@ -157,6 +159,15 @@ export default function LeadTableToolbar({
           >
             <Upload className="w-3.5 h-3.5 text-muted-foreground" />
             <span>Import</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onAutoAssignOpen}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl transition-colors shadow-2xs cursor-pointer"
+          >
+            <Bot className="w-3.5 h-3.5" />
+            <span>Auto Assign</span>
           </button>
 
           <button

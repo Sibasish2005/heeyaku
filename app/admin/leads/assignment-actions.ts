@@ -14,6 +14,13 @@ const UnassignLeadsSchema = z.object({
   leadIds: z.array(z.string().min(1)).min(1, 'Please select at least one lead'),
 });
 
+const AutoAssignLeadsSchema = z.object({
+  employeeIds: z.array(z.string().min(1)).min(1, 'Please select at least one employee'),
+  assignAll: z.boolean().default(false),
+  leadsPerEmployee: z.number().int().min(1).optional(),
+  distributionMethod: z.enum(['EVENLY', 'SEQUENTIAL']),
+});
+
 export type ActionResponse<T = unknown> = {
   success: boolean;
   data?: T;
@@ -176,6 +183,122 @@ export async function unassignLeadsAction(input: unknown): Promise<ActionRespons
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to unassign leads.',
+    };
+  }
+}
+
+/**
+ * Automatically assigns unassigned leads to a list of selected employees.
+ */
+export async function autoAssignLeadsAction(input: unknown): Promise<ActionResponse<{ assignedCount: number; distribution: Record<string, number> }>> {
+  try {
+    await assertAdminAccess();
+
+    const validated = AutoAssignLeadsSchema.safeParse(input);
+    if (!validated.success) {
+      return {
+        success: false,
+        error: validated.error.issues.map((i) => i.message).join(', '),
+      };
+    }
+
+    const { employeeIds, assignAll, leadsPerEmployee, distributionMethod } = validated.data;
+
+    if (!assignAll && !leadsPerEmployee) {
+      return { success: false, error: 'Please specify the number of leads per employee or choose to assign all.' };
+    }
+
+    // Verify all employees exist and are active
+    const employees = await prisma.employee.findMany({
+      where: { id: { in: employeeIds }, isActive: true },
+      select: { id: true, name: true, employeeCode: true },
+    });
+
+    if (employees.length !== employeeIds.length) {
+      return { success: false, error: 'One or more selected employees are invalid or inactive.' };
+    }
+
+    // Fetch unassigned leads
+    const totalRequestedLeads = assignAll ? undefined : employeeIds.length * (leadsPerEmployee || 0);
+    const unassignedLeads = await prisma.lead.findMany({
+      where: { assignedEmployeeId: null },
+      orderBy: { createdAt: 'asc' }, // Prioritize oldest unassigned leads
+      take: totalRequestedLeads,
+      select: { id: true },
+    });
+
+    if (unassignedLeads.length === 0) {
+      return { success: false, error: 'There are no unassigned leads available in the pool.' };
+    }
+
+    const leadIds = unassignedLeads.map(l => l.id);
+    const assignmentMap = new Map<string, string[]>(); // Employee ID -> Lead IDs
+    employees.forEach(emp => assignmentMap.set(emp.id, []));
+
+    if (assignAll || distributionMethod === 'EVENLY') {
+      // Round-robin assignment (Evenly distributes)
+      let currentEmployeeIdx = 0;
+      for (const leadId of leadIds) {
+        const empId = employeeIds[currentEmployeeIdx];
+        assignmentMap.get(empId)!.push(leadId);
+        currentEmployeeIdx = (currentEmployeeIdx + 1) % employeeIds.length;
+      }
+    } else {
+      // Sequential assignment
+      const targetPerEmp = leadsPerEmployee || 0;
+      let currentLeadIdx = 0;
+      for (const empId of employeeIds) {
+        for (let i = 0; i < targetPerEmp; i++) {
+          if (currentLeadIdx < leadIds.length) {
+            assignmentMap.get(empId)!.push(leadIds[currentLeadIdx]);
+            currentLeadIdx++;
+          } else {
+            break; // Ran out of leads
+          }
+        }
+      }
+    }
+
+    const assignedAt = new Date();
+    const distributionResult: Record<string, number> = {};
+    let totalAssigned = 0;
+
+    // Execute atomic transaction
+    await prisma.$transaction(async (tx) => {
+      for (const [empId, assignedLeadIds] of assignmentMap.entries()) {
+        if (assignedLeadIds.length === 0) continue;
+        
+        await tx.lead.updateMany({
+          where: { id: { in: assignedLeadIds } },
+          data: {
+            assignedEmployeeId: empId,
+            assignedAt,
+            status: 'ASSIGNED',
+          },
+        });
+        
+        const emp = employees.find(e => e.id === empId);
+        if (emp) distributionResult[emp.name] = assignedLeadIds.length;
+        totalAssigned += assignedLeadIds.length;
+      }
+    });
+
+    revalidatePath('/admin/leads');
+    revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/employees');
+
+    return {
+      success: true,
+      data: {
+        assignedCount: totalAssigned,
+        distribution: distributionResult,
+      },
+    };
+  } catch (error) {
+    console.error('Error in auto-assign leads:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to auto-assign leads.',
     };
   }
 }
