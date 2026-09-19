@@ -9,7 +9,7 @@ export interface AuthenticatedAdmin {
 
 export class AuthorizationError extends Error {
   statusCode: number;
-  constructor(message: string = 'Unauthorized: Admin access required', statusCode: number = 403) {
+  constructor(message: string = 'Access denied.', statusCode: number = 403) {
     super(message);
     this.name = 'AuthorizationError';
     this.statusCode = statusCode;
@@ -112,7 +112,7 @@ export const getAuthenticatedAdmin = cache(async (): Promise<AuthenticatedAdmin 
 export const assertAdminAccess = cache(async (): Promise<AuthenticatedAdmin> => {
   const admin = await getAuthenticatedAdmin();
   if (!admin) {
-    throw new AuthorizationError('Access denied. This account is not authorized as an administrator.', 403);
+    throw new AuthorizationError('Access denied.', 403);
   }
   return admin;
 });

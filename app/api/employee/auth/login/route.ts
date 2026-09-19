@@ -61,15 +61,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!employee.isActive) {
-      return NextResponse.json(
-        { success: false, error: 'This employee account is deactivated. Please contact your administrator.' },
-        { status: 403 }
-      );
-    }
-
     const isMatch = await bcrypt.compare(password, employee.passwordHash);
-    if (!isMatch) {
+    if (!isMatch || !employee.isActive) {
       return NextResponse.json(
         { success: false, error: 'Invalid Employee ID or password.' },
         { status: 401 }

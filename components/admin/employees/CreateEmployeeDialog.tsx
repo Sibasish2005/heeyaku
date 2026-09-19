@@ -88,8 +88,8 @@ export default function CreateEmployeeDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150">
-      <div className="bg-card text-card-foreground rounded-2xl shadow-2xl border border-border w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/20">
+      <div className="bg-card text-card-foreground rounded-2xl shadow-2xl border border-border w-full max-w-lg overflow-hidden max-h-[calc(100vh-2rem)] flex flex-col animate-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/20 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/20 dark:text-blue-400 flex items-center justify-center">
               <UserPlus className="w-4 h-4" />
@@ -119,7 +119,7 @@ export default function CreateEmployeeDialog({
             onFinish={handleFinish}
           />
         ) : (
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
             {error && (
               <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs font-semibold text-destructive">
                 {error}

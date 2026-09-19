@@ -19,6 +19,8 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [solutionsOpen, setSolutionsOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [mobileSolutionsOpen, setMobileSolutionsOpen] = useState(false);
+  const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -257,30 +259,105 @@ export default function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="md:hidden bg-white text-[#0B1F33] border-b border-slate-200 px-6 pt-2 pb-8 space-y-4 shadow-2xl overflow-hidden"
+            className="md:hidden bg-white text-[#0B1F33] border-b border-slate-200 px-6 pt-2 pb-8 space-y-4 shadow-2xl overflow-y-auto max-h-[calc(100vh-5.5rem)]"
           >
-            <div className="flex flex-col space-y-2">
-              <Link
-                href="/solutions/crm"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2.5 rounded-lg text-base font-semibold text-[#0B1F33] hover:bg-slate-100 hover:text-[#2563EB] transition-colors duration-150 active:scale-[0.98]"
-              >
-                Solutions
-              </Link>
+            <div className="flex flex-col space-y-1">
+              {/* Solutions Accordion */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setMobileSolutionsOpen(!mobileSolutionsOpen)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-base font-semibold text-[#0B1F33] hover:bg-slate-100 hover:text-[#2563EB] transition-colors duration-150"
+                >
+                  <span>Solutions</span>
+                  <MorphIcon
+                    icon={mobileSolutionsOpen ? ICONS.chevronUp : ICONS.chevronDown}
+                    size={15}
+                    color={mobileSolutionsOpen ? "#2563EB" : "#94A3B8"}
+                    strokeWidth={2.2}
+                    spring="snappy"
+                  />
+                </button>
+                {mobileSolutionsOpen && (
+                  <div className="pl-4 pr-2 py-1 space-y-1 border-l-2 border-blue-100 ml-3 mb-1">
+                    <Link
+                      href="/solutions/crm"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-[#2563EB] hover:bg-slate-50 transition-colors"
+                    >
+                      Counselor CRM & Leads
+                    </Link>
+                    <Link
+                      href="/solutions/automation"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-[#2563EB] hover:bg-slate-50 transition-colors"
+                    >
+                      WhatsApp Follow-Ups
+                    </Link>
+                    <Link
+                      href="/solutions/web"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-[#2563EB] hover:bg-slate-50 transition-colors"
+                    >
+                      Admission Websites & Funnels
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Platform */}
               <Link
                 href="/platform"
                 onClick={() => setMobileMenuOpen(false)}
                 className="px-3 py-2.5 rounded-lg text-base font-semibold text-[#0B1F33] hover:bg-slate-100 hover:text-[#2563EB] transition-colors duration-150 active:scale-[0.98]"
               >
-                Platform
+                Platform Architecture
               </Link>
-              <Link
-                href="/resources/case-studies"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2.5 rounded-lg text-base font-semibold text-[#0B1F33] hover:bg-slate-100 hover:text-[#2563EB] transition-colors duration-150 active:scale-[0.98]"
-              >
-                Case Studies
-              </Link>
+
+              {/* Resources Accordion */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setMobileResourcesOpen(!mobileResourcesOpen)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-base font-semibold text-[#0B1F33] hover:bg-slate-100 hover:text-[#2563EB] transition-colors duration-150"
+                >
+                  <span>Resources</span>
+                  <MorphIcon
+                    icon={mobileResourcesOpen ? ICONS.chevronUp : ICONS.chevronDown}
+                    size={15}
+                    color={mobileResourcesOpen ? "#2563EB" : "#94A3B8"}
+                    strokeWidth={2.2}
+                    spring="snappy"
+                  />
+                </button>
+                {mobileResourcesOpen && (
+                  <div className="pl-4 pr-2 py-1 space-y-1 border-l-2 border-blue-100 ml-3 mb-1">
+                    <Link
+                      href="/resources/case-studies"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-[#2563EB] hover:bg-slate-50 transition-colors"
+                    >
+                      Institute Case Studies
+                    </Link>
+                    <Link
+                      href="/resources/docs"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-[#2563EB] hover:bg-slate-50 transition-colors"
+                    >
+                      Setup Guide & Docs
+                    </Link>
+                    <Link
+                      href="/resources/blog"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-[#2563EB] hover:bg-slate-50 transition-colors"
+                    >
+                      Growth Guides & Blog
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Pricing */}
               <Link
                 href="/pricing"
                 onClick={() => setMobileMenuOpen(false)}
@@ -288,6 +365,8 @@ export default function Navbar() {
               >
                 Pricing
               </Link>
+
+              {/* Calling App APK */}
               <Link
                 href="/download"
                 onClick={() => setMobileMenuOpen(false)}
@@ -295,6 +374,8 @@ export default function Navbar() {
               >
                 Download Calling App (APK)
               </Link>
+
+              {/* Book a Demo */}
               <Link
                 href="/book-demo"
                 onClick={() => setMobileMenuOpen(false)}

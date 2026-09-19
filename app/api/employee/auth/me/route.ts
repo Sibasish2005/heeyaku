@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     const resolved = await resolveEmployeeIdentity(payload);
     if (!resolved || !resolved.employee || !resolved.employee.isActive) {
       return NextResponse.json(
-        { success: false, error: 'Employee account is not active or found.' },
+        { success: false, error: 'Session invalid.' },
         { status: 403 }
       );
     }

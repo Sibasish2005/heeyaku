@@ -140,16 +140,16 @@ export default function ProductSuiteGrid() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-100 flex items-center gap-4">
+            <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
               <Link
                 href="/book-demo"
-                className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-600 text-white text-xs font-bold transition-colors"
+                className="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-600 text-white text-xs font-bold text-center transition-colors"
               >
                 Schedule Walkthrough →
               </Link>
               <a
                 href="tel:+918131838253"
-                className="text-xs font-bold text-[#0B1F33] hover:text-[#2563EB] transition-colors"
+                className="text-xs font-bold text-[#0B1F33] hover:text-[#2563EB] text-center sm:text-left transition-colors py-1"
               >
                 Call +91 81318 38253
               </a>

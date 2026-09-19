@@ -31,10 +31,10 @@ export default async function AdminLayout({
             <ShieldAlert className="w-6 h-6" />
           </div>
           <h1 className="text-xl font-black tracking-tight text-slate-900">
-            Access Denied
+            Access Restricted
           </h1>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Your signed-in account is not authorized to access the HEEYAKU Admin Operations Panel. Please sign in with an account configured in <code className="bg-slate-100 px-1 py-0.5 rounded text-red-600 font-mono">ADMIN_EMAIL</code>.
+            You do not have permission to access this page. Please sign in with an authorized account or contact support.
           </p>
           <div className="pt-4 border-t border-slate-100 flex items-center justify-center gap-3">
             <UserButton />

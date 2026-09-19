@@ -81,7 +81,7 @@ export default function Masonry({
   className = '',
 }: MasonryProps) {
   const columns = useMedia(
-    ['(min-width:1280px)', '(min-width:1024px)', '(min-width:640px)', '(min-width:400px)'],
+    ['(min-width:1280px)', '(min-width:1024px)', '(min-width:640px)', '(min-width:320px)'],
     [4, 3, 2, 2],
     1
   );
@@ -208,18 +208,18 @@ export default function Masonry({
             style={{ backgroundImage: `url(${item.img})` }}
           >
             {/* Subtle Gradient Shade for text legibility */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0B1F33]/80 via-[#0B1F33]/15 to-transparent opacity-0 group-hover/item:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-4 sm:p-5" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0B1F33]/85 via-[#0B1F33]/25 to-transparent opacity-100 sm:opacity-0 sm:group-hover/item:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-3 sm:p-5" />
 
-            {/* Hover Caption Pill */}
+            {/* Hover / Touch Caption Pill */}
             {(item.title || item.category) && (
-              <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover/item:opacity-100 translate-y-2 group-hover/item:translate-y-0 transition-all duration-200 z-10 flex flex-col">
+              <div className="absolute bottom-2.5 left-2.5 right-2.5 opacity-100 sm:opacity-0 sm:group-hover/item:opacity-100 translate-y-0 sm:translate-y-2 sm:group-hover/item:translate-y-0 transition-all duration-200 z-10 flex flex-col">
                 {item.category && (
-                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#38BDF8]">
+                  <span className="text-[9px] sm:text-xs font-bold uppercase tracking-wider text-[#38BDF8]">
                     {item.category}
                   </span>
                 )}
                 {item.title && (
-                  <span className="text-xs sm:text-sm font-bold text-white tracking-tight line-clamp-1">
+                  <span className="text-[11px] sm:text-sm font-bold text-white tracking-tight line-clamp-1">
                     {item.title}
                   </span>
                 )}

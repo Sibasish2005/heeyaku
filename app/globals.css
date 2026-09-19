@@ -161,7 +161,11 @@ html.lenis, html.lenis body {
   }
   html {
     @apply font-sans;
-    zoom: 0.90;
+  }
+  @media (min-width: 1024px) {
+    html {
+      zoom: 0.90;
+    }
   }
 }
 
@@ -222,9 +226,8 @@ a:active:not([aria-disabled="true"]) {
   }
 }
 
-/* Landing Page Isolation: Locked permanently to Light Mode & 90% Scale */
+/* Landing Page Isolation: Locked permanently to Light Mode */
 .landing-page-root {
-  zoom: 90%;
   color-scheme: light !important;
   --background: oklch(1 0 0) !important;
   --foreground: oklch(0.145 0 0) !important;

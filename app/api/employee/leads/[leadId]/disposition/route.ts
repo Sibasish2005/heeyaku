@@ -66,7 +66,7 @@ export async function POST(
     // Unassigned leads cannot be updated through this endpoint.
     if (!existingLead.assignedEmployeeId || !allowedEmployeeIds.has(existingLead.assignedEmployeeId)) {
       return NextResponse.json(
-        { success: false, error: 'You are not authorized to update this lead. Only assigned leads can be updated.' },
+        { success: false, error: 'Access denied.' },
         { status: 403 }
       );
     }
