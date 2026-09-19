@@ -102,26 +102,26 @@ export default function AutoAssignDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-card text-card-foreground w-full max-w-2xl rounded-2xl border border-border shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-150" style={{ maxHeight: 'calc(100vh - 2rem)' }}>
-        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/20 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border flex items-center justify-between bg-muted/20 shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
               <Users className="w-4 h-4" />
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-sm font-bold text-foreground">Assign Leads</h2>
-              <p className="text-[11px] text-muted-foreground">Distribute leads to your team</p>
+              <p className="text-[11px] text-muted-foreground truncate">Distribute leads to your team</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 -mr-2 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-colors cursor-pointer"
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-colors cursor-pointer shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-hidden p-6 flex flex-col">
-          <form id="auto-assign-form" onSubmit={handleSubmit} className="flex flex-col h-full gap-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col">
+          <form id="auto-assign-form" onSubmit={handleSubmit} className="flex flex-col h-full gap-5 sm:gap-6">
             
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5">
@@ -143,23 +143,23 @@ export default function AutoAssignDialog({
               </div>
               <input 
                 type="text" 
-                placeholder="Search employees..." 
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-muted/50 border border-border rounded-xl focus:outline-hidden focus:border-[#2563EB] shrink-0"
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search active employees..."
+                className="w-full px-3 py-2 text-xs bg-background border border-border rounded-xl focus:outline-hidden focus:border-[#2563EB] text-foreground shrink-0"
               />
-              <div className="flex flex-col gap-1 flex-1 overflow-y-auto p-1 border border-border rounded-xl bg-muted/20 scrollbar-thin">
+              <div className="flex flex-col gap-1 flex-1 overflow-y-auto p-1 border border-border rounded-xl bg-muted/20 scrollbar-thin max-h-48 sm:max-h-60">
                 {filteredEmployees.map(emp => (
                   <label key={emp.id} className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded-lg cursor-pointer border border-transparent hover:border-border transition-colors">
                     <input 
-                      type="checkbox"
+                      type="checkbox" 
                       checked={selectedEmployeeIds.includes(emp.id)}
                       onChange={() => toggleEmployee(emp.id)}
                       className="rounded-sm border-input w-3.5 h-3.5 text-[#2563EB] focus:ring-[#2563EB]"
                     />
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-bold text-foreground">{emp.name}</span>
-                      <span className="text-[10px] text-muted-foreground">{emp.employeeCode}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-bold text-foreground truncate">{emp.name}</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">{emp.employeeCode}</span>
                     </div>
                   </label>
                 ))}
@@ -206,7 +206,7 @@ export default function AutoAssignDialog({
             </div>
 
             <div className="shrink-0 space-y-3 pt-4 border-t border-border/50">
-              <label className="text-xs font-bold text-foreground">3. How should we distribute the leads if there aren't enough?</label>
+              <label className="text-xs font-bold text-foreground">3. Distribution Strategy</label>
               <div className="space-y-2 pl-1">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input 
@@ -245,12 +245,12 @@ export default function AutoAssignDialog({
           </form>
         </div>
 
-        <div className="px-6 py-4 border-t border-border bg-muted/20 shrink-0 flex items-center justify-end gap-2">
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-border bg-muted/20 shrink-0 flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 text-xs font-bold text-muted-foreground hover:text-foreground bg-card hover:bg-muted border border-border rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+            className="flex-1 sm:flex-initial px-4 py-2 text-xs font-bold text-muted-foreground hover:text-foreground bg-card hover:bg-muted border border-border rounded-xl transition-colors cursor-pointer disabled:opacity-50 text-center"
           >
             Cancel
           </button>
@@ -258,7 +258,7 @@ export default function AutoAssignDialog({
             type="submit"
             form="auto-assign-form"
             disabled={loading || selectedEmployeeIds.length === 0}
-            className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-600 rounded-xl transition-colors shadow-sm disabled:opacity-60 cursor-pointer"
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-600 rounded-xl transition-colors shadow-sm disabled:opacity-60 cursor-pointer text-center"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />

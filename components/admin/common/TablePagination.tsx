@@ -21,10 +21,10 @@ export default function TablePagination<TData>({
   const pageCount = table.getPageCount();
 
   return (
-    <div className="p-3.5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground bg-muted/20">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="p-3 sm:p-3.5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground bg-muted/20">
+      <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2.5 sm:gap-3 w-full sm:w-auto">
         <div className="flex items-center gap-1.5 text-xs">
-          <span>Rows per page:</span>
+          <span>Rows:</span>
           <select
             value={pageSize}
             onChange={(e) => table.setPageSize(Number(e.target.value))}
@@ -38,14 +38,14 @@ export default function TablePagination<TData>({
           </select>
         </div>
 
-        <div>
-          Showing <span className="font-semibold text-foreground">{startRow}</span> to{' '}
+        <div className="text-[11px] sm:text-xs">
+          <span className="font-semibold text-foreground">{startRow}</span>-
           <span className="font-semibold text-foreground">{endRow}</span> of{' '}
           <span className="font-semibold text-foreground">{totalRows}</span> {itemName}
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-border/40">
         <span className="font-medium mr-1 text-[11px]">
           Page {pageIndex + 1} of {Math.max(1, pageCount)}
         </span>
@@ -55,7 +55,7 @@ export default function TablePagination<TData>({
             type="button"
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
-            className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer text-foreground"
+            className="p-2 sm:p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer text-foreground"
             title="First page"
           >
             <ChevronsLeft className="w-3.5 h-3.5" />
@@ -64,7 +64,7 @@ export default function TablePagination<TData>({
             type="button"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer text-foreground"
+            className="p-2 sm:p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer text-foreground"
             title="Previous page"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
@@ -73,7 +73,7 @@ export default function TablePagination<TData>({
             type="button"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer text-foreground"
+            className="p-2 sm:p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer text-foreground"
             title="Next page"
           >
             <ChevronRight className="w-3.5 h-3.5" />
@@ -82,7 +82,7 @@ export default function TablePagination<TData>({
             type="button"
             onClick={() => table.setPageIndex(pageCount - 1)}
             disabled={!table.getCanNextPage()}
-            className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer text-foreground"
+            className="p-2 sm:p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer text-foreground"
             title="Last page"
           >
             <ChevronsRight className="w-3.5 h-3.5" />

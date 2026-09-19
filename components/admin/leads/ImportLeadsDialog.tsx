@@ -110,14 +110,14 @@ export default function ImportLeadsDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150">
       <div className="bg-card text-card-foreground rounded-2xl shadow-2xl border border-border w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-muted/20">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/20 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/50">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border bg-muted/20">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 rounded-xl bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/20 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/50 shrink-0">
               <UploadCloud className="w-5 h-5" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-foreground">Bulk Import Leads</h3>
-              <p className="text-xs text-muted-foreground font-medium">
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-foreground">Bulk Import Leads</h3>
+              <p className="text-xs text-muted-foreground font-medium truncate">
                 {step === 'DROPZONE' && 'Upload CSV or XLSX file'}
                 {step === 'MAPPING' && 'Match your spreadsheet columns'}
                 {step === 'PREVIEW' && 'Review validation results before import'}
@@ -125,13 +125,13 @@ export default function ImportLeadsDialog({
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/60 transition-colors">
+          <button onClick={onClose} className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/60 transition-colors shrink-0">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
+          <div className="mx-4 sm:mx-6 mt-4 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive font-medium">
             {error}
           </div>
         )}

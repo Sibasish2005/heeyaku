@@ -6,6 +6,7 @@ import LeadTableToolbar from './table/LeadTableToolbar';
 import LeadTableFloatingBar from './table/LeadTableFloatingBar';
 import LeadTableHead from './table/LeadTableHead';
 import LeadTableRow from './table/LeadTableRow';
+import LeadCard from './table/LeadCard';
 import LeadTableModals from './table/LeadTableModals';
 import TablePagination from '@/components/admin/common/TablePagination';
 import { ActiveEmployee, LeadListItem } from './table/types';
@@ -35,6 +36,7 @@ export default function LeadTable({
     initialEmployeeFilter ? 'ALL' : 'UNASSIGNED'
   );
   const [employeeFilter, setEmployeeFilter] = useState<string>(initialEmployeeFilter || 'ALL');
+  const [viewMode, setViewMode] = useState<'cards' | 'table' | 'auto'>('auto');
 
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkAssignOpen, setIsBulkAssignOpen] = useState(false);
@@ -122,7 +124,7 @@ export default function LeadTable({
   };
 
   return (
-    <div className="space-y-6 relative">
+    <div className="space-y-4 sm:space-y-6 relative">
       <LeadTableFloatingBar
         selectedCount={selectedIds.length}
         isUnassigning={isUnassigning}
@@ -136,6 +138,8 @@ export default function LeadTable({
         searchQuery={searchQuery} statusFilter={statusFilter}
         assignmentFilter={assignmentFilter} employeeFilter={employeeFilter}
         activeEmployees={activeEmployees} totalFiltered={filteredLeads.length} totalCount={leads.length}
+        viewMode={viewMode === 'auto' ? undefined : viewMode}
+        onViewModeChange={(mode) => setViewMode(mode)}
         onSearchChange={setSearchQuery} onStatusChange={setStatusFilter}
         onAssignmentChange={setAssignmentFilter} onEmployeeChange={setEmployeeFilter}
         onResetFilters={() => { setSearchQuery(''); setStatusFilter('ALL'); setAssignmentFilter('UNASSIGNED'); setEmployeeFilter('ALL'); }}
@@ -147,7 +151,68 @@ export default function LeadTable({
         isSyncingSheets={isSyncingSheets}
       />
 
-      <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-2xs overflow-hidden flex flex-col">
+      {/* Mobile Card List View (visible on screens < md, or when viewMode === 'cards') */}
+      <div className={`space-y-3 ${viewMode === 'table' ? 'hidden' : viewMode === 'cards' ? 'block' : 'block md:hidden'}`}>
+        {/* Mobile Batch Selection Bar */}
+        <div className="flex items-center justify-between px-3.5 py-2.5 bg-card rounded-2xl border border-border text-xs shadow-2xs">
+          <label className="flex items-center gap-2 cursor-pointer font-semibold text-foreground">
+            <input
+              type="checkbox"
+              checked={isAllVisibleSelected}
+              ref={(input) => {
+                if (input) input.indeterminate = isSomeVisibleSelected;
+              }}
+              onChange={handleToggleSelectVisible}
+              className="w-4 h-4 rounded border-input text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <span>Select page ({visibleRows.length})</span>
+          </label>
+          {selectedIds.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="text-[11px] font-bold text-[#2563EB] dark:text-blue-400 hover:underline cursor-pointer"
+            >
+              Clear ({selectedIds.length})
+            </button>
+          )}
+        </div>
+
+        {visibleRows.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground bg-card rounded-2xl border border-border text-xs">
+            No leads match your current search and filter criteria.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {visibleRows.map((row) => (
+              <LeadCard
+                key={row.original.id}
+                lead={row.original}
+                isSelected={selectedIds.includes(row.original.id)}
+                onToggleSelect={() =>
+                  setSelectedIds((prev) =>
+                    prev.includes(row.original.id)
+                      ? prev.filter((i) => i !== row.original.id)
+                      : [...prev, row.original.id]
+                  )
+                }
+                onEdit={() => setEditingLead(row.original)}
+                onQuickAssign={() => {
+                  setSelectedIds([row.original.id]);
+                  setIsBulkAssignOpen(true);
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-2xs overflow-hidden">
+          <TablePagination table={table} itemName="leads" />
+        </div>
+      </div>
+
+      {/* Desktop Spreadsheet Table View (visible on screens >= md, or when viewMode === 'table') */}
+      <div className={`bg-card text-card-foreground rounded-2xl border border-border shadow-2xs overflow-hidden flex-col ${viewMode === 'cards' ? 'hidden' : viewMode === 'table' ? 'flex' : 'hidden md:flex'}`}>
         <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px] relative scrollbar-thin">
           <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
             <LeadTableHead
@@ -156,14 +221,14 @@ export default function LeadTable({
               onToggleSelectVisible={handleToggleSelectVisible}
             />
             <tbody className="divide-y divide-border">
-              {table.getRowModel().rows.length === 0 ? (
+              {visibleRows.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="py-12 text-center text-muted-foreground">
                     No leads match your current search and filter criteria.
                   </td>
                 </tr>
               ) : (
-                table.getRowModel().rows.map((row) => (
+                visibleRows.map((row) => (
                   <LeadTableRow
                     key={row.original.id}
                     lead={row.original}
