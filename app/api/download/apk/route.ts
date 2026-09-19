@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { Readable } from 'stream';
 
 export async function GET() {
   try {
@@ -10,9 +11,10 @@ export async function GET() {
     }
 
     const stat = fs.statSync(filePath);
-    const fileBuffer = fs.readFileSync(filePath);
+    const nodeStream = fs.createReadStream(filePath);
+    const webStream = Readable.toWeb(nodeStream) as unknown as ReadableStream;
 
-    return new NextResponse(fileBuffer, {
+    return new Response(webStream, {
       headers: {
         'Content-Type': 'application/vnd.android.package-archive',
         'Content-Disposition': 'attachment; filename="heeyaku-calltracker.apk"',

@@ -103,38 +103,54 @@ export function parseGoogleSheetUrl(url: string): { exportUrl: string; sheetIden
     return { error: 'Please enter a Google Sheet URL.' };
   }
 
-  // Published to web: /spreadsheets/d/e/{pubId}/...
-  const pubMatch = cleanUrl.match(/\/spreadsheets\/d\/e\/([a-zA-Z0-9-_]+)/);
-  const gidMatch = cleanUrl.match(/[?&#]gid=([0-9]+)/);
-  const gid = gidMatch ? gidMatch[1] : '0';
+  try {
+    const parsed = new URL(cleanUrl);
+    if (parsed.protocol !== 'https:') {
+      return { error: 'Invalid Google Sheet link. Only secure HTTPS URLs are allowed.' };
+    }
 
-  if (pubMatch) {
-    const pubId = pubMatch[1];
+    if (parsed.hostname !== 'docs.google.com') {
+      return { error: 'Invalid Google Sheet link. URL must be hosted on docs.google.com.' };
+    }
+
+    const pathname = parsed.pathname;
+    const gidMatch = cleanUrl.match(/[?&#]gid=([0-9]+)/);
+    const gid = gidMatch ? gidMatch[1] : '0';
+
+    // Published to web: /spreadsheets/d/e/{pubId}/...
+    const pubMatch = pathname.match(/\/spreadsheets\/d\/e\/([a-zA-Z0-9-_]+)/);
+    if (pubMatch) {
+      const pubId = pubMatch[1];
+      return {
+        exportUrl: `https://docs.google.com/spreadsheets/d/e/${pubId}/pub?output=csv&gid=${gid}`,
+        sheetIdentifier: `Published Sheet (gid: ${gid})`,
+      };
+    }
+
+    // Standard Google Sheet URL: /spreadsheets/d/{sheetId}/...
+    const idMatch = pathname.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    if (idMatch) {
+      const sheetId = idMatch[1];
+      return {
+        exportUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`,
+        sheetIdentifier: `Google Sheet (gid: ${gid})`,
+      };
+    }
+
+    // Direct export link already strictly on docs.google.com
+    if (pathname.startsWith('/spreadsheets/') && (cleanUrl.includes('output=csv') || cleanUrl.includes('format=csv'))) {
+      return {
+        exportUrl: cleanUrl,
+        sheetIdentifier: 'Google Sheet (CSV Export)',
+      };
+    }
+
     return {
-      exportUrl: `https://docs.google.com/spreadsheets/d/e/${pubId}/pub?output=csv&gid=${gid}`,
-      sheetIdentifier: `Published Sheet (gid: ${gid})`,
+      error: 'Invalid Google Sheet link format. Please paste a link starting with https://docs.google.com/spreadsheets/d/...',
+    };
+  } catch {
+    return {
+      error: 'Invalid URL. Please enter a valid https://docs.google.com/spreadsheets/... link.',
     };
   }
-
-  // Standard Google Sheet URL: /spreadsheets/d/{sheetId}/...
-  const idMatch = cleanUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if (idMatch) {
-    const sheetId = idMatch[1];
-    return {
-      exportUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`,
-      sheetIdentifier: `Google Sheet (gid: ${gid})`,
-    };
-  }
-
-  // Already a direct Google Docs CSV export link
-  if (cleanUrl.includes('docs.google.com/spreadsheets') && (cleanUrl.includes('output=csv') || cleanUrl.includes('format=csv'))) {
-    return {
-      exportUrl: cleanUrl,
-      sheetIdentifier: 'Google Sheet (CSV Export)',
-    };
-  }
-
-  return {
-    error: 'Invalid Google Sheet link. Please paste a link starting with https://docs.google.com/spreadsheets/...',
-  };
 }

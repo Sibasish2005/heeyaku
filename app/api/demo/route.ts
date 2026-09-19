@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/lib/security/rate-limit';
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown-ip';
+    const rateLimit = checkRateLimit(`demo:${ip}`, { windowMs: 60 * 1000, maxAttempts: 5 });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: `Too many demo requests. Please wait ${rateLimit.resetSeconds} seconds before trying again.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimit.resetSeconds),
+          },
+        }
+      );
+    }
+
     const body = await req.json();
     const { name, email, phone, institute, teamSize, primaryInterest, preferredSlot, notes } = body;
 
