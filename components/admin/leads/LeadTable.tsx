@@ -41,6 +41,7 @@ export default function LeadTable({
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isSheetsSyncOpen, setIsSheetsSyncOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<LeadListItem | null>(null);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
@@ -115,7 +116,9 @@ export default function LeadTable({
         onAssignmentChange={setAssignmentFilter} onEmployeeChange={setEmployeeFilter}
         onResetFilters={() => { setSearchQuery(''); setStatusFilter('ALL'); setAssignmentFilter('UNASSIGNED'); setEmployeeFilter('ALL'); }}
         onExport={(fmt) => exportLeadsDataset(fmt, filteredLeads, 'Filtered')}
-        onCreateOpen={() => setIsCreateOpen(true)} onImportOpen={() => setIsImportOpen(true)}
+        onCreateOpen={() => setIsCreateOpen(true)}
+        onImportOpen={() => setIsImportOpen(true)}
+        onSheetsSyncOpen={() => setIsSheetsSyncOpen(true)}
       />
 
       <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-2xs overflow-hidden">
@@ -160,12 +163,14 @@ export default function LeadTable({
         editingLead={editingLead}
         isBulkAssignOpen={isBulkAssignOpen}
         isImportOpen={isImportOpen}
+        isSheetsSyncOpen={isSheetsSyncOpen}
         selectedIds={selectedIds}
         activeEmployees={activeEmployees}
         onCloseCreate={() => setIsCreateOpen(false)}
         onCloseEdit={() => setEditingLead(null)}
         onCloseBulkAssign={() => setIsBulkAssignOpen(false)}
         onCloseImport={() => setIsImportOpen(false)}
+        onCloseSheetsSync={() => setIsSheetsSyncOpen(false)}
         onAssigned={(count, employeeName) => {
           toast.success(
             `Successfully assigned ${count} lead${count > 1 ? 's' : ''}${employeeName ? ` to ${employeeName}` : ''}.`

@@ -5,6 +5,7 @@ import CreateLeadDialog from '../CreateLeadDialog';
 import EditLeadDialog from '../EditLeadDialog';
 import BulkAssignDialog from '../BulkAssignDialog';
 import ImportLeadsDialog from '../ImportLeadsDialog';
+import GoogleSheetSyncDialog from '../GoogleSheetSyncDialog';
 import { ActiveEmployee, LeadListItem } from './types';
 
 interface LeadTableModalsProps {
@@ -12,12 +13,14 @@ interface LeadTableModalsProps {
   editingLead: LeadListItem | null;
   isBulkAssignOpen: boolean;
   isImportOpen: boolean;
+  isSheetsSyncOpen: boolean;
   selectedIds: string[];
   activeEmployees: ActiveEmployee[];
   onCloseCreate: () => void;
   onCloseEdit: () => void;
   onCloseBulkAssign: () => void;
   onCloseImport: () => void;
+  onCloseSheetsSync: () => void;
   onAssigned: (count: number, employeeName?: string) => void;
 }
 
@@ -26,12 +29,14 @@ export default function LeadTableModals({
   editingLead,
   isBulkAssignOpen,
   isImportOpen,
+  isSheetsSyncOpen,
   selectedIds,
   activeEmployees,
   onCloseCreate,
   onCloseEdit,
   onCloseBulkAssign,
   onCloseImport,
+  onCloseSheetsSync,
   onAssigned,
 }: LeadTableModalsProps) {
   return (
@@ -64,6 +69,11 @@ export default function LeadTableModals({
         activeEmployees={activeEmployees}
         onClose={onCloseImport}
         onImportSuccess={() => window.location.reload()}
+      />
+
+      <GoogleSheetSyncDialog
+        isOpen={isSheetsSyncOpen}
+        onClose={onCloseSheetsSync}
       />
     </>
   );
