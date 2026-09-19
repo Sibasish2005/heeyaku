@@ -5,10 +5,11 @@ import { NextRequest } from 'next/server';
  * Checks 'x-api-key' header, 'Authorization: Bearer <key>', or query parameter '?apiKey=<key>'.
  */
 export function verifyExternalApiKey(req: NextRequest): boolean {
-  // Uses configured env variable, with standard project default key fallback
-  const configuredKey =
-    process.env.EXTERNAL_INGESTION_API_KEY?.trim() ||
-    'heeyaku_sync_9f4b8a2c7e1d5e3f9a2b4c6e8d0f1a3b';
+  const configuredKey = process.env.EXTERNAL_INGESTION_API_KEY?.trim();
+  if (!configuredKey) {
+    console.error('[ExternalAuth] EXTERNAL_INGESTION_API_KEY is not configured in .env');
+    return false;
+  }
 
   // 1. Header check: x-api-key
   const headerKey = req.headers.get('x-api-key')?.trim();
