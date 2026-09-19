@@ -3,27 +3,18 @@ import { prisma } from '@/lib/prisma';
 import { verifyExternalApiKey } from '@/lib/auth/external-api';
 import { toLast10Digits } from '@/lib/lead/phone';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
+import { checkRateLimit } from '@/lib/security/rate-limit';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
 const LEAD_CODE_PREFIX = 'LD';
 const LEAD_CODE_START = 1;
-const LEAD_CODE_PAD = 5;
-
 /**
- * Gets the next sequential lead code number from the database.
+ * Generates a random alphanumeric lead code to prevent race conditions.
  */
-async function getNextLeadCodeStart(): Promise<number> {
-  const latest = await prisma.lead.findFirst({
-    where: { leadCode: { startsWith: `${LEAD_CODE_PREFIX}-` } },
-    orderBy: { createdAt: 'desc' },
-    select: { leadCode: true },
-  });
-
-  if (!latest) return LEAD_CODE_START;
-
-  const numericPart = parseInt(latest.leadCode.replace(`${LEAD_CODE_PREFIX}-`, ''), 10);
-  return isNaN(numericPart) ? LEAD_CODE_START : numericPart + 1;
+function generateRandomLeadCode(): string {
+  return `${LEAD_CODE_PREFIX}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
 }
 
 interface IncomingSheetRow {
@@ -47,6 +38,15 @@ interface IncomingSheetRow {
  */
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || 'unknown';
+    const rateLimit = checkRateLimit(`sync:${ip}`, { windowMs: 60 * 1000, maxAttempts: 60 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.resetSeconds) } }
+      );
+    }
+
     if (!verifyExternalApiKey(req)) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized. Invalid or missing API key.' },
@@ -110,10 +110,6 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Pre-calculate sequential lead codes to avoid N database queries in a loop
-      const nextCodeStart = await getNextLeadCodeStart();
-      let newLeadIndex = 0;
-
       // Separate new rows to insert vs existing
       for (const [digits, row] of candidateMap.entries()) {
         if (existingPhoneSet.has(digits)) {
@@ -124,8 +120,7 @@ export async function POST(req: NextRequest) {
             action: 'existing',
           });
         } else {
-          const leadCode = `${LEAD_CODE_PREFIX}-${String(nextCodeStart + newLeadIndex).padStart(LEAD_CODE_PAD, '0')}`;
-          newLeadIndex++;
+          const leadCode = generateRandomLeadCode();
           
           const cleanPhone = row.phoneNumber.trim();
           validRowsToInsert.push({
@@ -232,6 +227,15 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || 'unknown';
+    const rateLimit = checkRateLimit(`sync:${ip}`, { windowMs: 60 * 1000, maxAttempts: 60 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Rate limit exceeded. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.resetSeconds) } }
+      );
+    }
+
     if (!verifyExternalApiKey(req)) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized. Invalid or missing API key.' },
