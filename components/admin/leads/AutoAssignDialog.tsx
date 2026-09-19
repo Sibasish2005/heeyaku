@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Bot, AlertCircle, PlayCircle, Loader2 } from 'lucide-react';
+import { X, Users, AlertCircle, PlayCircle, Loader2 } from 'lucide-react';
 import { autoAssignLeadsAction } from '@/app/admin/leads/assignment-actions';
 import { ActiveEmployee } from './table/types';
 import { toast } from 'sonner';
@@ -105,11 +105,11 @@ export default function AutoAssignDialog({
         <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/20 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-              <Bot className="w-4 h-4" />
+              <Users className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-foreground">Auto-Assign Leads</h2>
-              <p className="text-[11px] text-muted-foreground">Distribute unassigned leads automatically</p>
+              <h2 className="text-sm font-bold text-foreground">Assign Leads</h2>
+              <p className="text-[11px] text-muted-foreground">Distribute leads to your team</p>
             </div>
           </div>
           <button
@@ -120,8 +120,8 @@ export default function AutoAssignDialog({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
-          <form id="auto-assign-form" onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex-1 overflow-hidden p-6 flex flex-col">
+          <form id="auto-assign-form" onSubmit={handleSubmit} className="flex flex-col h-full gap-6">
             
             {error && (
               <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2.5">
@@ -130,8 +130,8 @@ export default function AutoAssignDialog({
               </div>
             )}
 
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="flex flex-col flex-1 min-h-0 space-y-3">
+              <div className="flex items-center justify-between shrink-0">
                 <label className="text-xs font-bold text-foreground">1. Select Employees</label>
                 <button 
                   type="button" 
@@ -146,9 +146,9 @@ export default function AutoAssignDialog({
                 placeholder="Search employees..." 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-muted/50 border border-border rounded-xl focus:outline-hidden focus:border-[#2563EB]"
+                className="w-full px-3 py-2 text-xs bg-muted/50 border border-border rounded-xl focus:outline-hidden focus:border-[#2563EB] shrink-0"
               />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-border rounded-xl bg-muted/20 scrollbar-thin">
+              <div className="flex flex-col gap-1 flex-1 overflow-y-auto p-1 border border-border rounded-xl bg-muted/20 scrollbar-thin">
                 {filteredEmployees.map(emp => (
                   <label key={emp.id} className="flex items-center gap-2 p-2 hover:bg-muted/50 rounded-lg cursor-pointer border border-transparent hover:border-border transition-colors">
                     <input 
@@ -169,12 +169,12 @@ export default function AutoAssignDialog({
                   </div>
                 )}
               </div>
-              <div className="text-[10px] font-medium text-muted-foreground">
+              <div className="text-[10px] font-medium text-muted-foreground shrink-0">
                 {selectedEmployeeIds.length} employee(s) selected
               </div>
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-border/50">
+            <div className="shrink-0 space-y-4 pt-4 border-t border-border/50">
               <label className="text-xs font-bold text-foreground">2. Assignment Strategy</label>
               
               <div className="flex items-center gap-2">
@@ -205,38 +205,36 @@ export default function AutoAssignDialog({
               )}
             </div>
 
-            <div className="space-y-3 pt-4 border-t border-border/50">
-              <label className="text-xs font-bold text-foreground">3. Distribution Method (if leads are short)</label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className={`relative flex flex-col p-3 border rounded-xl cursor-pointer transition-all ${distributionMethod === 'EVENLY' ? 'border-[#2563EB] bg-[#2563EB]/5 shadow-sm' : 'border-border hover:border-muted-foreground/30 hover:bg-muted/20'}`}>
+            <div className="shrink-0 space-y-3 pt-4 border-t border-border/50">
+              <label className="text-xs font-bold text-foreground">3. How should we distribute the leads if there aren't enough?</label>
+              <div className="space-y-2 pl-1">
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input 
                     type="radio" 
                     name="distribution" 
                     value="EVENLY"
                     checked={distributionMethod === 'EVENLY'}
                     onChange={() => setDistributionMethod('EVENLY')}
-                    className="sr-only"
+                    className="w-3.5 h-3.5 text-[#2563EB] focus:ring-[#2563EB] border-input"
                   />
-                  <span className="text-[11px] font-bold text-foreground mb-1">Distribute Evenly</span>
-                  <span className="text-[10px] text-muted-foreground">Round-robin distribution so everyone gets roughly the same amount.</span>
+                  <span className="text-xs font-medium text-foreground">Give everyone an equal amount</span>
                 </label>
                 
-                <label className={`relative flex flex-col p-3 border rounded-xl cursor-pointer transition-all ${distributionMethod === 'SEQUENTIAL' ? 'border-[#2563EB] bg-[#2563EB]/5 shadow-sm' : 'border-border hover:border-muted-foreground/30 hover:bg-muted/20'}`}>
+                <label className="flex items-center gap-2 cursor-pointer">
                   <input 
                     type="radio" 
                     name="distribution" 
                     value="SEQUENTIAL"
                     checked={distributionMethod === 'SEQUENTIAL'}
                     onChange={() => setDistributionMethod('SEQUENTIAL')}
-                    className="sr-only"
+                    className="w-3.5 h-3.5 text-[#2563EB] focus:ring-[#2563EB] border-input"
                   />
-                  <span className="text-[11px] font-bold text-foreground mb-1">Fill Sequentially</span>
-                  <span className="text-[10px] text-muted-foreground">Fills up the first employee completely before moving to the next.</span>
+                  <span className="text-xs font-medium text-foreground">Give all leads to the first person, then move to the next</span>
                 </label>
               </div>
             </div>
 
-            <div className="p-3 bg-muted/40 rounded-xl border border-border">
+            <div className="shrink-0 p-3 bg-muted/40 rounded-xl border border-border">
               <div className="text-[11px] font-medium text-foreground">
                 <span className="text-muted-foreground">Target total assignment: </span>
                 <span className="font-bold text-[#2563EB]">
