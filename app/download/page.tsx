@@ -64,7 +64,7 @@ export default function DownloadPage() {
                 onClick={handleDownload}
                 className="inline-flex items-center justify-center w-full sm:w-auto px-10 py-4 text-sm font-bold tracking-wider uppercase text-white bg-[#0B1F33] hover:bg-[#2563EB] rounded-2xl transition-all duration-150 shadow-lg shadow-slate-900/10 active:scale-[0.98]"
               >
-                {downloading ? 'Starting Download...' : 'Download Android APK (38 MB)'}
+                {downloading ? 'Starting Download...' : 'Download Android APK (15 MB)'}
               </a>
               <div className="text-xs font-mono text-slate-500">
                 Direct APK download. Safe, verified, and ready for your team.
