@@ -22,10 +22,27 @@ export default function TablePagination<TData>({
 
   return (
     <div className="p-3.5 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground bg-muted/20">
-      <div>
-        Showing <span className="font-semibold text-foreground">{startRow}</span> to{' '}
-        <span className="font-semibold text-foreground">{endRow}</span> of{' '}
-        <span className="font-semibold text-foreground">{totalRows}</span> {itemName}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1.5 text-xs">
+          <span>Rows per page:</span>
+          <select
+            value={pageSize}
+            onChange={(e) => table.setPageSize(Number(e.target.value))}
+            className="bg-background border border-border rounded-lg px-2 py-1 text-xs font-bold text-foreground outline-hidden focus:border-blue-500 cursor-pointer"
+          >
+            {[10, 25, 50, 100].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          Showing <span className="font-semibold text-foreground">{startRow}</span> to{' '}
+          <span className="font-semibold text-foreground">{endRow}</span> of{' '}
+          <span className="font-semibold text-foreground">{totalRows}</span> {itemName}
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

@@ -44,7 +44,7 @@ export default function LeadTable({
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [isSyncingSheets, setIsSyncingSheets] = useState(false);
   const [editingLead, setEditingLead] = useState<LeadListItem | null>(null);
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 });
 
   const filteredLeads = useMemo(() => {
     const q = searchQuery.toLowerCase();
@@ -145,8 +145,8 @@ export default function LeadTable({
         isSyncingSheets={isSyncingSheets}
       />
 
-      <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
+      <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-2xs overflow-hidden flex flex-col">
+        <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-280px)] min-h-[400px] relative scrollbar-thin">
           <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
             <LeadTableHead
               isAllVisibleSelected={isAllVisibleSelected}

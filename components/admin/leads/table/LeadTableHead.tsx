@@ -14,8 +14,8 @@ export default function LeadTableHead({
   onToggleSelectVisible,
 }: LeadTableHeadProps) {
   return (
-    <thead>
-      <tr className="border-b border-border bg-muted/40 text-xs font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+    <thead className="sticky top-0 z-20 bg-card shadow-xs">
+      <tr className="border-b border-border bg-muted/90 text-xs font-bold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
         <th className="py-3 px-3.5 text-center w-9">
           <input
             type="checkbox"
