@@ -13,6 +13,7 @@ export interface EmployeeListItem {
     callLogs?: number;
   };
   totalCalls?: number;
+  connectedCalls?: number;
   totalTalkTimeSeconds?: number;
 }
 

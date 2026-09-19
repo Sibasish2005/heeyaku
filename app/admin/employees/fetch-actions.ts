@@ -92,13 +92,20 @@ export async function fetchEmployeesChunkAction(params: {
     ]);
 
     const employeeIds = employees.map((e) => e.id);
-    const talkTimes = employeeIds.length > 0
-      ? await prisma.callLog.groupBy({
-          by: ['employeeId'],
-          where: { employeeId: { in: employeeIds }, leadId: { not: null } },
-          _sum: { durationSeconds: true },
-        })
-      : [];
+    const [talkTimes, connectedCounts] = employeeIds.length > 0
+      ? await Promise.all([
+          prisma.callLog.groupBy({
+            by: ['employeeId'],
+            where: { employeeId: { in: employeeIds }, leadId: { not: null } },
+            _sum: { durationSeconds: true },
+          }),
+          prisma.callLog.groupBy({
+            by: ['employeeId'],
+            where: { employeeId: { in: employeeIds }, leadId: { not: null }, connected: true },
+            _count: { id: true },
+          }),
+        ])
+      : [[], []];
 
     const talkTimeMap = new Map<string, number>();
     for (const t of talkTimes) {
@@ -107,8 +114,16 @@ export async function fetchEmployeesChunkAction(params: {
       }
     }
 
+    const connectedMap = new Map<string, number>();
+    for (const c of connectedCounts) {
+      if (c.employeeId) {
+        connectedMap.set(c.employeeId, c._count.id || 0);
+      }
+    }
+
     const items: EmployeeListItem[] = employees.map((e) => {
       const empTalkTime = talkTimeMap.get(e.id) || 0;
+      const empConnected = connectedMap.get(e.id) || 0;
       return {
         id: e.id,
         employeeCode: e.employeeCode,
@@ -124,6 +139,7 @@ export async function fetchEmployeesChunkAction(params: {
           callLogs: e._count.callLogs,
         },
         totalCalls: e._count.callLogs,
+        connectedCalls: empConnected,
         totalTalkTimeSeconds: empTalkTime,
       };
     });

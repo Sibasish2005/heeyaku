@@ -97,10 +97,15 @@ export default function EmployeeTableRow({
       <td className="py-2.5 px-3 text-center whitespace-nowrap">
         <Link
           href={`/admin/employees/${emp.id}`}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold font-mono text-blue-600 dark:text-blue-400 hover:underline"
+          className="inline-flex flex-col items-center gap-0.5 px-2 py-0.5 rounded-md hover:bg-muted/80 transition-colors"
         >
-          <PhoneCall className="w-3 h-3" />
-          <span>{emp._count.callLogs ?? emp.totalCalls ?? 0}</span>
+          <span className="inline-flex items-center gap-1 text-xs font-bold font-mono text-blue-600 dark:text-blue-400">
+            <PhoneCall className="w-3 h-3" />
+            <span>{emp._count.callLogs ?? emp.totalCalls ?? 0} tried</span>
+          </span>
+          <span className="text-[10px] font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+            {emp.connectedCalls ?? 0} connected
+          </span>
         </Link>
       </td>
 

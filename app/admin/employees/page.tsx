@@ -74,18 +74,32 @@ export default async function EmployeesPage() {
     ]);
 
     const employeeIds = initialEmployeesList.map((e) => e.id);
-    const talkTimes = employeeIds.length > 0
-      ? await prisma.callLog.groupBy({
-          by: ['employeeId'],
-          where: { employeeId: { in: employeeIds }, leadId: { not: null } },
-          _sum: { durationSeconds: true },
-        })
-      : [];
+    const [talkTimes, connectedCounts] = employeeIds.length > 0
+      ? await Promise.all([
+          prisma.callLog.groupBy({
+            by: ['employeeId'],
+            where: { employeeId: { in: employeeIds }, leadId: { not: null } },
+            _sum: { durationSeconds: true },
+          }),
+          prisma.callLog.groupBy({
+            by: ['employeeId'],
+            where: { employeeId: { in: employeeIds }, leadId: { not: null }, connected: true },
+            _count: { id: true },
+          }),
+        ])
+      : [[], []];
 
     const talkTimeMap = new Map<string, number>();
     for (const t of talkTimes) {
       if (t.employeeId) {
         talkTimeMap.set(t.employeeId, t._sum.durationSeconds || 0);
+      }
+    }
+
+    const connectedMap = new Map<string, number>();
+    for (const c of connectedCounts) {
+      if (c.employeeId) {
+        connectedMap.set(c.employeeId, c._count.id || 0);
       }
     }
 
@@ -99,6 +113,7 @@ export default async function EmployeesPage() {
 
     formattedEmployees = initialEmployeesList.map((e) => {
       const empTalkTime = talkTimeMap.get(e.id) || 0;
+      const empConnected = connectedMap.get(e.id) || 0;
       return {
         id: e.id,
         employeeCode: e.employeeCode,
@@ -114,6 +129,7 @@ export default async function EmployeesPage() {
           callLogs: e._count.callLogs,
         },
         totalCalls: e._count.callLogs,
+        connectedCalls: empConnected,
         totalTalkTimeSeconds: empTalkTime,
       };
     });
