@@ -51,17 +51,33 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
           assignedAt: true,
           createdAt: true,
           updatedAt: true,
+          callLogs: {
+            where: {
+              employeeId: employeeId,
+            },
+            orderBy: {
+              startedAt: 'desc',
+            },
+            select: {
+              id: true,
+              phoneNumber: true,
+              durationSeconds: true,
+              connected: true,
+              outcomeId: true,
+              outcomeLabel: true,
+              notes: true,
+              startedAt: true,
+            },
+          },
         },
       },
       callLogs: {
-        where: {
-          leadId: { not: null },
-        },
         orderBy: {
           startedAt: 'desc',
         },
         select: {
           id: true,
+          leadId: true,
           phoneNumber: true,
           contactName: true,
           callType: true,
@@ -101,12 +117,81 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
     updatedAt: employee.updatedAt.toISOString(),
   };
 
-  const formattedLeads = employee.leads.map((l) => ({
-    ...l,
-    assignedAt: l.assignedAt ? l.assignedAt.toISOString() : null,
-    createdAt: l.createdAt.toISOString(),
-    updatedAt: l.updatedAt.toISOString(),
-  }));
+  // Build secondary lookup for phone-matched calls
+  const phoneToCallsMap = new Map<string, typeof employee.callLogs>();
+  for (const call of employee.callLogs) {
+    const digits = call.phoneNumber.replace(/[^0-9]/g, '').slice(-10);
+    if (digits.length >= 8) {
+      const arr = phoneToCallsMap.get(digits) || [];
+      arr.push(call);
+      phoneToCallsMap.set(digits, arr);
+    }
+  }
+
+  const formattedLeads = employee.leads.map((l) => {
+    const leadDigits = l.phoneNumber.replace(/[^0-9]/g, '').slice(-10);
+    const matchedMap = new Map<string, {
+      id: string;
+      phoneNumber?: string;
+      durationSeconds: number;
+      connected: boolean;
+      outcomeId: string | null;
+      outcomeLabel: string | null;
+      notes?: string | null;
+      startedAt: string;
+    }>();
+
+    // 1. Calls directly linked via relation
+    if (l.callLogs) {
+      for (const c of l.callLogs) {
+        matchedMap.set(c.id, {
+          id: c.id,
+          phoneNumber: c.phoneNumber,
+          durationSeconds: c.durationSeconds,
+          connected: c.connected,
+          outcomeId: c.outcomeId,
+          outcomeLabel: c.outcomeLabel,
+          notes: c.notes,
+          startedAt: c.startedAt.toISOString(),
+        });
+      }
+    }
+
+    // 2. Also incorporate phone-matched calls if any weren't directly linked
+    if (leadDigits.length >= 8 && phoneToCallsMap.has(leadDigits)) {
+      const phoneCalls = phoneToCallsMap.get(leadDigits)!;
+      for (const pc of phoneCalls) {
+        if (!matchedMap.has(pc.id)) {
+          matchedMap.set(pc.id, {
+            id: pc.id,
+            phoneNumber: pc.phoneNumber,
+            durationSeconds: pc.durationSeconds,
+            connected: pc.connected,
+            outcomeId: pc.outcomeId,
+            outcomeLabel: pc.outcomeLabel,
+            notes: pc.notes,
+            startedAt: pc.startedAt.toISOString(),
+          });
+        }
+      }
+    }
+
+    const allCalls = Array.from(matchedMap.values()).sort(
+      (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+    );
+
+    const totalCallDurationSeconds = allCalls.reduce((acc, c) => acc + (c.durationSeconds || 0), 0);
+
+    return {
+      ...l,
+      assignedAt: l.assignedAt ? l.assignedAt.toISOString() : null,
+      createdAt: l.createdAt.toISOString(),
+      updatedAt: l.updatedAt.toISOString(),
+      callLogs: allCalls,
+      totalCallDurationSeconds,
+      callCount: allCalls.length,
+    };
+  });
 
   const formattedCallLogs = employee.callLogs.map((c) => ({
     ...c,

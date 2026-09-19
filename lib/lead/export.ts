@@ -13,6 +13,9 @@ export interface LeadExportData {
   assignedAt?: string | Date | null;
   createdAt: string | Date;
   notes?: string | null;
+  totalCallDuration?: string | null;
+  eachCallDurations?: string | null;
+  callCount?: number | null;
 }
 
 function sanitizeCell(val: string | null | undefined): string {
@@ -36,6 +39,9 @@ export function formatLeadsForExport(leads: LeadExportData[]) {
     'Email Address': sanitizeCell(lead.email),
     'Target Course / School': sanitizeCell(lead.company),
     'Pipeline Status': sanitizeCell(lead.status),
+    'Call Count': lead.callCount !== undefined && lead.callCount !== null ? String(lead.callCount) : '',
+    'Total Talk Time': sanitizeCell(lead.totalCallDuration),
+    'Each Call Duration': sanitizeCell(lead.eachCallDurations),
     'Lead Source': sanitizeCell(lead.source),
     'Assigned Staff ID': sanitizeCell(lead.assignedEmployeeCode || 'Unassigned'),
     'Assigned Staff Name': sanitizeCell(lead.assignedEmployeeName || 'Unassigned'),

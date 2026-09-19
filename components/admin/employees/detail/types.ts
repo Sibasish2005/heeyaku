@@ -1,5 +1,16 @@
 export type TimeFrame = 'TODAY' | 'MONTH' | 'LIFETIME';
 
+export interface LeadCallLogSummary {
+  id: string;
+  phoneNumber?: string;
+  durationSeconds: number;
+  connected: boolean;
+  startedAt: string;
+  outcomeId: string | null;
+  outcomeLabel: string | null;
+  notes?: string | null;
+}
+
 export interface LeadItem {
   id: string;
   leadCode: string;
@@ -12,6 +23,9 @@ export interface LeadItem {
   assignedAt: string | null;
   createdAt: string;
   updatedAt?: string;
+  callLogs?: LeadCallLogSummary[];
+  totalCallDurationSeconds?: number;
+  callCount?: number;
 }
 
 export const MOBILE_OUTCOMES = [

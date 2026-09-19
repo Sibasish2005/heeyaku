@@ -12,7 +12,7 @@ import EmployeeCallLogsTable from './detail/EmployeeCallLogsTable';
 import EmployeeTimeframeSelector from './detail/EmployeeTimeframeSelector';
 import EmployeePipelineFilters from './detail/EmployeePipelineFilters';
 import EmployeeAssignedLeadsTable from './detail/EmployeeAssignedLeadsTable';
-import { CallLogItem, LeadItem, PIPELINE_STATUSES, STATUS_BADGE_STYLES, TimeFrame } from './detail/types';
+import { CallLogItem, formatSecondsDuration, LeadItem, PIPELINE_STATUSES, STATUS_BADGE_STYLES, TimeFrame } from './detail/types';
 import { toggleEmployeeStatusAction } from '@/app/admin/employees/actions';
 import { downloadLeadsAsCsv, downloadLeadsAsXlsx } from '@/lib/lead/export';
 
@@ -129,6 +129,11 @@ export default function EmployeeDetailView({
       assignedEmployeeCode: employee.employeeCode,
       assignedEmployeeName: employee.name,
       notes: null,
+      totalCallDuration: formatSecondsDuration(l.totalCallDurationSeconds || 0),
+      eachCallDurations: (l.callLogs && l.callLogs.length > 0)
+        ? l.callLogs.map((c, i) => `#${l.callLogs!.length - i}: ${formatSecondsDuration(c.durationSeconds)}`).join(', ')
+        : 'No calls',
+      callCount: l.callCount || 0,
     }));
     const fn = `HEEYAKU_Leads_${employee.employeeCode}_${timeframe}_${ts}`;
     if (format === 'xlsx') downloadLeadsAsXlsx(data, `${fn}.xlsx`);
