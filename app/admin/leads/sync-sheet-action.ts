@@ -133,11 +133,24 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
       notes: string | null;
     }> = [];
 
+    // Find lead code / sync status columns to instantly skip already-synced rows
+    const leadCodeHeader = headers.find((h) => h.toLowerCase().includes('lead code') || h.toLowerCase() === 'code');
+    const syncStatusHeader = headers.find((h) => h.toLowerCase().includes('sync'));
+
     const phoneLookupList: string[] = [];
     const seenPhonesInBatch = new Set<string>();
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
+
+      // Instant skip if row is already marked synced or has a lead code
+      if (syncStatusHeader && String(row[syncStatusHeader] || '').trim().toLowerCase() === 'synced') {
+        continue;
+      }
+      if (leadCodeHeader && String(row[leadCodeHeader] || '').trim().startsWith('LD-')) {
+        continue;
+      }
+
       const rawPhone = String(row[mapping.phoneCol] || '').trim();
       const rawName = mapping.nameCol ? String(row[mapping.nameCol] || '').trim() : '';
 
@@ -178,20 +191,24 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
       };
     }
 
-    // Deduplicate against database
-    const existingLeads = await prisma.lead.findMany({
-      where: {
-        OR: phoneLookupList.map((digits) => ({
-          phoneNumber: { contains: digits },
-        })),
-      },
-      select: { phoneNumber: true },
-    });
-
+    // Deduplicate against database in chunks of 100 to protect DB performance
     const existing10Digits = new Set<string>();
-    for (const l of existingLeads) {
-      const d = l.phoneNumber.replace(/[^0-9]/g, '').slice(-10);
-      if (d) existing10Digits.add(d);
+    const CHUNK_SIZE = 100;
+    for (let c = 0; c < phoneLookupList.length; c += CHUNK_SIZE) {
+      const chunk = phoneLookupList.slice(c, c + CHUNK_SIZE);
+      const existingLeads = await prisma.lead.findMany({
+        where: {
+          OR: chunk.map((digits: string) => ({
+            phoneNumber: { contains: digits },
+          })),
+        },
+        select: { phoneNumber: true },
+      });
+
+      for (const l of existingLeads) {
+        const d = l.phoneNumber.replace(/[^0-9]/g, '').slice(-10);
+        if (d) existing10Digits.add(d);
+      }
     }
 
     const uniqueNewLeads = validRowsToInsert.filter((lead) => {
@@ -200,10 +217,14 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
     });
 
     if (uniqueNewLeads.length > 0) {
-      await prisma.lead.createMany({
-        data: uniqueNewLeads,
-        skipDuplicates: true,
-      });
+      // Chunk inserts in batches of 500 for safety
+      for (let i = 0; i < uniqueNewLeads.length; i += 500) {
+        const insertBatch = uniqueNewLeads.slice(i, i + 500);
+        await prisma.lead.createMany({
+          data: insertBatch,
+          skipDuplicates: true,
+        });
+      }
     }
 
     revalidatePath('/admin/leads');
