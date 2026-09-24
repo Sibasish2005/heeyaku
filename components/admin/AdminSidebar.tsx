@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, UserCheck, Users, X, ShieldCheck, LogOut } from 'lucide-react';
+import { LayoutDashboard, UserCheck, Users, X, ShieldCheck, LogOut, Home, ArrowUpRight } from 'lucide-react';
 import HeeyakuLogo from '@/components/landingpage/shared/HeeyakuLogo';
 import ThemeToggler from '@/components/ThemeToggler';
 import { UserButton, useClerk } from '@clerk/nextjs';
@@ -71,37 +71,63 @@ export default function AdminSidebar({
             </button>
           </div>
 
-          <div className="pt-2">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-3 mb-2">
-              Main Operations
+          <div className="pt-2 space-y-5">
+            {/* Home / Website Section */}
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-3 mb-2">
+                Home
+              </div>
+              <nav className="space-y-1">
+                <Link
+                  href="/"
+                  prefetch={false}
+                  onClick={onCloseMobile}
+                  className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors duration-150 group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Home className="w-4 h-4 shrink-0 text-muted-foreground group-hover:text-[#2563EB] dark:group-hover:text-blue-400 transition-colors" />
+                    <span>Landing Page</span>
+                  </div>
+                  <span className="text-[10px] font-medium text-muted-foreground/70 group-hover:text-foreground flex items-center gap-0.5">
+                    View <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </span>
+                </Link>
+              </nav>
             </div>
-            <nav className="space-y-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive =
-                  pathname === item.href ||
-                  (item.href !== '/admin/dashboard' && pathname.startsWith(item.href));
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    prefetch={true}
-                    onClick={onCloseMobile}
-                    className={`relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-[color,background-color] duration-150 ${
-                      isActive
-                        ? 'bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/20 dark:text-blue-400'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#2563EB] dark:text-blue-400' : 'text-muted-foreground'}`} />
-                    <span>{item.label}</span>
-                    {isActive && (
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#2563EB] dark:bg-blue-400" />
-                    )}
-                  </Link>
-                );
-              })}
-            </nav>
+
+            {/* Main Operations */}
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-3 mb-2">
+                Main Operations
+              </div>
+              <nav className="space-y-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== '/admin/dashboard' && pathname.startsWith(item.href));
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      prefetch={true}
+                      onClick={onCloseMobile}
+                      className={`relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-[color,background-color] duration-150 ${
+                        isActive
+                          ? 'bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/20 dark:text-blue-400'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#2563EB] dark:text-blue-400' : 'text-muted-foreground'}`} />
+                      <span>{item.label}</span>
+                      {isActive && (
+                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-[#2563EB] dark:bg-blue-400" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
           </div>
         </div>
 

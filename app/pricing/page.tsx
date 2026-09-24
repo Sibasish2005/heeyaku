@@ -35,36 +35,40 @@ export default function PricingPage() {
         {/* 3 Full-Scale Pricing Bento Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16 items-stretch">
           
-          {/* Tier 1: Starter */}
+          {/* Tier 1: CRM */}
           <div className="p-8 sm:p-10 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/80 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] flex flex-col justify-between space-y-8">
             <div>
               <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
-                STARTER ACADEMY
+                CRM
               </div>
               <div className="text-3xl sm:text-4xl font-extrabold text-[#0B1F33] mb-1">
-                ₹2,499
+                ₹20,000
                 <span className="text-sm font-normal text-slate-500"> / month</span>
               </div>
               <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed mb-6">
-                Best for single-branch coaching centers getting started with telecalling.
+                Best for single & multi-branch coaching institutes focusing on telecalling and lead management.
               </p>
 
               <div className="space-y-3 pt-4 border-t border-slate-200 text-xs sm:text-sm text-slate-700">
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>Up to 5 Counselor Android App Accounts</span>
+                  <span>Counselor Android App with Automatic Call Tracking</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>Automatic Call Duration & Talk-Time Tracking</span>
+                  <span>Real-Time Talk-Time & Tried vs. Connected Call Metrics</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>Centralized Lead Dashboard with 2-Tap Notes</span>
+                  <span>Centralized Lead Dashboard with 2-Tap Notes & Dispositions</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>WhatsApp Brochure & Demo Reminders</span>
+                  <span>Excel, CSV & Google Sheets Lead Import with Duplicate Check</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-[#2563EB] font-bold">•</span>
+                  <span>Counselor Performance Leaderboard & Daily Call Reports</span>
                 </div>
               </div>
             </div>
@@ -77,40 +81,40 @@ export default function PricingPage() {
             </Link>
           </div>
 
-          {/* Tier 2: Growth (Featured) */}
+          {/* Tier 2: CRM + LMS (Featured) */}
           <div className="p-8 sm:p-10 rounded-3xl border-2 border-[#2563EB] bg-white shadow-xl shadow-blue-500/10 flex flex-col justify-between space-y-8 relative">
             <div>
               <div className="text-xs font-mono font-bold text-[#2563EB] uppercase tracking-wider mb-2">
-                MOST POPULAR • GROWTH INSTITUTE
+                MOST POPULAR • CRM + LMS
               </div>
               <div className="text-3xl sm:text-4xl font-extrabold text-[#0B1F33] mb-1">
-                ₹5,999
+                ₹30,000
                 <span className="text-sm font-normal text-slate-500"> / month</span>
               </div>
               <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed mb-6">
-                For growing institutes with active counselors and lecture delivery.
+                All-in-one suite combining full telecalling CRM with student LMS & lecture delivery.
               </p>
 
               <div className="space-y-3 pt-4 border-t border-slate-200 text-xs sm:text-sm text-slate-700">
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>Up to 15 Counselor Android App Accounts</span>
+                  <span>Everything in CRM Plan Included</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>Direct Facebook & Google Ads Integration (Under 60s)</span>
+                  <span>Anti-Piracy Video Portal with Dynamic Student Watermark</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>Anti-Piracy Video Portal with Student Watermark</span>
+                  <span>Screen Recording, DevTools & Video Leak Defense</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>Automated WhatsApp Fee Installment Links</span>
+                  <span>Student & Faculty LMS with Batch & Lecture Scheduling</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>Dedicated Onboarding Manager via Phone & WhatsApp</span>
+                  <span>Video Watch-Time Analytics & Complete Technical Setup</span>
                 </div>
               </div>
             </div>
@@ -119,31 +123,31 @@ export default function PricingPage() {
               href="/book-demo"
               className="block w-full text-center py-3.5 rounded-2xl bg-[#2563EB] hover:bg-blue-600 text-white text-xs sm:text-sm font-bold tracking-wider uppercase transition-colors shadow-md shadow-blue-500/20"
             >
-              Start With Growth
+              Start With CRM + LMS
             </Link>
           </div>
 
-          {/* Tier 3: Enterprise */}
+          {/* Tier 3: Custom */}
           <div className="p-8 sm:p-10 rounded-3xl border border-slate-200/90 bg-[#F8FAFC]/80 backdrop-blur-md shadow-[0_10px_40px_rgba(0,0,0,0.03)] flex flex-col justify-between space-y-8">
             <div>
               <div className="text-xs font-mono font-bold text-slate-500 uppercase tracking-wider mb-2">
-                MULTI-BRANCH ENTERPRISE
+                CUSTOM
               </div>
               <div className="text-3xl sm:text-4xl font-extrabold text-[#0B1F33] mb-1">
-                Custom
+                As Per Need
               </div>
               <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed mb-6">
-                For academies with 15+ telecallers across multiple cities or franchises.
+                Tailored solutions for academies with custom workflows, multiple branches, or bespoke feature needs.
               </p>
 
               <div className="space-y-3 pt-4 border-t border-slate-200 text-xs sm:text-sm text-slate-700">
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>Unlimited Counselor & Faculty Accounts</span>
+                  <span>Custom Telecaller & Faculty Capacities</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>Multi-Branch Permission Hierarchies</span>
+                  <span>Multi-Branch Permission & Franchise Hierarchies</span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
@@ -155,7 +159,7 @@ export default function PricingPage() {
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-[#2563EB] font-bold">•</span>
-                  <span>Priority 24/7 Hotline & WhatsApp Support</span>
+                  <span>Priority 24/7 Hotline & Dedicated Technical Support</span>
                 </div>
               </div>
             </div>
