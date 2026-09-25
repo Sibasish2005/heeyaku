@@ -248,3 +248,29 @@ a:active:not([aria-disabled="true"]) {
   --ring: oklch(0.708 0 0) !important;
 }
 
+/* Clerk Auth: Completely eliminate footer, sign-up links, and branding footer */
+.clerk-no-signup .cl-footer,
+.clerk-no-signup .cl-footerAction,
+.clerk-no-signup .cl-footerActionText,
+.clerk-no-signup .cl-footerActionLink,
+.clerk-no-signup .cl-footerPages,
+.clerk-no-signup .cl-footerPagesLink,
+.cl-signIn-root .cl-footer,
+.cl-signIn-root .cl-footerAction,
+.cl-signIn-root .cl-footerActionText,
+.cl-signIn-root .cl-footerActionLink,
+.cl-signIn-root .cl-footerPages,
+.cl-signIn-root .cl-footerPagesLink,
+.cl-footerAction,
+.cl-footerActionText,
+.cl-footerActionLink {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+

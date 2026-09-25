@@ -5,9 +5,9 @@ import { ArrowLeft } from "lucide-react";
 
 export default function SignInPage() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B0F17] flex flex-col justify-center items-center p-4 selection:bg-[#2563EB] selection:text-white">
+    <main className="min-h-dvh w-full bg-background flex flex-col justify-center items-center p-4 sm:p-6 selection:bg-[#2563EB] selection:text-white">
       {/* Brand Header */}
-      <div className="flex flex-col items-center mb-6 space-y-4">
+      <div className="flex flex-col items-center mb-6 space-y-3">
         <Link href="/" className="transition-transform duration-160 ease-out active:scale-95">
           <HeeyakuLogo
             size={40}
@@ -21,24 +21,28 @@ export default function SignInPage() {
         </Link>
         <Link
           href="/"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-[#2563EB] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Home</span>
         </Link>
       </div>
 
-      {/* Clerk Dedicated Auth Box */}
-      <div className="w-full max-w-md flex justify-center">
+      {/* Clerk Auth Box */}
+      <div className="w-full max-w-[420px] flex justify-center clerk-no-signup">
         <SignIn
           appearance={{
             elements: {
-              footerAction: "hidden",
-              footer: "hidden",
+              footer: "!hidden hidden",
+              footerAction: "!hidden hidden",
+              footerActionText: "!hidden hidden",
+              footerActionLink: "!hidden hidden",
+              footerPages: "!hidden hidden",
+              footerPagesLink: "!hidden hidden",
             },
           }}
         />
       </div>
-    </div>
+    </main>
   );
 }
