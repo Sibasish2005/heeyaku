@@ -30,7 +30,14 @@ export default function SignInPage() {
 
       {/* Clerk Dedicated Auth Box */}
       <div className="w-full max-w-md flex justify-center">
-        <SignIn />
+        <SignIn
+          appearance={{
+            elements: {
+              footerAction: "hidden",
+              footer: "hidden",
+            },
+          }}
+        />
       </div>
     </div>
   );
