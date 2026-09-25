@@ -24,8 +24,7 @@ interface LeadTableToolbarProps {
   onCreateOpen: () => void;
   onImportOpen: () => void;
   onAutoAssignOpen: () => void;
-  onSyncSheets?: () => void;
-  isSyncingSheets?: boolean;
+  onOpenSheets?: () => void;
 }
 
 const STATUS_OPTIONS = [
@@ -70,8 +69,7 @@ export default function LeadTableToolbar({
   onCreateOpen,
   onImportOpen,
   onAutoAssignOpen,
-  onSyncSheets,
-  isSyncingSheets = false,
+  onOpenSheets,
 }: LeadTableToolbarProps) {
   const hasActiveFilters =
     searchQuery.trim() !== '' ||
@@ -143,16 +141,15 @@ export default function LeadTableToolbar({
             </div>
           </div>
 
-          {onSyncSheets && (
+          {onOpenSheets && (
             <button
               type="button"
-              onClick={onSyncSheets}
-              disabled={isSyncingSheets}
-              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-60 border border-emerald-500/20 rounded-xl transition-colors shadow-2xs cursor-pointer"
-              title="Sync leads directly from your connected Google Sheet"
+              onClick={onOpenSheets}
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl transition-colors shadow-2xs cursor-pointer"
+              title="Import leads from a Google Sheet link"
             >
-              <FileSpreadsheet className={`w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 ${isSyncingSheets ? 'animate-spin' : ''}`} />
-              <span>{isSyncingSheets ? 'Syncing...' : 'Sync'}</span>
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Sheets</span>
             </button>
           )}
 
@@ -160,6 +157,7 @@ export default function LeadTableToolbar({
             type="button"
             onClick={onImportOpen}
             className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-bold text-foreground bg-card hover:bg-muted/60 border border-border rounded-xl transition-colors shadow-2xs cursor-pointer"
+            title="Manual import leads from CSV, Excel, or text"
           >
             <Upload className="w-3.5 h-3.5 text-muted-foreground" />
             <span>Import</span>

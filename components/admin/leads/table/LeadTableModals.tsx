@@ -14,6 +14,7 @@ interface LeadTableModalsProps {
   isBulkAssignOpen: boolean;
   isAutoAssignOpen: boolean;
   isImportOpen: boolean;
+  importMode?: 'file' | 'sheets';
   selectedIds: string[];
   activeEmployees: ActiveEmployee[];
   onCloseCreate: () => void;
@@ -30,6 +31,7 @@ export default function LeadTableModals({
   isBulkAssignOpen,
   isAutoAssignOpen,
   isImportOpen,
+  importMode = 'file',
   selectedIds,
   activeEmployees,
   onCloseCreate,
@@ -76,6 +78,7 @@ export default function LeadTableModals({
         activeEmployees={activeEmployees}
         onClose={onCloseImport}
         onImportSuccess={() => window.location.reload()}
+        mode={importMode}
       />
     </>
   );

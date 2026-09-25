@@ -106,13 +106,42 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
 
     const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
 
-    const res = await fetch(exportUrl, {
+    const signal = AbortSignal.timeout(15000);
+    let res = await fetch(exportUrl, {
       method: 'GET',
       headers: {
         'User-Agent': 'Heeyaku-CRM/1.0',
       },
       cache: 'no-store',
+      redirect: 'manual',
+      signal,
     });
+
+    if ([301, 302, 303, 307, 308].includes(res.status)) {
+      const location = res.headers.get('location');
+      if (!location) {
+        return { success: false, error: 'Redirect received without location header from Google.' };
+      }
+      const redirectUrl = new URL(location, exportUrl);
+      const isAllowedGoogleDomain =
+        redirectUrl.protocol === 'https:' &&
+        (redirectUrl.hostname === 'docs.google.com' ||
+          redirectUrl.hostname.endsWith('.googleusercontent.com') ||
+          redirectUrl.hostname.endsWith('.google.com'));
+
+      if (!isAllowedGoogleDomain) {
+        return { success: false, error: 'Untrusted redirect destination detected.' };
+      }
+
+      res = await fetch(redirectUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Heeyaku-CRM/1.0',
+        },
+        cache: 'no-store',
+        signal,
+      });
+    }
 
     if (res.status === 401 || res.status === 403 || res.headers.get('content-type')?.includes('text/html')) {
       return {

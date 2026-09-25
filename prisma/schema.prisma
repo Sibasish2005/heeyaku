@@ -74,6 +74,8 @@ model Lead {
   @@index([updatedAt])
   @@index([assignedEmployeeId, status])
   @@index([assignedEmployeeId, updatedAt])
+  @@index([assignedAt])
+  @@index([assignedEmployeeId, assignedAt])
   @@map("leads")
 }
 

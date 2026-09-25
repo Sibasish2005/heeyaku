@@ -280,6 +280,9 @@ export async function POST(req: NextRequest) {
     let syncedCount = 0;
     const syncedIds: string[] = [];
 
+    // 5. Build transaction batch to execute all writes in a single round-trip
+    const dbOperations: any[] = [];
+
     for (const { item, matchedLead } of assignedCalls) {
       const targetLeadId = matchedLead ? matchedLead.id : null;
       const existingLog = findExistingLog(item, targetLeadId);
@@ -319,39 +322,43 @@ export async function POST(req: NextRequest) {
 
       let targetCallId = '';
       if (existingLog) {
-        const updated = await prisma.callLog.update({
-          where: { id: existingLog.id },
-          data: {
-            leadId: targetLeadId,
-            contactName: item.raw.contactName || item.raw.name || existingLog.contactName,
-            durationSeconds: Math.max(existingLog.durationSeconds, item.duration),
-            connected: existingLog.connected || isConnected,
-            outcomeId: callOutcomeId || existingLog.outcomeId,
-            outcomeLabel: callOutcomeLabel || existingLog.outcomeLabel,
-            notes: item.notes || existingLog.notes,
-            endedAt: item.endedAt || existingLog.endedAt,
-          },
-        });
-        targetCallId = updated.id;
+        targetCallId = existingLog.id;
+        dbOperations.push(
+          prisma.callLog.update({
+            where: { id: existingLog.id },
+            data: {
+              leadId: targetLeadId,
+              contactName: item.raw.contactName || item.raw.name || existingLog.contactName,
+              durationSeconds: Math.max(existingLog.durationSeconds, item.duration),
+              connected: existingLog.connected || isConnected,
+              outcomeId: callOutcomeId || existingLog.outcomeId,
+              outcomeLabel: callOutcomeLabel || existingLog.outcomeLabel,
+              notes: item.notes || existingLog.notes,
+              endedAt: item.endedAt || existingLog.endedAt,
+            },
+          })
+        );
       } else {
-        const createdCall = await prisma.callLog.create({
-          data: {
-            ...(item.idCandidate ? { id: item.idCandidate } : {}),
-            employeeId,
-            leadId: targetLeadId,
-            phoneNumber: item.rawNumber,
-            contactName: item.raw.contactName || item.raw.name || null,
-            callType: item.callType,
-            durationSeconds: item.duration,
-            connected: isConnected,
-            outcomeId: callOutcomeId,
-            outcomeLabel: callOutcomeLabel,
-            notes: item.notes,
-            startedAt: item.startedAt,
-            endedAt: item.endedAt,
-          },
-        });
-        targetCallId = createdCall.id;
+        targetCallId = item.idCandidate || crypto.randomUUID();
+        dbOperations.push(
+          prisma.callLog.create({
+            data: {
+              id: targetCallId,
+              employeeId,
+              leadId: targetLeadId,
+              phoneNumber: item.rawNumber,
+              contactName: item.raw.contactName || item.raw.name || null,
+              callType: item.callType,
+              durationSeconds: item.duration,
+              connected: isConnected,
+              outcomeId: callOutcomeId,
+              outcomeLabel: callOutcomeLabel,
+              notes: item.notes,
+              startedAt: item.startedAt,
+              endedAt: item.endedAt,
+            },
+          })
+        );
       }
 
       syncedIds.push(targetCallId);
@@ -401,18 +408,24 @@ export async function POST(req: NextRequest) {
             updatedLeadNotes = updatedLeadNotes ? `${updatedLeadNotes}\n${noteEntry}` : noteEntry;
           }
 
-          await prisma.lead.update({
-            where: { id: matchedLead.id },
-            data: {
-              status: targetStatus,
-              notes: updatedLeadNotes || undefined,
-              updatedAt: new Date(),
-            },
-          });
+          dbOperations.push(
+            prisma.lead.update({
+              where: { id: matchedLead.id },
+              data: {
+                status: targetStatus,
+                notes: updatedLeadNotes || undefined,
+                updatedAt: new Date(),
+              },
+            })
+          );
           matchedLead.status = targetStatus;
           matchedLead.notes = updatedLeadNotes;
         }
       }
+    }
+
+    if (dbOperations.length > 0) {
+      await prisma.$transaction(dbOperations);
     }
 
     invalidateDashboardMetricsCache();

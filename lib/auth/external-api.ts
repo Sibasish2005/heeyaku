@@ -39,9 +39,12 @@ export function verifyExternalApiKey(req: NextRequest): boolean {
     return true;
   }
 
-  // 3. Query param check: ?apiKey=<key> (useful for Google Sheets Webhooks)
+  // 3. Query param check: ?apiKey=<key> (Supported for backward compatibility with external webhooks/Apps Script)
   const queryKey = req.nextUrl.searchParams.get('apiKey')?.trim();
   if (queryKey && secureCompare(queryKey, configuredKey)) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[SECURITY ADVISORY] API key received via URL query parameter (?apiKey=). Recommend migrating callers to the "x-api-key" header.');
+    }
     return true;
   }
 

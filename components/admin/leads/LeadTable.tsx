@@ -13,7 +13,6 @@ import { ActiveEmployee, LeadListItem } from './table/types';
 import { exportLeadsDataset } from './table/exportHelper';
 import { getLeadTableColumns } from './table/leadTableColumns';
 import { unassignLeadsAction } from '@/app/admin/leads/assignment-actions';
-import { syncGoogleSheetDirectAction } from '@/app/admin/leads/sync-sheet-action';
 import { toast } from 'sonner';
 
 export type { ActiveEmployee, LeadListItem } from './table/types';
@@ -45,7 +44,7 @@ export default function LeadTable({
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
-  const [isSyncingSheets, setIsSyncingSheets] = useState(false);
+  const [importMode, setImportMode] = useState<'file' | 'sheets'>('file');
   const [editingLead, setEditingLead] = useState<LeadListItem | null>(null);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 50 });
 
@@ -101,28 +100,6 @@ export default function LeadTable({
     }
   };
 
-  const handleSyncSheets = async () => {
-    setIsSyncingSheets(true);
-    const toastId = toast.loading('Syncing with Google Sheets...');
-    try {
-      const res = await syncGoogleSheetDirectAction();
-      if (res.success) {
-        if (res.count && res.count > 0) {
-          toast.success(`Synced successfully! ${res.count} new lead(s) added from Google Sheet.`, { id: toastId });
-          setTimeout(() => window.location.reload(), 600);
-        } else {
-          toast.success('Synced successfully! Leads are already up to date.', { id: toastId });
-        }
-      } else {
-        toast.error(res.error || 'Something went wrong while syncing. Please try again.', { id: toastId, duration: 4000 });
-      }
-    } catch (err) {
-      toast.error('Something went wrong while syncing. Please try again.', { id: toastId, duration: 4000 });
-    } finally {
-      setIsSyncingSheets(false);
-    }
-  };
-
   return (
     <div className="space-y-4 sm:space-y-6 relative">
       <LeadTableFloatingBar
@@ -145,10 +122,15 @@ export default function LeadTable({
         onResetFilters={() => { setSearchQuery(''); setStatusFilter('ALL'); setAssignmentFilter('UNASSIGNED'); setEmployeeFilter('ALL'); }}
         onExport={(fmt) => exportLeadsDataset(fmt, filteredLeads, 'Filtered')}
         onCreateOpen={() => setIsCreateOpen(true)}
-        onImportOpen={() => setIsImportOpen(true)}
+        onImportOpen={() => {
+          setImportMode('file');
+          setIsImportOpen(true);
+        }}
+        onOpenSheets={() => {
+          setImportMode('sheets');
+          setIsImportOpen(true);
+        }}
         onAutoAssignOpen={() => setIsAutoAssignOpen(true)}
-        onSyncSheets={handleSyncSheets}
-        isSyncingSheets={isSyncingSheets}
       />
 
       {/* Mobile Card List View (visible on screens < md, or when viewMode === 'cards') */}
@@ -255,6 +237,7 @@ export default function LeadTable({
         isBulkAssignOpen={isBulkAssignOpen}
         isAutoAssignOpen={isAutoAssignOpen}
         isImportOpen={isImportOpen}
+        importMode={importMode}
         selectedIds={selectedIds}
         activeEmployees={activeEmployees}
         onCloseCreate={() => setIsCreateOpen(false)}

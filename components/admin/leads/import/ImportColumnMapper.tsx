@@ -31,7 +31,7 @@ export default function ImportColumnMapper({
   const headerOptions = headers.map((h) => ({ value: h, label: h }));
   const requiredOptions = [{ value: '', label: 'Select Column...' }, ...headerOptions];
   const skipOptions = [{ value: '', label: 'Skip / Not Provided' }, ...headerOptions];
-  const defaultSourceLabel = isGoogleSheet ? 'Default to "Google Sheets"' : 'Default to "File Import"';
+  const defaultSourceLabel = isGoogleSheet ? 'Default to "Google Sheets"' : 'Default to "Manual Import"';
   const sourceOptions = [{ value: '', label: defaultSourceLabel }, ...headerOptions];
 
   const canProceed = Boolean(mapping.nameCol && mapping.phoneCol);

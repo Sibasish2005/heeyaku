@@ -50,18 +50,20 @@ export async function resolveEmployeeIdentity(
     });
   }
 
-  if (!employee && !payload.employeeId) {
+  // Fail closed: Employee must exist in the database and have active status
+  if (!employee || !employee.isActive) {
     return null;
   }
 
   const matchingEmployees = await prisma.employee.findMany({
     where: {
+      isActive: true,
       OR: [
+        { id: employee.id },
         { id: payload.employeeId },
-        ...(employee ? [{ id: employee.id }] : []),
         ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
         ...(payload.email ? [{ email: payload.email }] : []),
-        ...(employee?.employeeCode ? [{ employeeCode: employee.employeeCode }] : []),
+        ...(employee.employeeCode ? [{ employeeCode: employee.employeeCode }] : []),
       ],
     },
     select: { id: true },
@@ -69,8 +71,8 @@ export async function resolveEmployeeIdentity(
 
   const allIds = Array.from(
     new Set([
+      employee.id,
       payload.employeeId,
-      ...(employee ? [employee.id] : []),
       ...matchingEmployees.map((e) => e.id),
     ])
   ).filter(Boolean);

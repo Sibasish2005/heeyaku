@@ -41,18 +41,21 @@ export async function POST(req: NextRequest) {
 
     const bookingId = `HKU-DEMO-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
-    // Log the validated inquiry for operations
+    // Mask sensitive PII for operations logging
+    const maskedPhone = String(phone).length > 4 ? `***-${String(phone).slice(-4)}` : '***';
+    const [emailUser = '', emailDomain = ''] = String(email).split('@');
+    const maskedEmail = emailDomain ? `${emailUser.slice(0, 1)}***@${emailDomain}` : '***';
+
     console.log(`[DEMO_REQUEST] [${bookingId}]`, {
       name,
-      email,
-      phone,
+      email: maskedEmail,
+      phone: maskedPhone,
       institute,
       teamSize: teamSize || '5-15',
       primaryInterest: primaryInterest || 'Android CallTracker & CRM',
       preferredSlot: preferredSlot || 'Tomorrow 2:00 PM IST',
-      notes: notes || 'None',
+      notes: notes ? 'Provided' : 'None',
       submittedAt: new Date().toISOString(),
-      ip: req.headers.get('x-forwarded-for') || '127.0.0.1',
     });
 
     return NextResponse.json({

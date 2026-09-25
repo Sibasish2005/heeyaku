@@ -39,6 +39,26 @@ export async function POST(req: NextRequest) {
 
     const trimmedId = String(identifier).trim();
     const normalizedId = trimmedId.toUpperCase();
+    const accountRateLimitKey = `login:account:${normalizedId}`;
+    const accountRateLimit = checkRateLimit(accountRateLimitKey, { windowMs: 2 * 60 * 1000, maxAttempts: 5 });
+
+    if (!accountRateLimit.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Too many login attempts for this account. Please wait ${accountRateLimit.resetSeconds} seconds before trying again.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(accountRateLimit.resetSeconds),
+            'X-RateLimit-Limit': '5',
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      );
+    }
+
     const withEmpPrefix = !normalizedId.startsWith('EMP-') && /^\d+$/.test(normalizedId)
       ? `EMP-${normalizedId}`
       : null;
@@ -71,6 +91,7 @@ export async function POST(req: NextRequest) {
 
     // Reset rate limiter on successful authentication
     resetRateLimit(rateLimitKey);
+    resetRateLimit(accountRateLimitKey);
 
     const token = signEmployeeToken({
       employeeId: employee.id,

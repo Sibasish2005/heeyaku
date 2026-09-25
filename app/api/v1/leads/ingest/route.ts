@@ -112,6 +112,33 @@ export async function POST(req: NextRequest) {
     let createdCount = 0;
     let updatedCount = 0;
 
+    // Pre-calculate sequential lead code starting number once
+    const latestLead = await prisma.lead.findFirst({
+      orderBy: { createdAt: 'desc' },
+      select: { leadCode: true },
+    });
+
+    let currentLeadNumber = 1;
+    if (latestLead && latestLead.leadCode.startsWith('LD-')) {
+      const parsed = parseInt(latestLead.leadCode.replace('LD-', ''), 10);
+      if (!isNaN(parsed)) {
+        currentLeadNumber = parsed + 1;
+      }
+    }
+
+    const recordsToInsert: Array<{
+      id: string;
+      leadCode: string;
+      name: string;
+      phoneNumber: string;
+      phoneDigits: string;
+      email: string | null;
+      company: string | null;
+      source: string;
+      notes: string | null;
+    }> = [];
+    const updateOperations: any[] = [];
+
     for (const { item, rawPhone, last10 } of validItems) {
       const existing = existingMap.get(last10);
 
@@ -121,10 +148,12 @@ export async function POST(req: NextRequest) {
         const itemNote = item.notes?.trim();
         if (itemNote && !newNotes.includes(itemNote)) {
           newNotes = newNotes ? `${newNotes}\n[External Note]: ${itemNote}` : itemNote;
-          await prisma.lead.update({
-            where: { id: existing.id },
-            data: { notes: newNotes, updatedAt: new Date() },
-          });
+          updateOperations.push(
+            prisma.lead.update({
+              where: { id: existing.id },
+              data: { notes: newNotes, updatedAt: new Date() },
+            })
+          );
           updatedCount++;
         }
 
@@ -136,31 +165,45 @@ export async function POST(req: NextRequest) {
           action: itemNote ? 'updated' : 'duplicate_skipped',
         });
       } else {
-        // Create new lead with indexed phoneDigits populated
-        const leadCode = await generateNextLeadCode();
-        const created = await prisma.lead.create({
-          data: {
-            leadCode,
-            name: String(item.name || 'New Lead').trim(),
-            phoneNumber: rawPhone,
-            phoneDigits: last10,
-            email: item.email ? String(item.email).trim() : null,
-            company: item.company ? String(item.company).trim() : null,
-            source: item.source ? String(item.source).trim() : 'EXTERNAL_API',
-            notes: item.notes ? String(item.notes).trim() : null,
-          },
-        });
-        existingMap.set(last10, created);
+        const leadId = crypto.randomUUID();
+        const leadCode = `LD-${String(currentLeadNumber++).padStart(5, '0')}`;
+        const newRecord = {
+          id: leadId,
+          leadCode,
+          name: String(item.name || 'New Lead').trim(),
+          phoneNumber: rawPhone,
+          phoneDigits: last10,
+          email: item.email ? String(item.email).trim() : null,
+          company: item.company ? String(item.company).trim() : null,
+          source: item.source ? String(item.source).trim() : 'EXTERNAL_API',
+          notes: item.notes ? String(item.notes).trim() : null,
+        };
+
+        recordsToInsert.push(newRecord);
+        existingMap.set(last10, { ...newRecord, status: 'NEW', createdAt: new Date(), updatedAt: new Date(), assignedEmployeeId: null, assignedAt: null });
         createdCount++;
 
         results.push({
-          phoneNumber: created.phoneNumber,
-          leadCode: created.leadCode,
-          id: created.id,
-          status: created.status,
+          phoneNumber: newRecord.phoneNumber,
+          leadCode: newRecord.leadCode,
+          id: newRecord.id,
+          status: 'NEW',
           action: 'created',
         });
       }
+    }
+
+    // Execute bulk insertion in batches of 1000
+    const INSERT_BATCH_SIZE = 1000;
+    for (let i = 0; i < recordsToInsert.length; i += INSERT_BATCH_SIZE) {
+      const batch = recordsToInsert.slice(i, i + INSERT_BATCH_SIZE);
+      await prisma.lead.createMany({
+        data: batch,
+      });
+    }
+
+    if (updateOperations.length > 0) {
+      await prisma.$transaction(updateOperations);
     }
 
     if (createdCount > 0 || updatedCount > 0) {

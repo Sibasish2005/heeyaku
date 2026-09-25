@@ -35,9 +35,22 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   let leads: LeadQueryResult[] = [];
   let activeEmployees: ActiveEmployee[] = [];
 
+  let totalLeads = 0;
+  let newLeads = 0;
+  let activePipeline = 0;
+  let convertedLeads = 0;
+
   try {
-    const [fetchedLeads, fetchedEmployees] = await Promise.all([
+    const [
+      fetchedLeads,
+      fetchedEmployees,
+      totalCount,
+      newCount,
+      activePipelineCount,
+      convertedCount,
+    ] = await Promise.all([
       prisma.lead.findMany({
+        take: 2000,
         orderBy: {
           createdAt: 'desc',
         },
@@ -61,19 +74,24 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
           team: true,
         },
       }),
+      prisma.lead.count(),
+      prisma.lead.count({ where: { status: 'NEW' } }),
+      prisma.lead.count({
+        where: {
+          status: { in: ['ASSIGNED', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP'] },
+        },
+      }),
+      prisma.lead.count({ where: { status: 'CONVERTED' } }),
     ]);
     leads = fetchedLeads;
     activeEmployees = fetchedEmployees;
+    totalLeads = totalCount;
+    newLeads = newCount;
+    activePipeline = activePipelineCount;
+    convertedLeads = convertedCount;
   } catch (error) {
     console.error('Error loading leads in LeadsPage:', error);
   }
-
-  const totalLeads = leads.length;
-  const newLeads = leads.filter((l) => l.status === 'NEW').length;
-  const activePipeline = leads.filter((l) =>
-    ['ASSIGNED', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP'].includes(l.status)
-  ).length;
-  const convertedLeads = leads.filter((l) => l.status === 'CONVERTED').length;
 
   const formattedLeads = leads.map((l) => ({
     ...l,

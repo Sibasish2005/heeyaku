@@ -58,21 +58,21 @@ export const getAuthenticatedAdmin = cache(async (): Promise<AuthenticatedAdmin 
       return null;
     }
 
-    const STATIC_ALLOWED_ADMIN_EMAILS = [
-      'subhra1234c@gmail.com',
-      'sibasishchakraborti@gmail.com',
-    ];
-
     const rawAdminEmails = process.env.ADMIN_EMAIL || '';
-    const envAdminEmails = rawAdminEmails
-      .split(',')
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-
-    // Combine static whitelist with environment whitelist
     const allowedAdminEmails = Array.from(
-      new Set([...STATIC_ALLOWED_ADMIN_EMAILS, ...envAdminEmails])
+      new Set(
+        rawAdminEmails
+          .split(',')
+          .map((e) => e.trim().toLowerCase())
+          .filter(Boolean)
+      )
     );
+
+    if (allowedAdminEmails.length === 0) {
+      console.error('[SECURITY ERROR] ADMIN_EMAIL is not configured in environment. Admin access is disabled.');
+      adminSessionCache.set(userId, { admin: null, expiresAt: Date.now() + 30 * 1000 });
+      return null;
+    }
 
     // Enforce strict fail-closed match: ONLY authorized emails can access admin
     const normalizedUserEmail = primaryEmail.toLowerCase().trim();

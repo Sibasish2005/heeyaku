@@ -68,6 +68,35 @@ export async function parseImportFile(file: File): Promise<{
 }
 
 /**
+ * Parses raw text (e.g. pasted CSV, TSV, or tabular data) into headers and JSON rows.
+ */
+export function parseImportCsvText(text: string): {
+  headers: string[];
+  rows: RawImportRow[];
+} {
+  const clean = text.trim();
+  if (!clean) {
+    throw new Error('Please enter or paste tabular or CSV text.');
+  }
+  const results = Papa.parse<RawImportRow>(clean, {
+    header: true,
+    skipEmptyLines: 'greedy',
+    transformHeader: (header) => header.trim(),
+  });
+  if (results.errors && results.errors.length > 0 && (!results.data || results.data.length === 0)) {
+    throw new Error(results.errors[0]?.message || 'Failed to parse pasted text.');
+  }
+  const headers = results.meta.fields?.filter(Boolean) || [];
+  if (!headers.length || !results.data.length) {
+    throw new Error('No valid header row or data rows found in pasted text.');
+  }
+  return {
+    headers,
+    rows: results.data,
+  };
+}
+
+/**
  * Heuristically identifies likely column matches based on common header variations.
  */
 export function autoDetectColumnMapping(headers: string[]): ColumnMapping {
