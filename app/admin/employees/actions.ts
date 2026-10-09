@@ -12,6 +12,7 @@ import { generateRandomPassword, hashPassword } from '@/lib/crypto/passwords';
 import { generateNextEmployeeCode } from '@/lib/employee/code';
 import { revalidatePath } from 'next/cache';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
+import { clearEmployeeIdentityCache } from '@/lib/employee/resolve';
 import { clearEmployeeChunkCache } from './fetch-actions';
 import { zodPhoneNumberSchema } from '@/lib/lead/phone';
 import { Role } from '@prisma/client';
@@ -76,6 +77,14 @@ export async function createEmployeeAction(input: unknown): Promise<ActionRespon
     }
 
     const { name, email, phoneNumber, role, teamId, teamLeadId, team, notes } = validated.data;
+
+    // Only CEO can onboard new HR administrators
+    if (role === 'HR' && user.role !== Role.CEO) {
+      return {
+        success: false,
+        error: 'Unauthorized: Only the CEO can appoint or onboard Human Resources administrators.',
+      };
+    }
 
     // Check email uniqueness
     const existing = await prisma.employee.findUnique({
@@ -186,6 +195,23 @@ export async function updateEmployeeAction(input: unknown): Promise<ActionRespon
 
     const { id, name, email, phoneNumber, role, teamId, teamLeadId, team, notes } = validated.data;
 
+    const target = await prisma.employee.findUnique({
+      where: { id },
+      select: { id: true, role: true },
+    });
+
+    if (!target) {
+      return { success: false, error: 'Employee not found.' };
+    }
+
+    if (target.role === Role.CEO && user.role !== Role.CEO) {
+      return { success: false, error: 'Unauthorized: Only the CEO can modify executive accounts.' };
+    }
+
+    if (user.role === Role.HR && role === 'HR' && target.role !== Role.HR) {
+      return { success: false, error: 'Unauthorized: Only the CEO can promote employees to HR administrator.' };
+    }
+
     // Check if another employee is already using this email
     const existing = await prisma.employee.findFirst({
       where: {
@@ -229,6 +255,7 @@ export async function updateEmployeeAction(input: unknown): Promise<ActionRespon
       },
     });
 
+    clearEmployeeIdentityCache(id);
     invalidateDashboardMetricsCache();
     clearEmployeeChunkCache();
     revalidatePath('/admin/employees');
@@ -262,11 +289,23 @@ export async function toggleEmployeeStatusAction(id: string): Promise<ActionResp
 
     const employee = await prisma.employee.findUnique({
       where: { id },
-      select: { id: true, isActive: true },
+      select: { id: true, isActive: true, role: true },
     });
 
     if (!employee) {
       return { success: false, error: 'Employee not found.' };
+    }
+
+    if (employee.role === Role.CEO) {
+      return { success: false, error: 'Unauthorized: CEO accounts cannot be deactivated.' };
+    }
+
+    if (user.role === Role.HR && employee.role === Role.HR) {
+      return { success: false, error: 'Unauthorized: HR administrators cannot deactivate other HR administrators.' };
+    }
+
+    if (user.employeeId && user.employeeId === id) {
+      return { success: false, error: 'Action blocked: You cannot deactivate your own active session account.' };
     }
 
     const updated = await prisma.employee.update({
@@ -275,6 +314,7 @@ export async function toggleEmployeeStatusAction(id: string): Promise<ActionResp
       select: { isActive: true },
     });
 
+    clearEmployeeIdentityCache(id);
     invalidateDashboardMetricsCache();
     clearEmployeeChunkCache();
     revalidatePath('/admin/employees');
@@ -308,11 +348,15 @@ export async function resetEmployeePasswordAction(id: string): Promise<ActionRes
 
     const employee = await prisma.employee.findUnique({
       where: { id },
-      select: { id: true, employeeCode: true },
+      select: { id: true, employeeCode: true, role: true },
     });
 
     if (!employee) {
       return { success: false, error: 'Employee not found.' };
+    }
+
+    if (employee.role === Role.CEO && user.role !== Role.CEO) {
+      return { success: false, error: 'Unauthorized: Only the CEO can reset executive credentials.' };
     }
 
     const tempPassword = generateRandomPassword(10);
@@ -322,6 +366,8 @@ export async function resetEmployeePasswordAction(id: string): Promise<ActionRes
       where: { id },
       data: { passwordHash },
     });
+
+    clearEmployeeIdentityCache(id);
 
     return {
       success: true,
@@ -354,6 +400,27 @@ export async function deleteEmployeeAction(id: string): Promise<ActionResponse> 
       };
     }
 
+    const target = await prisma.employee.findUnique({
+      where: { id },
+      select: { id: true, role: true },
+    });
+
+    if (!target) {
+      return { success: false, error: 'Employee not found.' };
+    }
+
+    if (target.role === Role.CEO) {
+      return { success: false, error: 'Unauthorized: CEO accounts cannot be deleted.' };
+    }
+
+    if (user.role === Role.HR && target.role === Role.HR) {
+      return { success: false, error: 'Unauthorized: HR cannot delete other HR administrators or executive accounts.' };
+    }
+
+    if (user.employeeId && user.employeeId === id) {
+      return { success: false, error: 'Action blocked: You cannot delete your own active account.' };
+    }
+
     // Unassign leads from this employee
     await prisma.lead.updateMany({
       where: { assignedEmployeeId: id },
@@ -370,6 +437,7 @@ export async function deleteEmployeeAction(id: string): Promise<ActionResponse> 
       where: { id },
     });
 
+    clearEmployeeIdentityCache(id);
     invalidateDashboardMetricsCache();
     clearEmployeeChunkCache();
     revalidatePath('/admin/employees');

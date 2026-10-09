@@ -41,7 +41,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const { employeeId } = await searchParams;
 
   const isTeamLead = admin.role === Role.TEAM_LEAD;
-  const targetTeamId = isTeamLead ? (admin.ledTeamId || admin.teamId || null) : null;
+  const targetTeamId = isTeamLead ? (admin.ledTeamId || admin.teamId || 'UNASSIGNED_SQUAD') : null;
 
   let leads: LeadQueryResult[] = [];
   let activeEmployees: ActiveEmployee[] = [];

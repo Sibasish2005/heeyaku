@@ -3,6 +3,8 @@
 import Papa from 'papaparse';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
+import { canManageLeads } from '@/lib/auth/rbac';
+import { Role } from '@prisma/client';
 import { autoDetectColumnMapping, RawImportRow } from '@/lib/lead/import-parser';
 import { revalidatePath } from 'next/cache';
 import crypto from 'crypto';
@@ -88,7 +90,15 @@ function fastContentHash(csv: string, rowCount: number): string {
  */
 export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<SyncSheetResult> {
   try {
-    await assertAdminAccess();
+    const admin = await assertAdminAccess();
+    if (!canManageLeads(admin.role)) {
+      return { success: false, error: 'Unauthorized: Only CEO and Team Leads can sync leads.' };
+    }
+
+    const tlTeamId = admin.role === Role.TEAM_LEAD ? (admin.ledTeamId || admin.teamId || null) : null;
+    if (admin.role === Role.TEAM_LEAD && !tlTeamId) {
+      return { success: false, error: 'Unauthorized: Team Lead is not assigned to any squad.' };
+    }
 
     const targetUrl =
       customUrl?.trim() ||
@@ -229,6 +239,7 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
       company: string | null;
       source: string;
       notes: string | null;
+      teamId: string | null;
     }> = [];
 
     const seenPhonesInBatch = new Set<string>();
@@ -271,6 +282,7 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
         company,
         source: 'GOOGLE_SHEETS',
         notes: notes ? `[Google Sheets] ${notes}` : '[Imported from Google Sheets]',
+        teamId: tlTeamId || null,
       });
     }
 

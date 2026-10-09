@@ -4,6 +4,8 @@ import Papa from 'papaparse';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
+import { canManageLeads } from '@/lib/auth/rbac';
+import { Role } from '@prisma/client';
 import { normalizePhoneNumber, isValidPhoneNumber, zodPhoneNumberSchema } from '@/lib/lead/phone';
 import { RawImportRow, parseGoogleSheetUrl } from '@/lib/lead/import-parser';
 import { revalidatePath } from 'next/cache';
@@ -213,7 +215,15 @@ export async function executeImportAction(input: {
   assignedEmployeeId?: string;
 }): Promise<ActionResponse<{ insertedCount: number; assignedEmployeeName?: string }>> {
   try {
-    await assertAdminAccess();
+    const admin = await assertAdminAccess();
+    if (!canManageLeads(admin.role)) {
+      return { success: false, error: 'Unauthorized: Only CEO and Team Leads can import leads.' };
+    }
+
+    const tlTeamId = admin.role === Role.TEAM_LEAD ? (admin.ledTeamId || admin.teamId || null) : null;
+    if (admin.role === Role.TEAM_LEAD && !tlTeamId) {
+      return { success: false, error: 'Unauthorized: Team Lead is not assigned to any squad.' };
+    }
 
     const { leads, assignedEmployeeId } = input;
 
@@ -223,13 +233,14 @@ export async function executeImportAction(input: {
 
     let targetEmployeeId: string | null = null;
     let targetEmployeeName: string | undefined = undefined;
+    let targetEmployeeTeamId: string | null = null;
     let assignedAt: Date | null = null;
     let initialStatus: 'NEW' | 'ASSIGNED' = 'NEW';
 
     if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
       const employee = await prisma.employee.findUnique({
         where: { id: assignedEmployeeId },
-        select: { id: true, name: true, employeeCode: true, isActive: true },
+        select: { id: true, name: true, employeeCode: true, isActive: true, teamId: true },
       });
 
       if (!employee) {
@@ -238,9 +249,13 @@ export async function executeImportAction(input: {
       if (!employee.isActive) {
         return { success: false, error: 'Cannot assign imported leads to a deactivated employee.' };
       }
+      if (admin.role === Role.TEAM_LEAD && employee.teamId !== tlTeamId) {
+        return { success: false, error: 'Unauthorized: Cannot assign leads to an employee outside your squad.' };
+      }
 
       targetEmployeeId = employee.id;
       targetEmployeeName = `${employee.name} (${employee.employeeCode})`;
+      targetEmployeeTeamId = employee.teamId;
       assignedAt = new Date();
       initialStatus = 'ASSIGNED';
     }
@@ -269,6 +284,7 @@ export async function executeImportAction(input: {
       source: lead.source || 'File Import',
       status: initialStatus,
       notes: lead.notes || null,
+      teamId: tlTeamId || targetEmployeeTeamId || null,
       assignedEmployeeId: targetEmployeeId,
       assignedAt,
     }));

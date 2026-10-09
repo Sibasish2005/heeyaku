@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
+import { canExportLeads } from '@/lib/auth/rbac';
 import { formatLeadsForExport } from '@/lib/lead/export';
 import * as XLSX from 'xlsx';
-import { LeadStatus } from '@prisma/client';
+import { LeadStatus, Role } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    await assertAdminAccess();
+    const admin = await assertAdminAccess();
+
+    if (!canExportLeads(admin.role)) {
+      return NextResponse.json(
+        { error: 'Access denied. HR administrators cannot export sales leads.' },
+        { status: 403 }
+      );
+    }
 
     const { searchParams } = new URL(request.url);
     const format = (searchParams.get('format') || 'xlsx').toLowerCase();
@@ -20,6 +28,12 @@ export async function GET(request: NextRequest) {
 
     // Build database filters
     const where: Record<string, unknown> = {};
+
+    // 🔒 Enforce Squad Data Isolation for Team Leads
+    if (admin.role === Role.TEAM_LEAD) {
+      const tlTeamId = admin.ledTeamId || admin.teamId;
+      where.teamId = tlTeamId || 'NONE';
+    }
 
     if (status && status !== 'ALL' && Object.values(LeadStatus).includes(status as LeadStatus)) {
       where.status = status as LeadStatus;

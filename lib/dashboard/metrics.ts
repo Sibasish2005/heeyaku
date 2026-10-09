@@ -100,7 +100,7 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
           phoneNumber: true,
           team: true,
           _count: {
-            select: { leads: true },
+            select: { leads: teamId ? { where: { teamId } } : true },
           },
         },
         orderBy: { name: 'asc' },
@@ -108,6 +108,7 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
       prisma.lead.groupBy({
         by: ['assignedEmployeeId'],
         where: {
+          ...leadTeamFilter,
           assignedAt: { gte: startOfToday },
           assignedEmployeeId: { not: null },
         },
@@ -116,6 +117,7 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
       prisma.lead.groupBy({
         by: ['assignedEmployeeId'],
         where: {
+          ...leadTeamFilter,
           assignedAt: { gte: startOfMonth },
           assignedEmployeeId: { not: null },
         },
@@ -124,6 +126,7 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
       prisma.lead.groupBy({
         by: ['assignedEmployeeId'],
         where: {
+          ...leadTeamFilter,
           status: 'CONVERTED',
           updatedAt: { gte: startOfToday },
           assignedEmployeeId: { not: null },
@@ -133,6 +136,7 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
       prisma.lead.groupBy({
         by: ['assignedEmployeeId'],
         where: {
+          ...leadTeamFilter,
           status: 'CONVERTED',
           updatedAt: { gte: startOfMonth },
           assignedEmployeeId: { not: null },
@@ -142,6 +146,7 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
       prisma.lead.groupBy({
         by: ['assignedEmployeeId'],
         where: {
+          ...leadTeamFilter,
           status: 'CONVERTED',
           assignedEmployeeId: { not: null },
         },
@@ -150,6 +155,7 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
       prisma.lead.groupBy({
         by: ['assignedEmployeeId'],
         where: {
+          ...leadTeamFilter,
           status: { in: ['CONTACTED', 'INTERESTED', 'FOLLOW_UP', 'CALL_BACK', 'CONVERTED'] },
           updatedAt: { gte: startOfToday },
           assignedEmployeeId: { not: null },
@@ -159,6 +165,7 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
       prisma.lead.groupBy({
         by: ['assignedEmployeeId'],
         where: {
+          ...leadTeamFilter,
           status: { in: ['CONTACTED', 'INTERESTED', 'FOLLOW_UP', 'CALL_BACK', 'CONVERTED'] },
           updatedAt: { gte: startOfMonth },
           assignedEmployeeId: { not: null },

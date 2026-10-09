@@ -2,6 +2,8 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
+import { canManageLeads } from '@/lib/auth/rbac';
+import { Role } from '@prisma/client';
 import EmployeeDetailView from '@/components/admin/employees/EmployeeDetailView';
 
 interface EmployeeDetailPageProps {
@@ -29,7 +31,7 @@ export async function generateMetadata({ params }: EmployeeDetailPageProps) {
 }
 
 export default async function EmployeeDetailPage({ params }: EmployeeDetailPageProps) {
-  await assertAdminAccess();
+  const admin = await assertAdminAccess();
   const { employeeId } = await params;
 
   const employee = await prisma.employee.findUnique({
@@ -48,6 +50,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
           company: true,
           status: true,
           source: true,
+          notes: true,
           assignedAt: true,
           createdAt: true,
           updatedAt: true,
@@ -104,6 +107,16 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
   if (!employee) {
     notFound();
   }
+
+  // 🔒 Squad Data Isolation: Team Leads cannot view employees outside their own squad
+  if (admin.role === Role.TEAM_LEAD) {
+    const tlTeamId = admin.ledTeamId || admin.teamId;
+    if (!tlTeamId || employee.teamId !== tlTeamId) {
+      notFound();
+    }
+  }
+
+  const isHr = !canManageLeads(admin.role);
 
   // Count leads by status
   const leadStatusCounts: Record<string, number> = {};
@@ -184,10 +197,19 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
 
     return {
       ...l,
+      name: isHr ? `Confidential Lead (${l.leadCode})` : l.name,
+      phoneNumber: isHr ? '***-***-****' : l.phoneNumber,
+      email: isHr ? null : l.email,
+      company: isHr ? 'Redacted' : l.company,
+      notes: isHr ? null : l.notes,
       assignedAt: l.assignedAt ? l.assignedAt.toISOString() : null,
       createdAt: l.createdAt.toISOString(),
       updatedAt: l.updatedAt.toISOString(),
-      callLogs: allCalls,
+      callLogs: allCalls.map((ac) => ({
+        ...ac,
+        phoneNumber: isHr ? '***-***-****' : ac.phoneNumber,
+        notes: isHr ? null : ac.notes,
+      })),
       totalCallDurationSeconds,
       callCount: allCalls.length,
     };
@@ -195,6 +217,15 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
 
   const formattedCallLogs = employee.callLogs.map((c) => ({
     ...c,
+    phoneNumber: isHr ? '***-***-****' : c.phoneNumber,
+    contactName: isHr ? (c.lead ? `Lead ${c.lead.leadCode}` : 'Confidential Contact') : c.contactName,
+    notes: isHr ? null : c.notes,
+    lead: c.lead
+      ? {
+          ...c.lead,
+          name: isHr ? `Lead ${c.lead.leadCode}` : c.lead.name,
+        }
+      : null,
     startedAt: c.startedAt.toISOString(),
     endedAt: c.endedAt ? c.endedAt.toISOString() : null,
     createdAt: c.createdAt.toISOString(),

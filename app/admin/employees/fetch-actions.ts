@@ -35,7 +35,7 @@ export async function fetchEmployeesChunkAction(params: {
     const user = await assertAuthenticatedUser();
     const { skip = 0, take = 10, searchQuery = '', statusFilter = 'ALL', teamFilter = 'ALL' } = params;
 
-    const userScopeKey = user.role === Role.TEAM_LEAD ? `tl-${user.teamId}` : 'all';
+    const userScopeKey = user.role === Role.TEAM_LEAD ? `tl-${user.ledTeamId || user.teamId || 'none'}` : 'all';
     const cacheKey = `${userScopeKey}-${skip}-${take}-${searchQuery.trim().toLowerCase()}-${statusFilter}-${teamFilter}`;
     const cached = chunkCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
@@ -50,12 +50,10 @@ export async function fetchEmployeesChunkAction(params: {
     // Build requirement-based Prisma filter
     const where: Record<string, unknown> = {};
 
-    // 🔒 Team Leads only see BDAs in their own squad!
+    // 🔒 Team Leads only see BDAs in their own squad (fail-closed)
     if (user.role === Role.TEAM_LEAD) {
       const tlTeamId = user.ledTeamId || user.teamId;
-      if (tlTeamId) {
-        where.teamId = tlTeamId;
-      }
+      where.teamId = tlTeamId || 'UNASSIGNED_SQUAD';
     }
 
     if (searchQuery.trim()) {

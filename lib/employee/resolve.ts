@@ -20,6 +20,23 @@ const employeeIdentityCache = new Map<string, CachedResolvedEmployee>();
 const RESOLVE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
+ * Invalidates the employee identity cache when an employee account is modified or deactivated.
+ */
+export function clearEmployeeIdentityCache(identifier?: string) {
+  if (identifier) {
+    employeeIdentityCache.delete(identifier);
+    // Also clear keys that might match employeeCode or ID
+    for (const [key, val] of employeeIdentityCache.entries()) {
+      if (val.resolved.allIds.includes(identifier) || val.resolved.employeeCode === identifier || val.resolved.email === identifier) {
+        employeeIdentityCache.delete(key);
+      }
+    }
+  } else {
+    employeeIdentityCache.clear();
+  }
+}
+
+/**
  * Resiliently resolves an employee and all associated IDs (including matching
  * records across database reseeds or employeeCode/email aliases).
  * In-memory cached with 5-minute TTL to eliminate repetitive DB lookups on high-frequency mobile requests.

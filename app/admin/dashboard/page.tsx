@@ -22,7 +22,7 @@ export default async function AdminDashboard() {
   }
 
   // If user is Team Lead, pass their squad's teamId
-  const teamId = user.role === Role.TEAM_LEAD ? (user.ledTeamId || user.teamId || null) : null;
+  const teamId = user.role === Role.TEAM_LEAD ? (user.ledTeamId || user.teamId || 'UNASSIGNED_SQUAD') : null;
 
   const {
     totalLeadsToday,

@@ -4,7 +4,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
 import { generateNextLeadCode } from '@/lib/lead/code';
-import { LeadStatus } from '@prisma/client';
+import { canManageLeads } from '@/lib/auth/rbac';
+import { LeadStatus, Role } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
 import { zodPhoneNumberSchema } from '@/lib/lead/phone';
@@ -59,7 +60,15 @@ export type ActionResponse<T = unknown> = {
  */
 export async function createLeadAction(input: unknown): Promise<ActionResponse<{ id: string; leadCode: string }>> {
   try {
-    await assertAdminAccess();
+    const admin = await assertAdminAccess();
+    if (!canManageLeads(admin.role)) {
+      return { success: false, error: 'Unauthorized: Only CEO and Team Leads can create leads.' };
+    }
+
+    const tlTeamId = admin.role === Role.TEAM_LEAD ? (admin.ledTeamId || admin.teamId || null) : null;
+    if (admin.role === Role.TEAM_LEAD && !tlTeamId) {
+      return { success: false, error: 'Unauthorized: Team Lead is not assigned to any squad.' };
+    }
 
     const validated = CreateLeadSchema.safeParse(input);
     if (!validated.success) {
@@ -73,12 +82,13 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
     let initialStatus = validated.data.status;
 
     let targetEmployeeId: string | null = null;
+    let targetEmployeeTeamId: string | null = null;
     let assignedAt: Date | null = null;
 
     if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
       const employee = await prisma.employee.findUnique({
         where: { id: assignedEmployeeId },
-        select: { id: true, isActive: true },
+        select: { id: true, isActive: true, teamId: true },
       });
 
       if (!employee) {
@@ -87,8 +97,12 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
       if (!employee.isActive) {
         return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
       }
+      if (admin.role === Role.TEAM_LEAD && employee.teamId !== tlTeamId) {
+        return { success: false, error: 'Unauthorized: Cannot assign leads to employees outside your squad.' };
+      }
 
       targetEmployeeId = employee.id;
+      targetEmployeeTeamId = employee.teamId;
       assignedAt = new Date();
       if (initialStatus === 'NEW') {
         initialStatus = 'ASSIGNED';
@@ -107,6 +121,7 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
         source: source?.trim() || 'MANUAL',
         status: initialStatus,
         notes: notes?.trim() || null,
+        teamId: tlTeamId || targetEmployeeTeamId || null,
         assignedEmployeeId: targetEmployeeId,
         assignedAt,
       },
@@ -141,7 +156,15 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
  */
 export async function updateLeadAction(input: unknown): Promise<ActionResponse> {
   try {
-    await assertAdminAccess();
+    const admin = await assertAdminAccess();
+    if (!canManageLeads(admin.role)) {
+      return { success: false, error: 'Unauthorized: Only CEO and Team Leads can update leads.' };
+    }
+
+    const tlTeamId = admin.role === Role.TEAM_LEAD ? (admin.ledTeamId || admin.teamId || null) : null;
+    if (admin.role === Role.TEAM_LEAD && !tlTeamId) {
+      return { success: false, error: 'Unauthorized: Team Lead is not assigned to any squad.' };
+    }
 
     const validated = UpdateLeadSchema.safeParse(input);
     if (!validated.success) {
@@ -155,21 +178,26 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
 
     const existing = await prisma.lead.findUnique({
       where: { id },
-      select: { id: true, assignedEmployeeId: true, status: true },
+      select: { id: true, assignedEmployeeId: true, status: true, teamId: true },
     });
 
     if (!existing) {
       return { success: false, error: 'Lead not found.' };
     }
 
+    if (admin.role === Role.TEAM_LEAD && existing.teamId !== tlTeamId) {
+      return { success: false, error: 'Unauthorized: You can only modify leads assigned to your squad.' };
+    }
+
     let targetEmployeeId: string | null = null;
+    let targetEmployeeTeamId: string | null = existing.teamId;
     let assignedAt: Date | undefined = undefined;
     let newStatus: LeadStatus = status;
 
     if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
       const employee = await prisma.employee.findUnique({
         where: { id: assignedEmployeeId },
-        select: { id: true, isActive: true },
+        select: { id: true, isActive: true, teamId: true },
       });
 
       if (!employee) {
@@ -178,8 +206,14 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
       if (!employee.isActive) {
         return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
       }
+      if (admin.role === Role.TEAM_LEAD && employee.teamId !== tlTeamId) {
+        return { success: false, error: 'Unauthorized: Cannot assign leads to employees outside your squad.' };
+      }
 
       targetEmployeeId = employee.id;
+      if (employee.teamId) {
+        targetEmployeeTeamId = employee.teamId;
+      }
       // If reassigned or newly assigned, update assignedAt
       if (existing.assignedEmployeeId !== targetEmployeeId) {
         assignedAt = new Date();
@@ -206,6 +240,7 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
         source: source?.trim() || 'MANUAL',
         status: newStatus,
         notes: notes?.trim() || null,
+        teamId: tlTeamId || targetEmployeeTeamId || undefined,
         assignedEmployeeId: targetEmployeeId,
         ...(assignedAt !== undefined ? { assignedAt } : {}),
       },
@@ -236,15 +271,23 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
  */
 export async function deleteLeadAction(id: string): Promise<ActionResponse> {
   try {
-    await assertAdminAccess();
+    const admin = await assertAdminAccess();
+    if (!canManageLeads(admin.role)) {
+      return { success: false, error: 'Unauthorized: Only CEO and Team Leads can delete leads.' };
+    }
 
+    const tlTeamId = admin.role === Role.TEAM_LEAD ? (admin.ledTeamId || admin.teamId || null) : null;
     const lead = await prisma.lead.findUnique({
       where: { id },
-      select: { id: true, assignedEmployeeId: true },
+      select: { id: true, assignedEmployeeId: true, teamId: true },
     });
 
     if (!lead) {
       return { success: false, error: 'Lead not found.' };
+    }
+
+    if (admin.role === Role.TEAM_LEAD && (!tlTeamId || lead.teamId !== tlTeamId)) {
+      return { success: false, error: 'Unauthorized: You can only delete leads belonging to your squad.' };
     }
 
     await prisma.lead.delete({
