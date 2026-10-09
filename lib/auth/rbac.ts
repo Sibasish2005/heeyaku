@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { auth, currentUser } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
 
@@ -13,6 +14,8 @@ export interface AuthenticatedUser {
   teamName?: string | null;
   ledTeamId?: string | null;
   ledTeamName?: string | null;
+  isRealCeo?: boolean;
+  simulatedRole?: Role | null;
 }
 
 export class AuthorizationError extends Error {
@@ -38,14 +41,18 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
     const { userId } = await auth();
     if (!userId) return null;
 
-    const cached = sessionCache.get(userId);
+    const cookieStore = await cookies();
+    const simulatedRoleValue = cookieStore.get('heeyaku_simulated_role')?.value;
+    const cacheKey = `${userId}:${simulatedRoleValue || 'DEFAULT'}`;
+
+    const cached = sessionCache.get(cacheKey);
     if (cached && Date.now() < cached.expiresAt) {
       return cached.user;
     }
 
     const clerkUser = await currentUser();
     if (!clerkUser) {
-      sessionCache.set(userId, { user: null, expiresAt: Date.now() + 30 * 1000 });
+      sessionCache.set(cacheKey, { user: null, expiresAt: Date.now() + 30 * 1000 });
       return null;
     }
 
@@ -54,7 +61,7 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       clerkUser.emailAddresses[0]?.emailAddress;
 
     if (!primaryEmail) {
-      sessionCache.set(userId, { user: null, expiresAt: Date.now() + 30 * 1000 });
+      sessionCache.set(cacheKey, { user: null, expiresAt: Date.now() + 30 * 1000 });
       return null;
     }
 
@@ -76,14 +83,33 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
 
     // 1. Is user configured as CEO via ADMIN_EMAIL?
     if (allowedCeoEmails.includes(normalizedEmail)) {
+      let effectiveRole: Role = Role.CEO;
+      let effectiveTeamId: string | null = null;
+      let effectiveTeamName: string | null = null;
+
+      if (simulatedRoleValue && ['HR', 'TEAM_LEAD', 'BDA'].includes(simulatedRoleValue)) {
+        effectiveRole = simulatedRoleValue as Role;
+        if (effectiveRole === Role.TEAM_LEAD) {
+          const firstTeam = await prisma.team.findFirst({ orderBy: { name: 'asc' } });
+          effectiveTeamId = firstTeam?.id || null;
+          effectiveTeamName = firstTeam?.name || null;
+        }
+      }
+
       const authUser: AuthenticatedUser = {
         userId,
         email: primaryEmail,
         name,
-        role: Role.CEO,
+        role: effectiveRole,
+        isRealCeo: true,
+        simulatedRole: effectiveRole !== Role.CEO ? effectiveRole : null,
+        teamId: effectiveTeamId,
+        teamName: effectiveTeamName,
+        ledTeamId: effectiveTeamId,
+        ledTeamName: effectiveTeamName,
       };
 
-      sessionCache.set(userId, {
+      sessionCache.set(cacheKey, {
         user: authUser,
         expiresAt: Date.now() + SESSION_TTL_MS,
       });

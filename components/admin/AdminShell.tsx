@@ -9,12 +9,15 @@ import { UserButton } from '@clerk/nextjs';
 import NavigationProgressBar from '@/components/NavigationProgressBar';
 
 import { Role } from '@prisma/client';
+import RoleSwitcherBar from './RoleSwitcherBar';
 
 interface AdminShellProps {
   adminEmail: string;
   adminName: string;
   role?: Role;
   teamName?: string | null;
+  isRealCeo?: boolean;
+  simulatedRole?: Role | null;
   children: React.ReactNode;
 }
 
@@ -23,6 +26,8 @@ export default function AdminShell({
   adminName,
   role = Role.CEO,
   teamName = null,
+  isRealCeo = false,
+  simulatedRole = null,
   children,
 }: AdminShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -44,6 +49,15 @@ export default function AdminShell({
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+        {/* Executive Role Simulator for CEO Testing */}
+        {isRealCeo && (
+          <RoleSwitcherBar
+            currentRole={role}
+            isRealCeo={isRealCeo}
+            simulatedRole={simulatedRole}
+          />
+        )}
+
         {/* Mobile Top Navbar with Hamburger */}
         <header className="sticky top-0 z-30 lg:hidden bg-background/80 backdrop-blur-xl border-b border-border/80 px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
