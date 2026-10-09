@@ -167,7 +167,10 @@ export default function RootLayout({
       </head>
       <body className="w-full flex flex-col bg-background text-foreground selection:bg-[#2563EB] selection:text-white antialiased transition-colors duration-200">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <ClerkProvider appearance={{ theme: shadcn }}>
+          <ClerkProvider
+            appearance={{ theme: shadcn }}
+            proxyUrl={process.env.NEXT_PUBLIC_CLERK_PROXY_URL || '/__clerk'}
+          >
             {children}
             <Toaster richColors closeButton position="top-right" />
           </ClerkProvider>
