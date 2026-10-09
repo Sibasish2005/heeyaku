@@ -1,6 +1,8 @@
 import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
+import { canManageEmployees } from '@/lib/auth/rbac';
+import { Role, Prisma } from '@prisma/client';
 import EmployeeTable, { EmployeeListItem } from '@/components/admin/employees/EmployeeTable';
 
 export const metadata = {
@@ -11,7 +13,10 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function EmployeesPage() {
-  await assertAdminAccess();
+  const admin = await assertAdminAccess();
+
+  const isTeamLead = admin.role === Role.TEAM_LEAD;
+  const targetTeamId = isTeamLead ? (admin.ledTeamId || admin.teamId || null) : null;
 
   let totalEmployees = 0;
   let activeEmployees = 0;
@@ -23,6 +28,16 @@ export default async function EmployeesPage() {
   let formattedEmployees: EmployeeListItem[] = [];
 
   try {
+    const employeeWhere: Prisma.EmployeeWhereInput = targetTeamId ? { teamId: targetTeamId } : {};
+    const leadWhere: Prisma.LeadWhereInput = {
+      assignedEmployeeId: { not: null },
+      ...(targetTeamId ? { teamId: targetTeamId } : {}),
+    };
+    const callWhere: Prisma.CallLogWhereInput = {
+      leadId: { not: null },
+      ...(targetTeamId ? { employee: { teamId: targetTeamId } } : {}),
+    };
+
     const [
       total,
       active,
@@ -33,22 +48,24 @@ export default async function EmployeesPage() {
       teamsRaw,
       initialEmployeesList,
     ] = await Promise.all([
-      prisma.employee.count(),
-      prisma.employee.count({ where: { isActive: true } }),
-      prisma.lead.count({ where: { assignedEmployeeId: { not: null } } }),
-      prisma.callLog.count({ where: { leadId: { not: null } } }),
-      prisma.callLog.count({ where: { connected: true, leadId: { not: null } } }),
+      prisma.employee.count({ where: employeeWhere }),
+      prisma.employee.count({ where: { ...employeeWhere, isActive: true } }),
+      prisma.lead.count({ where: leadWhere }),
+      prisma.callLog.count({ where: callWhere }),
+      prisma.callLog.count({ where: { ...callWhere, connected: true } }),
       prisma.callLog.aggregate({
-        where: { leadId: { not: null } },
+        where: callWhere,
         _sum: {
           durationSeconds: true,
         },
       }),
       prisma.employee.findMany({
+        where: employeeWhere,
         select: { team: true },
         distinct: ['team'],
       }),
       prisma.employee.findMany({
+        where: employeeWhere,
         take: 10,
         orderBy: {
           createdAt: 'desc',
@@ -59,6 +76,8 @@ export default async function EmployeesPage() {
           name: true,
           email: true,
           phoneNumber: true,
+          role: true,
+          teamId: true,
           team: true,
           notes: true,
           isActive: true,
@@ -120,6 +139,8 @@ export default async function EmployeesPage() {
         name: e.name,
         email: e.email,
         phoneNumber: e.phoneNumber,
+        role: e.role,
+        teamId: e.teamId,
         team: e.team,
         notes: e.notes,
         isActive: e.isActive,
@@ -147,16 +168,18 @@ export default async function EmployeesPage() {
     return `${seconds}s`;
   };
 
+  const userCanManage = canManageEmployees(admin.role);
+
   return (
     <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-border/80">
         <div>
           <div className="text-xs font-bold tracking-widest text-[#2563EB] dark:text-blue-400 uppercase mb-1">
-            Staff & Tele-caller Management
+            {isTeamLead ? 'Squad Telemetry & Performance' : 'Staff & Tele-caller Management'}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-            Employee Directory
+            {isTeamLead ? (admin.ledTeamName || admin.teamName || 'My Squad Roster') : 'Employee Directory'}
           </h1>
         </div>
       </div>
@@ -164,7 +187,9 @@ export default async function EmployeesPage() {
       {/* Unified Metric Ribbon */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 rounded-2xl border border-border bg-card divide-y sm:divide-y-0 sm:divide-x divide-border shadow-2xs overflow-hidden">
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors duration-150">
-          <div className="text-xs font-semibold text-muted-foreground">Total Staff</div>
+          <div className="text-xs font-semibold text-muted-foreground">
+            {isTeamLead ? 'Squad Members' : 'Total Staff'}
+          </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight">{totalEmployees}</div>
         </div>
 
@@ -203,7 +228,10 @@ export default async function EmployeesPage() {
         initialEmployees={formattedEmployees}
         totalEmployeesCount={totalEmployees}
         initialTeams={initialTeams}
+        canManageEmployees={userCanManage}
+        currentUserRole={admin.role}
       />
     </main>
   );
 }
+

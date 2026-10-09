@@ -2,7 +2,8 @@
 
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { assertAdminAccess } from '@/lib/auth/admin';
+import { assertAuthenticatedUser, canAssignLeads } from '@/lib/auth/rbac';
+import { Role } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 
 const AssignLeadsSchema = z.object({
@@ -39,7 +40,10 @@ export async function assignLeadsAction(input: unknown): Promise<ActionResponse<
   employeeCode: string;
 }>> {
   try {
-    await assertAdminAccess();
+    const user = await assertAuthenticatedUser();
+    if (!canAssignLeads(user.role)) {
+      return { success: false, error: 'Unauthorized: HR cannot assign sales leads. This requires CEO or Team Lead access.' };
+    }
 
     const validated = AssignLeadsSchema.safeParse(input);
     if (!validated.success) {
@@ -54,7 +58,7 @@ export async function assignLeadsAction(input: unknown): Promise<ActionResponse<
     // Verify employee exists and is active
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
-      select: { id: true, name: true, employeeCode: true, isActive: true },
+      select: { id: true, name: true, employeeCode: true, isActive: true, teamId: true },
     });
 
     if (!employee) {
@@ -66,6 +70,26 @@ export async function assignLeadsAction(input: unknown): Promise<ActionResponse<
         success: false,
         error: `Cannot assign leads to ${employee.name} (${employee.employeeCode}) because their account is deactivated.`,
       };
+    }
+
+    // Squad isolation for Team Leads
+    if (user.role === Role.TEAM_LEAD) {
+      const tlTeamId = user.ledTeamId || user.teamId;
+      if (!tlTeamId || employee.teamId !== tlTeamId) {
+        return { success: false, error: 'Unauthorized: You can only assign leads to BDA members of your own squad.' };
+      }
+
+      // Check leads belong to TL squad
+      const foreignLeadsCount = await prisma.lead.count({
+        where: {
+          id: { in: leadIds },
+          teamId: { not: tlTeamId },
+        },
+      });
+
+      if (foreignLeadsCount > 0) {
+        return { success: false, error: 'Unauthorized: One or more selected leads belong to a different squad.' };
+      }
     }
 
     const assignedAt = new Date();
@@ -128,7 +152,10 @@ export async function assignLeadsAction(input: unknown): Promise<ActionResponse<
  */
 export async function unassignLeadsAction(input: unknown): Promise<ActionResponse<{ count: number }>> {
   try {
-    await assertAdminAccess();
+    const user = await assertAuthenticatedUser();
+    if (!canAssignLeads(user.role)) {
+      return { success: false, error: 'Unauthorized: HR cannot unassign sales leads.' };
+    }
 
     const validated = UnassignLeadsSchema.safeParse(input);
     if (!validated.success) {
@@ -139,6 +166,17 @@ export async function unassignLeadsAction(input: unknown): Promise<ActionRespons
     }
 
     const { leadIds } = validated.data;
+
+    // If Team Lead, check all leadIds belong to this TL squad
+    if (user.role === Role.TEAM_LEAD) {
+      const tlTeamId = user.ledTeamId || user.teamId;
+      const foreignCount = await prisma.lead.count({
+        where: { id: { in: leadIds }, teamId: { not: tlTeamId } },
+      });
+      if (foreignCount > 0) {
+        return { success: false, error: 'Unauthorized: Cannot unassign leads outside your squad.' };
+      }
+    }
 
     // Execute atomic transaction
     await prisma.$transaction(async (tx) => {
@@ -192,7 +230,10 @@ export async function unassignLeadsAction(input: unknown): Promise<ActionRespons
  */
 export async function autoAssignLeadsAction(input: unknown): Promise<ActionResponse<{ assignedCount: number; distribution: Record<string, number> }>> {
   try {
-    await assertAdminAccess();
+    const user = await assertAuthenticatedUser();
+    if (!canAssignLeads(user.role)) {
+      return { success: false, error: 'Unauthorized: HR cannot auto-assign sales leads.' };
+    }
 
     const validated = AutoAssignLeadsSchema.safeParse(input);
     if (!validated.success) {
@@ -208,20 +249,35 @@ export async function autoAssignLeadsAction(input: unknown): Promise<ActionRespo
       return { success: false, error: 'Please specify the number of leads per employee or choose to assign all.' };
     }
 
-    // Verify all employees exist and are active
+    const isTeamLead = user.role === Role.TEAM_LEAD;
+    const tlTeamId = isTeamLead ? (user.ledTeamId || user.teamId) : null;
+
+    // Verify all employees exist and are active (and belong to squad if TL)
     const employees = await prisma.employee.findMany({
-      where: { id: { in: employeeIds }, isActive: true },
+      where: {
+        id: { in: employeeIds },
+        isActive: true,
+        ...(tlTeamId ? { teamId: tlTeamId } : {}),
+      },
       select: { id: true, name: true, employeeCode: true },
     });
 
     if (employees.length !== employeeIds.length) {
-      return { success: false, error: 'One or more selected employees are invalid or inactive.' };
+      return {
+        success: false,
+        error: isTeamLead
+          ? 'One or more selected employees do not belong to your squad or are inactive.'
+          : 'One or more selected employees are invalid or inactive.',
+      };
     }
 
-    // Fetch unassigned leads
+    // Fetch unassigned leads (scoped to squad if TL)
     const totalRequestedLeads = assignAll ? undefined : employeeIds.length * (leadsPerEmployee || 0);
     const unassignedLeads = await prisma.lead.findMany({
-      where: { assignedEmployeeId: null },
+      where: {
+        assignedEmployeeId: null,
+        ...(tlTeamId ? { teamId: tlTeamId } : {}),
+      },
       orderBy: { createdAt: 'asc' }, // Prioritize oldest unassigned leads
       take: totalRequestedLeads,
       select: { id: true },

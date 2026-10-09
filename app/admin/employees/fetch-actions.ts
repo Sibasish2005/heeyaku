@@ -1,7 +1,8 @@
 'use server';
 
 import { prisma } from '@/lib/prisma';
-import { assertAdminAccess } from '@/lib/auth/admin';
+import { assertAuthenticatedUser } from '@/lib/auth/rbac';
+import { Role } from '@prisma/client';
 import { EmployeeListItem } from '@/components/admin/employees/EmployeeTable';
 
 interface CachedChunk {
@@ -31,10 +32,11 @@ export async function fetchEmployeesChunkAction(params: {
   error?: string;
 }> {
   try {
-    await assertAdminAccess();
+    const user = await assertAuthenticatedUser();
     const { skip = 0, take = 10, searchQuery = '', statusFilter = 'ALL', teamFilter = 'ALL' } = params;
 
-    const cacheKey = `${skip}-${take}-${searchQuery.trim().toLowerCase()}-${statusFilter}-${teamFilter}`;
+    const userScopeKey = user.role === Role.TEAM_LEAD ? `tl-${user.teamId}` : 'all';
+    const cacheKey = `${userScopeKey}-${skip}-${take}-${searchQuery.trim().toLowerCase()}-${statusFilter}-${teamFilter}`;
     const cached = chunkCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       return {
@@ -47,6 +49,15 @@ export async function fetchEmployeesChunkAction(params: {
 
     // Build requirement-based Prisma filter
     const where: Record<string, unknown> = {};
+
+    // 🔒 Team Leads only see BDAs in their own squad!
+    if (user.role === Role.TEAM_LEAD) {
+      const tlTeamId = user.ledTeamId || user.teamId;
+      if (tlTeamId) {
+        where.teamId = tlTeamId;
+      }
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.trim();
       where.OR = [
@@ -76,7 +87,9 @@ export async function fetchEmployeesChunkAction(params: {
           name: true,
           email: true,
           phoneNumber: true,
+          role: true,
           team: true,
+          teamId: true,
           notes: true,
           isActive: true,
           createdAt: true,

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { UserCog, X, AlertCircle, Loader2 } from 'lucide-react';
 import { updateEmployeeAction } from '@/app/admin/employees/actions';
 import { zodPhoneNumberSchema } from '@/lib/lead/phone';
-import EditEmployeeFormFields from './dialogs/EditEmployeeFormFields';
+import EditEmployeeFormFields, { EditEmployeeFormData } from './dialogs/EditEmployeeFormFields';
 
 interface EditEmployeeDialogProps {
   isOpen: boolean;
@@ -14,6 +14,9 @@ interface EditEmployeeDialogProps {
     name: string;
     email: string;
     phoneNumber: string;
+    role?: 'BDA' | 'TEAM_LEAD' | 'HR' | string;
+    teamId?: string | null;
+    teamLeadId?: string | null;
     team: string | null;
     notes: string | null;
   } | null;
@@ -48,10 +51,12 @@ function EditEmployeeDialogContent({
   onClose: () => void;
   onUpdated?: () => void;
 }) {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<EditEmployeeFormData>({
     name: employee.name,
     email: employee.email,
     phoneNumber: employee.phoneNumber,
+    role: (employee.role as 'BDA' | 'TEAM_LEAD' | 'HR') || 'BDA',
+    teamLeadId: '',
     team: employee.team || 'Business Development Associates',
     notes: employee.notes || '',
   });

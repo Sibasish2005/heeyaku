@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyEmployeeToken } from '@/lib/auth/employee-token';
 import { resolveEmployeeIdentity } from '@/lib/employee/resolve';
 import { toLast10Digits } from '@/lib/lead/phone';
-import { CallType, LeadStatus } from '@prisma/client';
+import { CallType, LeadStatus, Prisma } from '@prisma/client';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
 
 const OUTCOME_TO_LEAD_STATUS: Record<string, LeadStatus> = {
@@ -75,8 +75,28 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Collect all numbers and last 10 digits
+    interface RawCallRecord {
+      id?: string;
+      phoneNumber?: string;
+      number?: string;
+      durationSeconds?: number | string;
+      duration?: number | string;
+      connected?: boolean;
+      outcomeId?: string;
+      outcomeLabel?: string;
+      notes?: string;
+      startedAt?: number | string;
+      date?: number | string;
+      endedAt?: number | string;
+      callType?: string;
+      leadId?: string;
+      contactName?: string;
+      name?: string;
+      [key: string]: unknown;
+    }
+
     interface ParsedCall {
-      raw: any;
+      raw: RawCallRecord;
       rawNumber: string;
       last10: string;
       duration: number;
@@ -281,7 +301,7 @@ export async function POST(req: NextRequest) {
     const syncedIds: string[] = [];
 
     // 5. Build transaction batch to execute all writes in a single round-trip
-    const dbOperations: any[] = [];
+    const dbOperations: Prisma.PrismaPromise<unknown>[] = [];
 
     for (const { item, matchedLead } of assignedCalls) {
       const targetLeadId = matchedLead ? matchedLead.id : null;
@@ -347,7 +367,7 @@ export async function POST(req: NextRequest) {
               employeeId,
               leadId: targetLeadId,
               phoneNumber: item.rawNumber,
-              contactName: item.raw.contactName || item.raw.name || null,
+              contactName: (typeof item.raw.contactName === 'string' ? item.raw.contactName : typeof item.raw.name === 'string' ? item.raw.name : null),
               callType: item.callType,
               durationSeconds: item.duration,
               connected: isConnected,

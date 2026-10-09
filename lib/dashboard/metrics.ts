@@ -38,24 +38,26 @@ interface CachedMetrics {
   expiresAt: number;
 }
 
-let cachedMetrics: CachedMetrics | null = null;
+let metricsCacheMap = new Map<string, CachedMetrics>();
 const DASHBOARD_CACHE_TTL_MS = 25 * 1000; // 25 seconds fast cache
 
 /**
  * Manually busts the dashboard cache when a mutation (create/update lead or employee) happens.
  */
 export function invalidateDashboardMetricsCache() {
-  cachedMetrics = null;
+  metricsCacheMap.clear();
 }
 
 /**
- * Fetches dashboard metrics with a 25-second server-side TTL cache to eliminate
- * redundant remote database roundtrips on rapid tab transitions.
+ * Fetches dashboard metrics with a 25-second server-side TTL cache.
+ * Scoped by teamId if provided (for Team Leads), or global for CEO.
  */
-export async function getDashboardMetrics(): Promise<DashboardMetricsResult> {
+export async function getDashboardMetrics(teamId?: string | null): Promise<DashboardMetricsResult> {
+  const cacheKey = teamId || '__global__';
   const now = Date.now();
-  if (cachedMetrics && now < cachedMetrics.expiresAt) {
-    return cachedMetrics.data;
+  const cached = metricsCacheMap.get(cacheKey);
+  if (cached && now < cached.expiresAt) {
+    return cached.data;
   }
 
   const startOfToday = new Date();
@@ -66,6 +68,9 @@ export async function getDashboardMetrics(): Promise<DashboardMetricsResult> {
   startOfMonth.setHours(0, 0, 0, 0);
 
   try {
+    const leadTeamFilter = teamId ? { teamId } : {};
+    const employeeTeamFilter = teamId ? { teamId } : {};
+
     const [
       todayStatusCounts,
       allEmployees,
@@ -80,12 +85,13 @@ export async function getDashboardMetrics(): Promise<DashboardMetricsResult> {
       prisma.lead.groupBy({
         by: ['status'],
         where: {
+          ...leadTeamFilter,
           updatedAt: { gte: startOfToday },
         },
         _count: { _all: true },
       }),
       prisma.employee.findMany({
-        where: { isActive: true },
+        where: { isActive: true, ...employeeTeamFilter },
         select: {
           id: true,
           employeeCode: true,
@@ -282,16 +288,17 @@ export async function getDashboardMetrics(): Promise<DashboardMetricsResult> {
       topPerformerThisMonth,
     };
 
-    cachedMetrics = {
+    metricsCacheMap.set(cacheKey, {
       data: result,
       expiresAt: now + DASHBOARD_CACHE_TTL_MS,
-    };
+    });
 
     return result;
   } catch (error) {
     console.error('Database connection error in getDashboardMetrics:', error);
-    if (cachedMetrics) {
-      return cachedMetrics.data;
+    const existing = metricsCacheMap.get(cacheKey);
+    if (existing) {
+      return existing.data;
     }
     return {
       totalLeadsToday: 0,

@@ -8,15 +8,21 @@ import ThemeToggler from '@/components/ThemeToggler';
 import { UserButton } from '@clerk/nextjs';
 import NavigationProgressBar from '@/components/NavigationProgressBar';
 
+import { Role } from '@prisma/client';
+
 interface AdminShellProps {
   adminEmail: string;
   adminName: string;
+  role?: Role;
+  teamName?: string | null;
   children: React.ReactNode;
 }
 
 export default function AdminShell({
   adminEmail,
   adminName,
+  role = Role.CEO,
+  teamName = null,
   children,
 }: AdminShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -30,6 +36,8 @@ export default function AdminShell({
       <AdminSidebar
         adminEmail={adminEmail}
         adminName={adminName}
+        role={role}
+        teamName={teamName}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
       />

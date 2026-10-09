@@ -7,6 +7,7 @@ import ShadcnDropdownSelect from '@/components/ui/shadcn-dropdown-select';
 interface EmployeeTableToolbarProps {
   searchQuery: string;
   statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE';
+  canManageEmployees?: boolean;
   onSearchChange: (val: string) => void;
   onStatusChange: (val: 'ALL' | 'ACTIVE' | 'INACTIVE') => void;
   onCreateOpen: () => void;
@@ -15,6 +16,7 @@ interface EmployeeTableToolbarProps {
 export default function EmployeeTableToolbar({
   searchQuery,
   statusFilter,
+  canManageEmployees = true,
   onSearchChange,
   onStatusChange,
   onCreateOpen,
@@ -46,14 +48,16 @@ export default function EmployeeTableToolbar({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onCreateOpen}
-        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-500 rounded-xl transition-colors shadow-2xs cursor-pointer"
-      >
-        <UserPlus className="w-3.5 h-3.5" />
-        <span>Add Employee</span>
-      </button>
+      {canManageEmployees && (
+        <button
+          type="button"
+          onClick={onCreateOpen}
+          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-500 rounded-xl transition-colors shadow-2xs cursor-pointer"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          <span>Add Employee</span>
+        </button>
+      )}
     </div>
   );
 }

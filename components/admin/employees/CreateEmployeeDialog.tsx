@@ -26,6 +26,8 @@ export default function CreateEmployeeDialog({
     name: '',
     email: '',
     phoneNumber: '',
+    role: 'BDA',
+    teamLeadId: '',
     team: 'Business Development Associates',
     notes: '',
   });
@@ -82,7 +84,15 @@ export default function CreateEmployeeDialog({
 
   const handleFinish = () => {
     setCreatedCredentials(null);
-    setFormData({ name: '', email: '', phoneNumber: '', team: 'Business Development Associates', notes: '' });
+    setFormData({
+      name: '',
+      email: '',
+      phoneNumber: '',
+      role: 'BDA',
+      teamLeadId: '',
+      team: 'Business Development Associates',
+      notes: '',
+    });
     onClose();
   };
 

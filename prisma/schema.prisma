@@ -8,6 +8,13 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum Role {
+  CEO
+  TEAM_LEAD
+  HR
+  BDA
+}
+
 enum LeadStatus {
   NEW
   ASSIGNED
@@ -24,13 +31,33 @@ enum LeadStatus {
   OTHER
 }
 
+model Team {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  colorTag    String?    @default("#2563EB")
+  teamLeadId  String?    @unique
+  teamLead    Employee?  @relation("TeamLeadRelation", fields: [teamLeadId], references: [id], onDelete: SetNull)
+  members     Employee[] @relation("TeamMembers")
+  leads       Lead[]     @relation("TeamLeads")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("teams")
+}
+
 model Employee {
   id           String    @id @default(cuid())
   employeeCode String    @unique
   name         String
   email        String    @unique
   phoneNumber  String
+  role         Role      @default(BDA)
+  clerkUserId  String?   @unique
   team         String?   @default("General")
+  teamId       String?
+  teamGroup    Team?     @relation("TeamMembers", fields: [teamId], references: [id], onDelete: SetNull)
+  ledTeam      Team?     @relation("TeamLeadRelation")
   notes        String?
   passwordHash String
   isActive     Boolean   @default(true)
@@ -42,6 +69,9 @@ model Employee {
 
   @@index([employeeCode])
   @@index([email])
+  @@index([role])
+  @@index([teamId])
+  @@index([clerkUserId])
   @@index([isActive])
   @@map("employees")
 }
@@ -57,6 +87,8 @@ model Lead {
   source             String      @default("MANUAL")
   status             LeadStatus  @default(NEW)
   notes              String?
+  teamId             String?
+  team               Team?       @relation("TeamLeads", fields: [teamId], references: [id], onDelete: SetNull)
   assignedEmployeeId String?
   assignedEmployee   Employee?   @relation(fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
   assignedAt         DateTime?
@@ -69,6 +101,8 @@ model Lead {
   @@index([phoneNumber])
   @@index([phoneDigits])
   @@index([status])
+  @@index([teamId])
+  @@index([teamId, status])
   @@index([assignedEmployeeId])
   @@index([createdAt])
   @@index([updatedAt])

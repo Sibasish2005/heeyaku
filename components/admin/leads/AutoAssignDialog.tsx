@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Users, AlertCircle, PlayCircle, Loader2 } from 'lucide-react';
 import { autoAssignLeadsAction } from '@/app/admin/leads/assignment-actions';
 import { ActiveEmployee } from './table/types';
-import { toast } from 'sonner';
 
 interface AutoAssignDialogProps {
   isOpen: boolean;
@@ -28,8 +27,10 @@ export default function AutoAssignDialog({
   const [distributionMethod, setDistributionMethod] = useState<'EVENLY' | 'SEQUENTIAL'>('EVENLY');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Reset state on open
-  useEffect(() => {
+  // Reset state on open via React prop transition tracking
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       setSelectedEmployeeIds([]);
       setAssignAll(false);
@@ -38,7 +39,7 @@ export default function AutoAssignDialog({
       setSearchQuery('');
       setError(null);
     }
-  }, [isOpen]);
+  }
 
   if (!isOpen) return null;
 

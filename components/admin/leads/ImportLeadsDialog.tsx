@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, UploadCloud, FileSpreadsheet } from 'lucide-react';
 import {
   parseImportFile,
@@ -74,11 +74,26 @@ export default function ImportLeadsDialog({
     setError(null);
   };
 
-  useEffect(() => {
+  // Reset state on open via React prop transition tracking
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const [prevEffectiveMode, setPrevEffectiveMode] = useState(effectiveMode);
+
+  if (isOpen !== prevIsOpen || effectiveMode !== prevEffectiveMode) {
+    setPrevIsOpen(isOpen);
+    setPrevEffectiveMode(effectiveMode);
     if (isOpen) {
-      handleReset();
+      setStep('DROPZONE');
+      setFile(null);
+      setSourceName('');
+      setHeaders([]);
+      setRawRows([]);
+      setMapping({ nameCol: '', phoneCol: '' });
+      setPreviewResult(null);
+      setAssignedEmployeeId('');
+      setImportSummary(null);
+      setError(null);
     }
-  }, [isOpen, effectiveMode]);
+  }
 
   if (!isOpen) return null;
 

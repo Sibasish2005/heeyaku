@@ -1,15 +1,18 @@
 'use client';
 
-import React from 'react';
-import { Mail, Phone, Building2, FileText } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Mail, Phone, Building2, FileText, Shield, Users } from 'lucide-react';
 import ShadcnDropdownSelect from '@/components/ui/shadcn-dropdown-select';
 import { FRONTEND_PHONE_PATTERN } from '@/lib/lead/phone';
+import { fetchActiveTeamLeadsAction } from '@/app/admin/employees/actions';
 
 export interface EmployeeFormData {
   name: string;
   email: string;
   phoneNumber: string;
-  team: string;
+  role?: 'BDA' | 'TEAM_LEAD' | 'HR';
+  teamLeadId?: string;
+  team?: string;
   notes: string;
 }
 
@@ -22,6 +25,62 @@ export default function CreateEmployeeFormFields({
   formData,
   onChange,
 }: CreateEmployeeFormFieldsProps) {
+  const [teamLeads, setTeamLeads] = useState<Array<{ id: string; name: string; employeeCode: string; teamName: string | null }>>([]);
+  const [loadingTLs, setLoadingTLs] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadTLs() {
+      setLoadingTLs(true);
+      try {
+        const res = await fetchActiveTeamLeadsAction();
+        if (mounted && res.success && res.data) {
+          setTeamLeads(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load team leads:', err);
+      } finally {
+        if (mounted) setLoadingTLs(false);
+      }
+    }
+    loadTLs();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const roleOptions = [
+    {
+      value: 'BDA',
+      label: 'Sales Associate (BDA) - Android Telephony App',
+      text: 'Sales Associate (BDA)',
+      icon: <Phone className="w-3.5 h-3.5 text-blue-500" />,
+    },
+    {
+      value: 'TEAM_LEAD',
+      label: 'Team Lead (TL) - Squad CRM & Lead Distribution',
+      text: 'Team Lead (TL)',
+      icon: <Users className="w-3.5 h-3.5 text-amber-500" />,
+    },
+    {
+      value: 'HR',
+      label: 'Human Resources (HR) - Staff Roster & Hiring',
+      text: 'Human Resources (HR)',
+      icon: <Shield className="w-3.5 h-3.5 text-emerald-500" />,
+    },
+  ];
+
+  const currentRole = formData.role || 'BDA';
+
+  const tlOptions = [
+    { value: '', label: 'None / General Squad Pool', text: 'General Squad Pool' },
+    ...teamLeads.map((tl) => ({
+      value: tl.id,
+      label: `${tl.name} (${tl.teamName || 'Squad'} · ${tl.employeeCode})`,
+      text: `${tl.name} (${tl.teamName || 'Squad'})`,
+    })),
+  ];
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="space-y-1 sm:col-span-2">
@@ -81,17 +140,36 @@ export default function CreateEmployeeFormFields({
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-bold text-foreground">Role</label>
-        <div className="relative">
-          <Building2 className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
-          <input
-            type="text"
-            readOnly
-            value="Business Development Associate"
-            className="w-full pl-8 pr-3 py-2 text-xs bg-muted/30 border border-border text-foreground font-medium rounded-xl outline-hidden cursor-not-allowed select-none"
+        <label className="text-xs font-bold text-foreground">Assigned Role *</label>
+        <ShadcnDropdownSelect
+          value={currentRole}
+          options={roleOptions}
+          onValueChange={(val) => {
+            const newRole = val as 'BDA' | 'TEAM_LEAD' | 'HR';
+            onChange({
+              ...formData,
+              role: newRole,
+              team: newRole === 'HR' ? 'Human Resources' : newRole === 'TEAM_LEAD' ? 'Team Lead' : 'Business Development Associates',
+            });
+          }}
+        />
+      </div>
+
+      {currentRole === 'BDA' && (
+        <div className="space-y-1 sm:col-span-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-foreground">Assign to Team Lead / Squad</label>
+            <span className="text-[10px] text-muted-foreground">Isolates BDA under specific TL</span>
+          </div>
+          <ShadcnDropdownSelect
+            value={formData.teamLeadId || ''}
+            options={tlOptions}
+            disabled={loadingTLs}
+            placeholder={loadingTLs ? 'Loading team leads...' : 'Select Team Lead...'}
+            onValueChange={(val) => onChange({ ...formData, teamLeadId: val })}
           />
         </div>
-      </div>
+      )}
 
       <div className="space-y-1 sm:col-span-2">
         <label className="text-xs font-bold text-foreground">Internal Notes / Remarks</label>
@@ -99,7 +177,7 @@ export default function CreateEmployeeFormFields({
           <FileText className="w-3.5 h-3.5 absolute left-3 top-2.5 text-muted-foreground" />
           <textarea
             rows={2}
-            placeholder="Optional details or designation..."
+            placeholder="Optional details, designations, or squad remarks..."
             value={formData.notes}
             onChange={(e) => onChange({ ...formData, notes: e.target.value })}
             className="w-full pl-8 pr-3 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground resize-none"
@@ -109,3 +187,4 @@ export default function CreateEmployeeFormFields({
     </div>
   );
 }
+

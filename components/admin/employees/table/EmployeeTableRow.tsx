@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Mail, Phone, PhoneCall, Users, ExternalLink, MoreVertical, Edit3, KeyRound, UserCheck, UserX, Loader2 } from 'lucide-react';
+import { Mail, Phone, PhoneCall, Users, ExternalLink, MoreVertical, Edit3, KeyRound, UserCheck, UserX, Loader2, Trash2 } from 'lucide-react';
 import { EmployeeListItem } from '../EmployeeTable';
 
 function formatDuration(sec: number) {
@@ -22,22 +22,26 @@ interface EmployeeTableRowProps {
   emp: EmployeeListItem;
   isMenuOpen: boolean;
   isToggling: boolean;
+  canManageEmployees?: boolean;
   onToggleMenu: () => void;
   onCloseMenu: () => void;
   onEdit: () => void;
   onResetPassword: () => void;
   onToggleStatus: () => void;
+  onDelete?: () => void;
 }
 
 export default function EmployeeTableRow({
   emp,
   isMenuOpen,
   isToggling,
+  canManageEmployees = true,
   onToggleMenu,
   onCloseMenu,
   onEdit,
   onResetPassword,
   onToggleStatus,
+  onDelete,
 }: EmployeeTableRowProps) {
   return (
     <tr className="hover:bg-muted/40 transition-[background-color] duration-150 whitespace-nowrap">
@@ -66,9 +70,19 @@ export default function EmployeeTableRow({
       </td>
 
       <td className="py-2.5 px-3 whitespace-nowrap">
-        <span className="text-[10.5px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
-          {emp.team || 'Business Development Associate'}
-        </span>
+        {emp.role === 'TEAM_LEAD' ? (
+          <span className="inline-flex items-center text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded">
+            TL • {emp.team || 'Squad'}
+          </span>
+        ) : emp.role === 'HR' ? (
+          <span className="inline-flex items-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
+            HR Operations
+          </span>
+        ) : (
+          <span className="text-[10.5px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
+            {emp.team || 'General Squad'}
+          </span>
+        )}
       </td>
 
       <td className="py-2.5 px-3 whitespace-nowrap">
@@ -132,16 +146,18 @@ export default function EmployeeTableRow({
             <ExternalLink className="w-3.5 h-3.5" />
           </Link>
 
-          <button
-            type="button"
-            onClick={onToggleMenu}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/70 rounded-lg transition-colors"
-          >
-            <MoreVertical className="w-3.5 h-3.5" />
-          </button>
+          {canManageEmployees && (
+            <button
+              type="button"
+              onClick={onToggleMenu}
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/70 rounded-lg transition-colors cursor-pointer"
+            >
+              <MoreVertical className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        {isMenuOpen && (
+        {canManageEmployees && isMenuOpen && (
           <div 
             className="absolute right-5 top-11 z-30 w-44 bg-card text-card-foreground rounded-xl border border-border shadow-xl py-1 text-xs text-left animate-in fade-in-50 zoom-in-95 origin-top-right"
             onMouseLeave={onCloseMenu}
@@ -191,6 +207,20 @@ export default function EmployeeTableRow({
               )}
               <span>{emp.isActive ? 'Deactivate' : 'Reactivate'}</span>
             </button>
+
+            {onDelete && (
+              <>
+                <div className="my-1 border-t border-border" />
+                <button
+                  type="button"
+                  onClick={onDelete}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-destructive hover:bg-destructive/10 font-medium cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                  <span>Delete Employee</span>
+                </button>
+              </>
+            )}
           </div>
         )}
       </td>

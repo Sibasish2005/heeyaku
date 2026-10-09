@@ -1,6 +1,8 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, Role } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
+import { canManageLeads } from '@/lib/auth/rbac';
+import { redirect } from 'next/navigation';
 import LeadTable, { ActiveEmployee } from '@/components/admin/leads/LeadTable';
 
 type LeadQueryResult = Prisma.LeadGetPayload<{
@@ -29,8 +31,17 @@ interface LeadsPageProps {
 }
 
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
-  await assertAdminAccess();
+  const admin = await assertAdminAccess();
+
+  // HR is strictly blocked from viewing sales leads and client numbers
+  if (!canManageLeads(admin.role)) {
+    redirect('/admin/employees');
+  }
+
   const { employeeId } = await searchParams;
+
+  const isTeamLead = admin.role === Role.TEAM_LEAD;
+  const targetTeamId = isTeamLead ? (admin.ledTeamId || admin.teamId || null) : null;
 
   let leads: LeadQueryResult[] = [];
   let activeEmployees: ActiveEmployee[] = [];
@@ -41,6 +52,13 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   let convertedLeads = 0;
 
   try {
+    const leadWhere: Prisma.LeadWhereInput = {
+      ...(targetTeamId ? { teamId: targetTeamId } : {}),
+      ...(employeeId ? { assignedEmployeeId: employeeId } : {}),
+    };
+
+    const countWhere: Prisma.LeadWhereInput = targetTeamId ? { teamId: targetTeamId } : {};
+
     const [
       fetchedLeads,
       fetchedEmployees,
@@ -50,6 +68,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       convertedCount,
     ] = await Promise.all([
       prisma.lead.findMany({
+        where: leadWhere,
         take: 2000,
         orderBy: {
           createdAt: 'desc',
@@ -65,7 +84,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         },
       }),
       prisma.employee.findMany({
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          ...(targetTeamId ? { teamId: targetTeamId } : {}),
+        },
         orderBy: { name: 'asc' },
         select: {
           id: true,
@@ -74,14 +96,15 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
           team: true,
         },
       }),
-      prisma.lead.count(),
-      prisma.lead.count({ where: { status: 'NEW' } }),
+      prisma.lead.count({ where: countWhere }),
+      prisma.lead.count({ where: { ...countWhere, status: 'NEW' } }),
       prisma.lead.count({
         where: {
+          ...countWhere,
           status: { in: ['ASSIGNED', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP'] },
         },
       }),
-      prisma.lead.count({ where: { status: 'CONVERTED' } }),
+      prisma.lead.count({ where: { ...countWhere, status: 'CONVERTED' } }),
     ]);
     leads = fetchedLeads;
     activeEmployees = fetchedEmployees;
@@ -105,10 +128,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 pb-3 sm:pb-4 border-b border-border/80">
         <div>
           <div className="text-[10px] sm:text-xs font-bold tracking-widest text-[#2563EB] dark:text-blue-400 uppercase mb-1">
-            Admissions & Sales CRM Pipeline
+            {isTeamLead ? `${admin.ledTeamName || admin.teamName || 'Squad'} · Leads CRM` : 'Admissions & Sales CRM Pipeline'}
           </div>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tight text-foreground">
-            Leads Management
+            {isTeamLead ? 'Squad Lead Pipeline' : 'Lead Central Pipeline'}
           </h1>
         </div>
       </div>

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { verifyExternalApiKey } from '@/lib/auth/external-api';
 import { toLast10Digits } from '@/lib/lead/phone';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
-import { generateNextLeadCode } from '@/lib/lead/code';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
       source: string;
       notes: string | null;
     }> = [];
-    const updateOperations: any[] = [];
+    const updateOperations: Prisma.PrismaPromise<unknown>[] = [];
 
     for (const { item, rawPhone, last10 } of validItems) {
       const existing = existingMap.get(last10);
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
         };
 
         recordsToInsert.push(newRecord);
-        existingMap.set(last10, { ...newRecord, status: 'NEW', createdAt: new Date(), updatedAt: new Date(), assignedEmployeeId: null, assignedAt: null });
+        existingMap.set(last10, { ...newRecord, teamId: null, status: 'NEW', createdAt: new Date(), updatedAt: new Date(), assignedEmployeeId: null, assignedAt: null });
         createdCount++;
 
         results.push({

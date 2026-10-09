@@ -3,14 +3,17 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, UserCheck, Users, X, ShieldCheck, LogOut, Home, ArrowUpRight } from 'lucide-react';
+import { LayoutDashboard, UserCheck, Users, X, ShieldCheck, LogOut, Home, ArrowUpRight, Trophy, Sparkles } from 'lucide-react';
 import HeeyakuLogo from '@/components/landingpage/shared/HeeyakuLogo';
 import ThemeToggler from '@/components/ThemeToggler';
 import { UserButton, useClerk } from '@clerk/nextjs';
+import { Role } from '@prisma/client';
 
 export interface AdminSidebarProps {
   adminEmail: string;
   adminName: string;
+  role?: Role;
+  teamName?: string | null;
   mobileOpen: boolean;
   onCloseMobile: () => void;
 }
@@ -18,6 +21,8 @@ export interface AdminSidebarProps {
 export default function AdminSidebar({
   adminEmail,
   adminName,
+  role = Role.CEO,
+  teamName = null,
   mobileOpen,
   onCloseMobile,
 }: AdminSidebarProps) {
@@ -25,11 +30,30 @@ export default function AdminSidebar({
   const { signOut } = useClerk();
   const [isConfirmingSignOut, setIsConfirmingSignOut] = React.useState(false);
 
-  const navItems = [
-    { label: 'Overview', href: '/admin/dashboard', icon: LayoutDashboard },
-    { label: 'Employees', href: '/admin/employees', icon: UserCheck },
-    { label: 'Leads CRM', href: '/admin/leads', icon: Users },
-  ];
+  // Dynamic role-based navigation
+  const navItems = React.useMemo(() => {
+    if (role === Role.HR) {
+      return [
+        { label: 'Staff Management', href: '/admin/employees', icon: UserCheck },
+        { label: 'Teams Roster', href: '/admin/teams', icon: Trophy },
+      ];
+    }
+    if (role === Role.TEAM_LEAD) {
+      return [
+        { label: 'Squad Overview', href: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Teams Leaderboard', href: '/admin/teams', icon: Trophy },
+        { label: 'Squad Leads CRM', href: '/admin/leads', icon: Users },
+        { label: 'My Squad BDAs', href: '/admin/employees', icon: UserCheck },
+      ];
+    }
+    // CEO has universal omni-privilege access
+    return [
+      { label: 'Overview', href: '/admin/dashboard', icon: LayoutDashboard },
+      { label: 'Teams Leaderboard', href: '/admin/teams', icon: Trophy },
+      { label: 'Leads CRM', href: '/admin/leads', icon: Users },
+      { label: 'Employees & Staff', href: '/admin/employees', icon: UserCheck },
+    ];
+  }, [role]);
 
   return (
     <>
@@ -146,7 +170,18 @@ export default function AdminSidebar({
                   <span className="text-xs font-bold text-foreground truncate">{adminName}</span>
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 </div>
-                <p className="text-[10px] text-muted-foreground truncate">{adminEmail}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase ${
+                    role === Role.CEO
+                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                      : role === Role.HR
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                      : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                  }`}>
+                    {role === Role.CEO ? 'CEO' : role === Role.HR ? 'HR' : teamName ? `TL • ${teamName}` : 'Team Lead'}
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground truncate mt-0.5">{adminEmail}</p>
               </div>
             </div>
           </div>

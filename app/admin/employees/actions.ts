@@ -2,18 +2,27 @@
 
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { assertAdminAccess } from '@/lib/auth/admin';
+import {
+  assertAuthenticatedUser,
+  canManageEmployees,
+  canDeleteEmployee,
+  canManageTeams,
+} from '@/lib/auth/rbac';
 import { generateRandomPassword, hashPassword } from '@/lib/crypto/passwords';
 import { generateNextEmployeeCode } from '@/lib/employee/code';
 import { revalidatePath } from 'next/cache';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
 import { clearEmployeeChunkCache } from './fetch-actions';
 import { zodPhoneNumberSchema } from '@/lib/lead/phone';
+import { Role } from '@prisma/client';
 
 const CreateEmployeeSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phoneNumber: zodPhoneNumberSchema,
+  role: z.enum(['BDA', 'TEAM_LEAD', 'HR']).default('BDA'),
+  teamId: z.string().optional().nullable(),
+  teamLeadId: z.string().optional().nullable(),
   team: z.string().optional().default('Business Development Associates'),
   notes: z.string().optional(),
 });
@@ -23,6 +32,9 @@ const UpdateEmployeeSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phoneNumber: zodPhoneNumberSchema,
+  role: z.enum(['BDA', 'TEAM_LEAD', 'HR']).optional(),
+  teamId: z.string().optional().nullable(),
+  teamLeadId: z.string().optional().nullable(),
   team: z.string().optional().default('Business Development Associates'),
   notes: z.string().optional(),
 });
@@ -34,9 +46,9 @@ export type ActionResponse<T = unknown> = {
 };
 
 /**
- * Creates a new employee with an auto-generated EMP-xxxx code and a cryptographically
- * random temporary password. The password hash is stored, and the temporary plaintext
- * password is returned ONLY ONCE in the response for the admin to copy.
+ * Creates a new employee (BDA, Team Lead, or HR).
+ * Accessible ONLY by CEO and HR.
+ * Team Leads CANNOT create employees.
  */
 export async function createEmployeeAction(input: unknown): Promise<ActionResponse<{
   id: string;
@@ -44,9 +56,16 @@ export async function createEmployeeAction(input: unknown): Promise<ActionRespon
   name: string;
   email: string;
   tempPassword: string;
+  role: Role;
 }>> {
   try {
-    await assertAdminAccess();
+    const user = await assertAuthenticatedUser();
+    if (!canManageEmployees(user.role)) {
+      return {
+        success: false,
+        error: 'Unauthorized: Team Leads cannot onboard employees. This action requires HR or CEO privileges.',
+      };
+    }
 
     const validated = CreateEmployeeSchema.safeParse(input);
     if (!validated.success) {
@@ -56,7 +75,7 @@ export async function createEmployeeAction(input: unknown): Promise<ActionRespon
       };
     }
 
-    const { name, email, phoneNumber, team, notes } = validated.data;
+    const { name, email, phoneNumber, role, teamId, teamLeadId, team, notes } = validated.data;
 
     // Check email uniqueness
     const existing = await prisma.employee.findUnique({
@@ -70,9 +89,26 @@ export async function createEmployeeAction(input: unknown): Promise<ActionRespon
       };
     }
 
+    // Resolve target teamId if HR assigned BDA to a specific Team Lead
+    let resolvedTeamId = teamId || null;
+    let resolvedTeamName = team?.trim() || 'General';
+
+    if (teamLeadId) {
+      const tl = await prisma.employee.findUnique({
+        where: { id: teamLeadId },
+        include: { ledTeam: true, teamGroup: true },
+      });
+      if (tl) {
+        resolvedTeamId = tl.ledTeam?.id || tl.teamId || null;
+        resolvedTeamName = tl.ledTeam?.name || tl.teamGroup?.name || tl.team || 'Squad';
+      }
+    }
+
     const employeeCode = await generateNextEmployeeCode();
     const tempPassword = generateRandomPassword(10);
     const passwordHash = await hashPassword(tempPassword);
+
+    const employeeRole = role as Role;
 
     const employee = await prisma.employee.create({
       data: {
@@ -80,7 +116,9 @@ export async function createEmployeeAction(input: unknown): Promise<ActionRespon
         name: name.trim(),
         email: email.toLowerCase().trim(),
         phoneNumber: phoneNumber.trim(),
-        team: team?.trim() || 'BDA',
+        role: employeeRole,
+        teamId: resolvedTeamId,
+        team: resolvedTeamName,
         notes: notes?.trim() || null,
         passwordHash,
         isActive: true,
@@ -90,13 +128,23 @@ export async function createEmployeeAction(input: unknown): Promise<ActionRespon
         employeeCode: true,
         name: true,
         email: true,
+        role: true,
       },
     });
+
+    // If newly created employee is a TEAM_LEAD and has a teamId, set them as teamLeadId for that team
+    if (employeeRole === Role.TEAM_LEAD && resolvedTeamId) {
+      await prisma.team.update({
+        where: { id: resolvedTeamId },
+        data: { teamLeadId: employee.id },
+      });
+    }
 
     invalidateDashboardMetricsCache();
     clearEmployeeChunkCache();
     revalidatePath('/admin/employees');
     revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/teams');
 
     return {
       success: true,
@@ -115,11 +163,18 @@ export async function createEmployeeAction(input: unknown): Promise<ActionRespon
 }
 
 /**
- * Updates basic details for an existing employee.
+ * Updates an employee's profile, role, or team lead assignment.
+ * Accessible ONLY by CEO and HR.
  */
 export async function updateEmployeeAction(input: unknown): Promise<ActionResponse> {
   try {
-    await assertAdminAccess();
+    const user = await assertAuthenticatedUser();
+    if (!canManageEmployees(user.role)) {
+      return {
+        success: false,
+        error: 'Unauthorized: Team Leads cannot edit employee profiles or change roles.',
+      };
+    }
 
     const validated = UpdateEmployeeSchema.safeParse(input);
     if (!validated.success) {
@@ -129,7 +184,7 @@ export async function updateEmployeeAction(input: unknown): Promise<ActionRespon
       };
     }
 
-    const { id, name, email, phoneNumber, team, notes } = validated.data;
+    const { id, name, email, phoneNumber, role, teamId, teamLeadId, team, notes } = validated.data;
 
     // Check if another employee is already using this email
     const existing = await prisma.employee.findFirst({
@@ -146,13 +201,30 @@ export async function updateEmployeeAction(input: unknown): Promise<ActionRespon
       };
     }
 
+    // Resolve target teamId if HR assigned BDA to a specific Team Lead
+    let resolvedTeamId = teamId !== undefined ? teamId : undefined;
+    let resolvedTeamName = team !== undefined ? team.trim() : undefined;
+
+    if (teamLeadId) {
+      const tl = await prisma.employee.findUnique({
+        where: { id: teamLeadId },
+        include: { ledTeam: true, teamGroup: true },
+      });
+      if (tl) {
+        resolvedTeamId = tl.ledTeam?.id || tl.teamId || null;
+        resolvedTeamName = tl.ledTeam?.name || tl.teamGroup?.name || tl.team || 'Squad';
+      }
+    }
+
     await prisma.employee.update({
       where: { id },
       data: {
         name: name.trim(),
         email: email.toLowerCase().trim(),
         phoneNumber: phoneNumber.trim(),
-        team: team?.trim() || 'BDA',
+        role: role ? (role as Role) : undefined,
+        teamId: resolvedTeamId,
+        team: resolvedTeamName,
         notes: notes?.trim() || null,
       },
     });
@@ -161,6 +233,7 @@ export async function updateEmployeeAction(input: unknown): Promise<ActionRespon
     clearEmployeeChunkCache();
     revalidatePath('/admin/employees');
     revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/teams');
     revalidatePath(`/admin/employees/${id}`);
 
     return { success: true };
@@ -174,11 +247,18 @@ export async function updateEmployeeAction(input: unknown): Promise<ActionRespon
 }
 
 /**
- * Toggles an employee's active status (deactivates or reactivates).
+ * Toggles an employee's active status.
+ * Accessible ONLY by CEO and HR.
  */
 export async function toggleEmployeeStatusAction(id: string): Promise<ActionResponse<{ isActive: boolean }>> {
   try {
-    await assertAdminAccess();
+    const user = await assertAuthenticatedUser();
+    if (!canManageEmployees(user.role)) {
+      return {
+        success: false,
+        error: 'Unauthorized: Team Leads cannot deactivate or reactivate staff accounts.',
+      };
+    }
 
     const employee = await prisma.employee.findUnique({
       where: { id },
@@ -199,6 +279,7 @@ export async function toggleEmployeeStatusAction(id: string): Promise<ActionResp
     clearEmployeeChunkCache();
     revalidatePath('/admin/employees');
     revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/teams');
     revalidatePath(`/admin/employees/${id}`);
 
     return { success: true, data: { isActive: updated.isActive } };
@@ -213,11 +294,17 @@ export async function toggleEmployeeStatusAction(id: string): Promise<ActionResp
 
 /**
  * Resets an employee's password to a newly generated temporary password.
- * Returns the plaintext temporary password once for the admin to copy.
+ * Accessible ONLY by CEO and HR.
  */
 export async function resetEmployeePasswordAction(id: string): Promise<ActionResponse<{ tempPassword: string; employeeCode: string }>> {
   try {
-    await assertAdminAccess();
+    const user = await assertAuthenticatedUser();
+    if (!canManageEmployees(user.role)) {
+      return {
+        success: false,
+        error: 'Unauthorized: Team Leads cannot reset staff passwords.',
+      };
+    }
 
     const employee = await prisma.employee.findUnique({
       where: { id },
@@ -248,6 +335,215 @@ export async function resetEmployeePasswordAction(id: string): Promise<ActionRes
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to reset password.',
+    };
+  }
+}
+
+/**
+ * Permanently deletes an employee.
+ * Accessible ONLY by CEO and HR.
+ * Team Leads CANNOT remove employees.
+ */
+export async function deleteEmployeeAction(id: string): Promise<ActionResponse> {
+  try {
+    const user = await assertAuthenticatedUser();
+    if (!canDeleteEmployee(user.role)) {
+      return {
+        success: false,
+        error: 'Unauthorized: Team Leads cannot delete or remove employees.',
+      };
+    }
+
+    // Unassign leads from this employee
+    await prisma.lead.updateMany({
+      where: { assignedEmployeeId: id },
+      data: { assignedEmployeeId: null, assignedAt: null },
+    });
+
+    // Unlink if this employee was a Team Lead
+    await prisma.team.updateMany({
+      where: { teamLeadId: id },
+      data: { teamLeadId: null },
+    });
+
+    await prisma.employee.delete({
+      where: { id },
+    });
+
+    invalidateDashboardMetricsCache();
+    clearEmployeeChunkCache();
+    revalidatePath('/admin/employees');
+    revalidatePath('/admin/dashboard');
+    revalidatePath('/admin/teams');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting employee:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete employee.',
+    };
+  }
+}
+
+/**
+ * Fetches all active Team Leads so HR can assign a BDA directly to a specific Team Lead.
+ */
+export async function fetchActiveTeamLeadsAction(): Promise<ActionResponse<Array<{
+  id: string;
+  name: string;
+  employeeCode: string;
+  teamId: string | null;
+  teamName: string | null;
+}>>> {
+  try {
+    await assertAuthenticatedUser();
+    const teamLeads = await prisma.employee.findMany({
+      where: {
+        role: Role.TEAM_LEAD,
+        isActive: true,
+      },
+      include: {
+        teamGroup: true,
+        ledTeam: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return {
+      success: true,
+      data: teamLeads.map((tl) => ({
+        id: tl.id,
+        name: tl.name,
+        employeeCode: tl.employeeCode,
+        teamId: tl.ledTeam?.id || tl.teamId || null,
+        teamName: tl.ledTeam?.name || tl.teamGroup?.name || tl.team || 'Squad',
+      })),
+    };
+  } catch (error) {
+    return { success: false, error: 'Failed to fetch active team leads.' };
+  }
+}
+
+/**
+ * Fetches all teams with member and lead counts.
+ */
+export async function fetchTeamsAction(): Promise<ActionResponse<Array<{
+  id: string;
+  name: string;
+  description: string | null;
+  colorTag: string | null;
+  teamLead: { id: string; name: string; employeeCode: string } | null;
+  _count: { members: number; leads: number };
+}>>> {
+  try {
+    await assertAuthenticatedUser();
+    const teams = await prisma.team.findMany({
+      include: {
+        teamLead: { select: { id: true, name: true, employeeCode: true } },
+        _count: { select: { members: true, leads: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return { success: true, data: teams };
+  } catch (error) {
+    return { success: false, error: 'Failed to fetch teams.' };
+  }
+}
+
+/**
+ * Creates or updates a team / squad.
+ * Accessible ONLY by CEO and HR.
+ */
+export async function createTeamAction(input: {
+  name: string;
+  description?: string;
+  teamLeadId?: string;
+  colorTag?: string;
+}): Promise<ActionResponse<{ id: string; name: string }>> {
+  try {
+    const user = await assertAuthenticatedUser();
+    if (!canManageTeams(user.role)) {
+      return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
+    }
+
+    const team = await prisma.team.create({
+      data: {
+        name: input.name.trim(),
+        description: input.description?.trim() || null,
+        teamLeadId: input.teamLeadId || null,
+        colorTag: input.colorTag || '#2563EB',
+      },
+    });
+
+    if (input.teamLeadId) {
+      await prisma.employee.update({
+        where: { id: input.teamLeadId },
+        data: {
+          role: Role.TEAM_LEAD,
+          teamId: team.id,
+        },
+      });
+    }
+
+    revalidatePath('/admin/teams');
+    revalidatePath('/admin/employees');
+
+    return { success: true, data: { id: team.id, name: team.name } };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create team.',
+    };
+  }
+}
+
+/**
+ * Updates an existing team / squad.
+ * Accessible ONLY by CEO and HR.
+ */
+export async function updateTeamAction(input: {
+  id: string;
+  name?: string;
+  description?: string;
+  teamLeadId?: string | null;
+  colorTag?: string;
+}): Promise<ActionResponse<{ id: string; name: string }>> {
+  try {
+    const user = await assertAuthenticatedUser();
+    if (!canManageTeams(user.role)) {
+      return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
+    }
+
+    const team = await prisma.team.update({
+      where: { id: input.id },
+      data: {
+        name: input.name ? input.name.trim() : undefined,
+        description: input.description !== undefined ? (input.description ? input.description.trim() : null) : undefined,
+        teamLeadId: input.teamLeadId !== undefined ? input.teamLeadId : undefined,
+        colorTag: input.colorTag ? input.colorTag : undefined,
+      },
+    });
+
+    if (input.teamLeadId) {
+      await prisma.employee.update({
+        where: { id: input.teamLeadId },
+        data: {
+          role: Role.TEAM_LEAD,
+          teamId: team.id,
+        },
+      });
+    }
+
+    revalidatePath('/admin/teams');
+    revalidatePath('/admin/employees');
+
+    return { success: true, data: { id: team.id, name: team.name } };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update team.',
     };
   }
 }

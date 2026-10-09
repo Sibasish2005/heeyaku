@@ -8,14 +8,17 @@ import EmployeeTableModals from './table/EmployeeTableModals';
 import { employeeColumns } from './table/employeeColumns';
 import { EmployeeListItem, EmployeeTableProps } from './table/types';
 import InfiniteScrollSentinel from '@/components/admin/common/InfiniteScrollSentinel';
-import { toggleEmployeeStatusAction } from '@/app/admin/employees/actions';
+import { toggleEmployeeStatusAction, deleteEmployeeAction } from '@/app/admin/employees/actions';
 import { fetchEmployeesChunkAction } from '@/app/admin/employees/fetch-actions';
+import { toast } from 'sonner';
 
 export type { EmployeeListItem } from './table/types';
 
 export default function EmployeeTable({
   initialEmployees,
   totalEmployeesCount,
+  canManageEmployees = true,
+  currentUserRole,
 }: EmployeeTableProps) {
   const [employees, setEmployees] = useState<EmployeeListItem[]>(initialEmployees);
   const [totalCount, setTotalCount] = useState<number>(totalEmployeesCount);
@@ -90,11 +93,27 @@ export default function EmployeeTable({
     }
   };
 
+  const handleDeleteEmployee = async (emp: EmployeeListItem) => {
+    setActiveMenuId(null);
+    if (!window.confirm(`Are you sure you want to delete employee "${emp.name}" (${emp.employeeCode})? This action cannot be undone.`)) {
+      return;
+    }
+    const res = await deleteEmployeeAction(emp.id);
+    if (res.success) {
+      setEmployees((prev) => prev.filter((e) => e.id !== emp.id));
+      setTotalCount((prev) => Math.max(0, prev - 1));
+      toast.success(`Employee ${emp.name} has been removed.`);
+    } else {
+      toast.error(res.error || 'Failed to delete employee.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <EmployeeTableToolbar
         searchQuery={searchQuery}
         statusFilter={statusFilter}
+        canManageEmployees={canManageEmployees}
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
         onCreateOpen={() => setIsCreateOpen(true)}
@@ -134,6 +153,7 @@ export default function EmployeeTable({
                   <EmployeeTableRow
                     key={row.original.id}
                     emp={row.original}
+                    canManageEmployees={canManageEmployees}
                     isMenuOpen={activeMenuId === row.original.id}
                     isToggling={togglingId === row.original.id}
                     onToggleMenu={() => setActiveMenuId(activeMenuId === row.original.id ? null : row.original.id)}
@@ -141,6 +161,7 @@ export default function EmployeeTable({
                     onEdit={() => { setActiveMenuId(null); setEditingEmployee(row.original); }}
                     onResetPassword={() => { setActiveMenuId(null); setResettingEmployee(row.original); }}
                     onToggleStatus={() => handleToggleStatus(row.original)}
+                    onDelete={() => handleDeleteEmployee(row.original)}
                   />
                 ))
               )}
