@@ -12,6 +12,15 @@ export default clerkMiddleware(async (auth, req) => {
     if (host.includes("localhost") || host.includes("127.0.0.1")) {
       headers.set("x-forwarded-host", "heeyaku.vercel.app");
       headers.set("x-forwarded-proto", "https");
+      if (headers.get("origin")?.includes("localhost") || headers.get("origin")?.includes("127.0.0.1")) {
+        headers.set("origin", "https://heeyaku.vercel.app");
+      }
+      if (headers.get("referer")?.includes("localhost") || headers.get("referer")?.includes("127.0.0.1")) {
+        headers.set(
+          "referer",
+          headers.get("referer")!.replace(/^http:\/\/(localhost|127\.0\.0\.1):\d+/, "https://heeyaku.vercel.app")
+        );
+      }
     }
     const hasBody = req.method !== "GET" && req.method !== "HEAD" && req.body;
     const proxiedRequest = new Request(req.url, {

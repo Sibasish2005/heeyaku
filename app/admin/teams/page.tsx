@@ -2,6 +2,7 @@ import React from 'react';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
 import { canManageTeams } from '@/lib/auth/rbac';
+import { Role } from '@prisma/client';
 import TeamsLeaderboardView from '@/components/admin/teams/TeamsLeaderboardView';
 import { SquadLeaderboardItem } from '@/components/admin/teams/types';
 
@@ -26,7 +27,10 @@ export default async function TeamsPage() {
         },
       },
       members: {
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          role: Role.BDA,
+        },
         select: { id: true },
       },
       _count: {
