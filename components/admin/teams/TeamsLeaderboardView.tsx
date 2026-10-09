@@ -13,6 +13,7 @@ import {
   ArrowUpDown,
   Building2,
   ExternalLink,
+  ArrowRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { TeamsLeaderboardProps, SquadLeaderboardItem } from './types';
@@ -266,9 +267,12 @@ export default function TeamsLeaderboardView({
                             style={{ backgroundColor: squad.colorTag || '#2563EB' }}
                           />
                           <div>
-                            <div className="font-bold text-foreground line-clamp-1">
+                            <Link
+                              href={`/admin/teams/${squad.id}`}
+                              className="font-bold text-foreground hover:text-[#2563EB] transition-colors line-clamp-1"
+                            >
                               {squad.name}
-                            </div>
+                            </Link>
                             {squad.description && (
                               <div className="text-[10px] text-muted-foreground line-clamp-1">
                                 {squad.description}
@@ -338,19 +342,25 @@ export default function TeamsLeaderboardView({
                       </td>
 
                       <td className="py-3 px-4 text-right">
-                        {currentUserRole === Role.CEO || (currentUserRole === Role.TEAM_LEAD && isCurrentUsersTeam) ? (
+                        <div className="flex items-center justify-end gap-2">
                           <Link
-                            href="/admin/leads"
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-[#2563EB] hover:text-blue-500 transition-colors"
+                            href={`/admin/teams/${squad.id}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-foreground bg-muted/60 hover:bg-[#2563EB] hover:text-white rounded-lg transition-all"
                           >
-                            <span>View CRM</span>
-                            <ExternalLink className="w-3 h-3" />
+                            <span>{canManageTeams ? 'Manage' : 'View'}</span>
+                            <ArrowRight className="w-3 h-3" />
                           </Link>
-                        ) : (
-                          <span className="text-[11px] text-muted-foreground">
-                            Locked
-                          </span>
-                        )}
+                          {(currentUserRole === Role.CEO || (currentUserRole === Role.TEAM_LEAD && isCurrentUsersTeam)) && (
+                            <Link
+                              href={`/admin/leads?teamId=${squad.id}`}
+                              className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-semibold text-[#2563EB] hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-lg transition-colors"
+                              title="View squad leads in CRM"
+                            >
+                              <span>CRM</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </Link>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

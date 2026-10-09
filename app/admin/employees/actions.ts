@@ -584,6 +584,27 @@ export async function updateTeamAction(input: {
       return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
     }
 
+    const currentTeam = await prisma.team.findUnique({
+      where: { id: input.id },
+      select: { teamLeadId: true, name: true },
+    });
+    if (!currentTeam) {
+      return { success: false, error: 'Squad not found.' };
+    }
+
+    if (input.teamLeadId !== undefined && input.teamLeadId !== currentTeam.teamLeadId) {
+      if (input.teamLeadId) {
+        await prisma.employee.update({
+          where: { id: input.teamLeadId },
+          data: {
+            role: Role.TEAM_LEAD,
+            teamId: input.id,
+            team: input.name ? input.name.trim() : currentTeam.name,
+          },
+        });
+      }
+    }
+
     const team = await prisma.team.update({
       where: { id: input.id },
       data: {
@@ -594,17 +615,15 @@ export async function updateTeamAction(input: {
       },
     });
 
-    if (input.teamLeadId) {
-      await prisma.employee.update({
-        where: { id: input.teamLeadId },
-        data: {
-          role: Role.TEAM_LEAD,
-          teamId: team.id,
-        },
+    if (input.name && input.name.trim() !== currentTeam.name) {
+      await prisma.employee.updateMany({
+        where: { teamId: team.id },
+        data: { team: team.name },
       });
     }
 
     revalidatePath('/admin/teams');
+    revalidatePath(`/admin/teams/${team.id}`);
     revalidatePath('/admin/employees');
 
     return { success: true, data: { id: team.id, name: team.name } };
@@ -612,6 +631,175 @@ export async function updateTeamAction(input: {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update team.',
+    };
+  }
+}
+
+/**
+ * Assigns one or more BDAs to a squad.
+ * Accessible ONLY by CEO and HR.
+ */
+export async function addBdasToTeamAction(
+  teamId: string,
+  employeeIds: string[]
+): Promise<ActionResponse<{ count: number }>> {
+  try {
+    const user = await assertAuthenticatedUser();
+    if (!canManageTeams(user.role)) {
+      return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
+    }
+
+    if (!employeeIds.length) {
+      return { success: false, error: 'No BDAs selected.' };
+    }
+
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { id: true, name: true },
+    });
+    if (!team) {
+      return { success: false, error: 'Squad not found.' };
+    }
+
+    const result = await prisma.employee.updateMany({
+      where: {
+        id: { in: employeeIds },
+      },
+      data: {
+        teamId: team.id,
+        team: team.name,
+      },
+    });
+
+    revalidatePath('/admin/teams');
+    revalidatePath(`/admin/teams/${teamId}`);
+    revalidatePath('/admin/employees');
+
+    return { success: true, data: { count: result.count } };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to assign BDAs to squad.',
+    };
+  }
+}
+
+/**
+ * Removes a BDA from their current squad.
+ * Accessible ONLY by CEO and HR.
+ */
+export async function removeBdaFromTeamAction(
+  teamId: string,
+  employeeId: string
+): Promise<ActionResponse<boolean>> {
+  try {
+    const user = await assertAuthenticatedUser();
+    if (!canManageTeams(user.role)) {
+      return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
+    }
+
+    await prisma.employee.update({
+      where: { id: employeeId },
+      data: {
+        teamId: null,
+        team: 'General',
+      },
+    });
+
+    revalidatePath('/admin/teams');
+    revalidatePath(`/admin/teams/${teamId}`);
+    revalidatePath('/admin/employees');
+
+    return { success: true, data: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to remove BDA from squad.',
+    };
+  }
+}
+
+/**
+ * Dissolves / deletes a squad safely.
+ * Accessible ONLY by CEO and HR.
+ */
+export async function deleteTeamAction(teamId: string): Promise<ActionResponse<boolean>> {
+  try {
+    const user = await assertAuthenticatedUser();
+    if (!canManageTeams(user.role)) {
+      return { success: false, error: 'Unauthorized: Only CEO and HR can dissolve squads.' };
+    }
+
+    await prisma.lead.updateMany({
+      where: { teamId },
+      data: { teamId: null },
+    });
+
+    await prisma.employee.updateMany({
+      where: { teamId },
+      data: { teamId: null, team: 'General' },
+    });
+
+    await prisma.team.delete({
+      where: { id: teamId },
+    });
+
+    revalidatePath('/admin/teams');
+    revalidatePath('/admin/employees');
+    revalidatePath('/admin/leads');
+
+    return { success: true, data: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to delete squad.',
+    };
+  }
+}
+
+/**
+ * Fetches available BDAs not yet in the target squad.
+ */
+export async function fetchAvailableBdasForTeamAction(teamId: string): Promise<ActionResponse<Array<{
+  id: string;
+  name: string;
+  employeeCode: string;
+  email: string;
+  phoneNumber: string;
+  currentTeamName: string | null;
+}>>> {
+  try {
+    await assertAuthenticatedUser();
+    const bdas = await prisma.employee.findMany({
+      where: {
+        role: Role.BDA,
+        isActive: true,
+        OR: [
+          { teamId: null },
+          { teamId: { not: teamId } },
+        ],
+      },
+      include: {
+        teamGroup: { select: { name: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return {
+      success: true,
+      data: bdas.map((b) => ({
+        id: b.id,
+        name: b.name,
+        employeeCode: b.employeeCode,
+        email: b.email,
+        phoneNumber: b.phoneNumber,
+        currentTeamName: b.teamGroup?.name || null,
+      })),
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch available BDAs.',
     };
   }
 }

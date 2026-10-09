@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Trophy, Medal, Award, Flame, PhoneCall, Users, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
+import { Trophy, Medal, Award, Flame, PhoneCall, Users, CheckCircle2, ArrowRight } from 'lucide-react';
 import { SquadLeaderboardItem } from './types';
 
 interface TeamPodiumCardProps {
@@ -71,9 +72,12 @@ export default function TeamPodiumCard({ squad }: TeamPodiumCardProps) {
               className="w-3 h-3 rounded-full shrink-0 shadow-xs"
               style={{ backgroundColor: squad.colorTag || '#2563EB' }}
             />
-            <h3 className="font-extrabold text-base sm:text-lg text-foreground tracking-tight line-clamp-1">
+            <Link
+              href={`/admin/teams/${squad.id}`}
+              className="font-extrabold text-base sm:text-lg text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors tracking-tight line-clamp-1"
+            >
               {squad.name}
-            </h3>
+            </Link>
           </div>
           <p className="text-xs text-muted-foreground">
             Lead: <span className="font-semibold text-foreground">{squad.teamLead ? squad.teamLead.name : 'Unassigned'}</span>
@@ -136,6 +140,17 @@ export default function TeamPodiumCard({ squad }: TeamPodiumCardProps) {
             {formatTalkTime(squad.totalTalkTimeSeconds)}
           </div>
         </div>
+      </div>
+
+      {/* Manage Squad Link */}
+      <div className="mt-3 pt-3 border-t border-border/80">
+        <Link
+          href={`/admin/teams/${squad.id}`}
+          className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs font-bold text-foreground hover:text-white bg-muted/60 hover:bg-[#2563EB] rounded-xl transition-all cursor-pointer"
+        >
+          <span>Manage Squad</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
     </div>
   );
