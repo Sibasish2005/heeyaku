@@ -14,6 +14,13 @@ type LeadQueryResult = Prisma.LeadGetPayload<{
         name: true;
       };
     };
+    team: {
+      select: {
+        id: true;
+        name: true;
+        colorTag: true;
+      };
+    };
   };
 }>;
 
@@ -45,6 +52,13 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
   let leads: LeadQueryResult[] = [];
   let activeEmployees: ActiveEmployee[] = [];
+  let teams: Array<{
+    id: string;
+    name: string;
+    colorTag: string | null;
+    teamLead: { id: string; name: string; employeeCode: string } | null;
+    _count: { members: number; leads: number };
+  }> = [];
 
   let totalLeads = 0;
   let newLeads = 0;
@@ -53,15 +67,30 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
   try {
     const leadWhere: Prisma.LeadWhereInput = {
-      ...(targetTeamId ? { teamId: targetTeamId } : {}),
+      ...(targetTeamId
+        ? {
+            OR: [
+              { teamId: targetTeamId },
+              ...(admin.employeeId ? [{ assignedEmployeeId: admin.employeeId }] : []),
+            ],
+          }
+        : {}),
       ...(employeeId ? { assignedEmployeeId: employeeId } : {}),
     };
 
-    const countWhere: Prisma.LeadWhereInput = targetTeamId ? { teamId: targetTeamId } : {};
+    const countWhere: Prisma.LeadWhereInput = targetTeamId
+      ? {
+          OR: [
+            { teamId: targetTeamId },
+            ...(admin.employeeId ? [{ assignedEmployeeId: admin.employeeId }] : []),
+          ],
+        }
+      : {};
 
     const [
       fetchedLeads,
       fetchedEmployees,
+      fetchedTeams,
       totalCount,
       newCount,
       activePipelineCount,
@@ -81,11 +110,19 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
               name: true,
             },
           },
+          team: {
+            select: {
+              id: true,
+              name: true,
+              colorTag: true,
+            },
+          },
         },
       }),
       prisma.employee.findMany({
         where: {
           isActive: true,
+          role: { in: [Role.BDA, Role.TEAM_LEAD] },
           ...(targetTeamId ? { teamId: targetTeamId } : {}),
         },
         orderBy: { name: 'asc' },
@@ -94,7 +131,30 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
           employeeCode: true,
           name: true,
           team: true,
+          role: true,
+          teamId: true,
         },
+      }),
+      prisma.team.findMany({
+        select: {
+          id: true,
+          name: true,
+          colorTag: true,
+          teamLead: {
+            select: {
+              id: true,
+              name: true,
+              employeeCode: true,
+            },
+          },
+          _count: {
+            select: {
+              members: true,
+              leads: true,
+            },
+          },
+        },
+        orderBy: { name: 'asc' },
       }),
       prisma.lead.count({ where: countWhere }),
       prisma.lead.count({ where: { ...countWhere, status: 'NEW' } }),
@@ -108,6 +168,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     ]);
     leads = fetchedLeads;
     activeEmployees = fetchedEmployees;
+    teams = fetchedTeams;
     totalLeads = totalCount;
     newLeads = newCount;
     activePipeline = activePipelineCount;
@@ -163,7 +224,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       <LeadTable
         initialLeads={formattedLeads}
         activeEmployees={activeEmployees}
+        teams={teams}
         initialEmployeeFilter={employeeId}
+        currentUserRole={admin.role}
       />
     </main>
   );

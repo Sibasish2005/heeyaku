@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Mail, Phone, Building, UserCheck } from 'lucide-react';
+import { Mail, Phone, Building, UserCheck, Shield } from 'lucide-react';
 import { LeadStatus } from '@prisma/client';
 import ShadcnDropdownSelect from '@/components/ui/shadcn-dropdown-select';
 import { FRONTEND_PHONE_PATTERN } from '@/lib/lead/phone';
+import { ActiveTeam } from '../table/types';
 
 export interface EditLeadFormData {
   name: string;
@@ -14,6 +15,7 @@ export interface EditLeadFormData {
   source: string;
   status: LeadStatus;
   notes: string;
+  teamId?: string;
   assignedEmployeeId: string;
 }
 
@@ -22,19 +24,27 @@ interface ActiveEmployee {
   employeeCode: string;
   name: string;
   team: string | null;
+  role?: string;
+  teamId?: string | null;
 }
 
 interface EditLeadFormFieldsProps {
   formData: EditLeadFormData;
   activeEmployees: ActiveEmployee[];
+  teams?: ActiveTeam[];
+  currentUserRole?: string;
   onChange: (data: EditLeadFormData) => void;
 }
 
 export default function EditLeadFormFields({
   formData,
   activeEmployees,
+  teams = [],
+  currentUserRole,
   onChange,
 }: EditLeadFormFieldsProps) {
+  const isCeo = currentUserRole === 'CEO';
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="space-y-1">
@@ -65,11 +75,12 @@ export default function EditLeadFormFields({
             value={formData.phoneNumber}
             onChange={(e) => {
               const digits = e.target.value.replace(/\D/g, '');
-              const clean = digits.length === 12 && digits.startsWith('91')
-                ? digits.slice(2)
-                : digits.length === 11 && digits.startsWith('0')
-                ? digits.slice(1)
-                : digits.slice(0, 10);
+              const clean =
+                digits.length === 12 && digits.startsWith('91')
+                  ? digits.slice(2)
+                  : digits.length === 11 && digits.startsWith('0')
+                  ? digits.slice(1)
+                  : digits.slice(0, 10);
               onChange({ ...formData, phoneNumber: clean });
             }}
             className="w-full pl-8 pr-3 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors font-mono"
@@ -104,12 +115,12 @@ export default function EditLeadFormFields({
       </div>
 
       <div className="space-y-1">
-        <label className="text-xs font-bold text-foreground">Pipeline Status</label>
+        <label className="text-xs font-bold text-foreground">Pipeline Stage *</label>
         <ShadcnDropdownSelect
           value={formData.status}
           onValueChange={(val) => onChange({ ...formData, status: val as LeadStatus })}
           options={[
-            { value: 'NEW', label: 'New' },
+            { value: 'NEW', label: 'New intake' },
             { value: 'ASSIGNED', label: 'Assigned' },
             { value: 'CONTACTED', label: 'Contacted' },
             { value: 'INTERESTED', label: 'Interested' },
@@ -137,23 +148,49 @@ export default function EditLeadFormFields({
       </div>
 
       <div className="space-y-1 sm:col-span-2">
-        <label className="text-xs font-bold text-foreground">Assigned Business Development Associate</label>
-        <div className="relative">
-          <UserCheck className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
-          <ShadcnDropdownSelect
-            value={formData.assignedEmployeeId}
-            onValueChange={(val) => onChange({ ...formData, assignedEmployeeId: val })}
-            options={[
-              { value: '', label: 'Leave Unassigned (Pool)' },
-              ...activeEmployees.map((emp) => ({
-                value: emp.id,
-                label: `${emp.name} (${emp.employeeCode})`,
-              })),
-            ]}
-            placeholder="Select Business Development Associate or leave unassigned..."
-            triggerClassName="pl-8"
-          />
-        </div>
+        {isCeo ? (
+          <>
+            <label className="text-xs font-bold text-foreground">Squad / Team Assignment</label>
+            <div className="relative">
+              <Shield className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
+              <ShadcnDropdownSelect
+                value={formData.teamId || ''}
+                onValueChange={(val) => onChange({ ...formData, teamId: val, assignedEmployeeId: '' })}
+                options={[
+                  { value: '', label: 'General Pool (Unassigned)' },
+                  ...teams.map((t) => ({
+                    value: t.id,
+                    label: `Squad ${t.name}${t.teamLead ? ` • TL: ${t.teamLead.name}` : ''}`,
+                  })),
+                ]}
+                placeholder="Select Squad or leave unassigned..."
+                triggerClassName="pl-8"
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <label className="text-xs font-bold text-foreground">Assigned Squad BDA</label>
+            <div className="relative">
+              <UserCheck className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
+              <ShadcnDropdownSelect
+                value={formData.assignedEmployeeId}
+                onValueChange={(val) => onChange({ ...formData, assignedEmployeeId: val })}
+                options={[
+                  { value: '', label: 'Leave in Squad Pool (Unassigned)' },
+                  ...activeEmployees
+                    .filter((emp) => emp.role === 'BDA')
+                    .map((emp) => ({
+                      value: emp.id,
+                      label: `${emp.name} (${emp.employeeCode}) [BDA]`,
+                    })),
+                ]}
+                placeholder="Select Squad BDA or leave in pool..."
+                triggerClassName="pl-8"
+              />
+            </div>
+          </>
+        )}
       </div>
 
       <div className="space-y-1 sm:col-span-2">

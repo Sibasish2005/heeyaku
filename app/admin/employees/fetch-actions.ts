@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { assertAuthenticatedUser } from '@/lib/auth/rbac';
 import { Role } from '@prisma/client';
 import { EmployeeListItem } from '@/components/admin/employees/EmployeeTable';
+import { sanitizeErrorMessage } from '@/lib/security/errors';
 
 interface CachedChunk {
   items: EmployeeListItem[];
@@ -14,16 +15,35 @@ interface CachedChunk {
 const chunkCache = new Map<string, CachedChunk>();
 const CACHE_TTL_MS = 20 * 1000; // 20 seconds server-side memory cache
 
-export async function clearEmployeeChunkCache() {
+/**
+ * Invalidates the in-memory 20-second chunk pagination cache for employee tables.
+ */
+export async function clearEmployeeChunkCache(): Promise<void> {
   chunkCache.clear();
 }
 
+/**
+ * Server Action: Fetches a paginated slice of employees with multi-field search and filters.
+ * Enforces squad isolation: Team Leads only receive BDAs belonging to their assigned squad.
+ * Cached in-memory with a 20-second TTL keyed by search/filter parameters.
+ *
+ * @param params - Query criteria
+ * @param params.skip - Offset number of records to skip
+ * @param params.take - Page size chunk to fetch (default: 10)
+ * @param params.searchQuery - Text search matching name, email, employeeCode, or phone
+ * @param params.statusFilter - Filter: 'ALL' | 'ACTIVE' | 'INACTIVE'
+ * @param params.teamFilter - Filter by squad name ('ALL' or specific squad)
+ * @param params.roleFilter - Filter by role ('ALL' | 'BDA' | 'TEAM_LEAD' | 'HR')
+ *
+ * @returns {Promise<{ success: boolean; items: EmployeeListItem[]; totalCount: number; hasMore: boolean; error?: string }>} Paginated employee records with total count and hasMore flag
+ */
 export async function fetchEmployeesChunkAction(params: {
   skip: number;
   take?: number;
   searchQuery?: string;
   statusFilter?: 'ALL' | 'ACTIVE' | 'INACTIVE';
   teamFilter?: string;
+  roleFilter?: 'ALL' | 'CEO' | 'BDA' | 'TEAM_LEAD' | 'HR';
 }): Promise<{
   success: boolean;
   items: EmployeeListItem[];
@@ -33,10 +53,10 @@ export async function fetchEmployeesChunkAction(params: {
 }> {
   try {
     const user = await assertAuthenticatedUser();
-    const { skip = 0, take = 10, searchQuery = '', statusFilter = 'ALL', teamFilter = 'ALL' } = params;
+    const { skip = 0, take = 10, searchQuery = '', statusFilter = 'ALL', teamFilter = 'ALL', roleFilter = 'ALL' } = params;
 
     const userScopeKey = user.role === Role.TEAM_LEAD ? `tl-${user.ledTeamId || user.teamId || 'none'}` : 'all';
-    const cacheKey = `${userScopeKey}-${skip}-${take}-${searchQuery.trim().toLowerCase()}-${statusFilter}-${teamFilter}`;
+    const cacheKey = `${userScopeKey}-${skip}-${take}-${searchQuery.trim().toLowerCase()}-${statusFilter}-${teamFilter}-${roleFilter}`;
     const cached = chunkCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       return {
@@ -67,6 +87,9 @@ export async function fetchEmployeesChunkAction(params: {
     }
     if (statusFilter !== 'ALL') {
       where.isActive = statusFilter === 'ACTIVE';
+    }
+    if (roleFilter !== 'ALL') {
+      where.role = roleFilter as Role;
     }
     if (teamFilter !== 'ALL') {
       where.team = teamFilter;
@@ -141,6 +164,8 @@ export async function fetchEmployeesChunkAction(params: {
         name: e.name,
         email: e.email,
         phoneNumber: e.phoneNumber,
+        role: e.role,
+        teamId: e.teamId,
         team: e.team,
         notes: e.notes,
         isActive: e.isActive,
@@ -165,13 +190,12 @@ export async function fetchEmployeesChunkAction(params: {
       hasMore: skip + items.length < totalCount,
     };
   } catch (error) {
-    console.error('Error in fetchEmployeesChunkAction:', error);
     return {
       success: false,
       items: [],
       totalCount: 0,
       hasMore: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch employees.',
+      error: sanitizeErrorMessage(error, 'Unable to load employee roster.'),
     };
   }
 }

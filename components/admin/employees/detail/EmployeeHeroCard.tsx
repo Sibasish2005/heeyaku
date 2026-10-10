@@ -9,6 +9,7 @@ interface EmployeeData {
   name: string;
   email: string;
   phoneNumber: string;
+  role?: string;
   team: string | null;
   notes: string | null;
   isActive: boolean;
@@ -18,6 +19,7 @@ interface EmployeeData {
 interface EmployeeHeroCardProps {
   employee: EmployeeData;
   isToggling: boolean;
+  canManage?: boolean;
   onEdit: () => void;
   onResetPassword: () => void;
   onToggleStatus: () => void;
@@ -34,6 +36,7 @@ function getInitials(name: string): string {
 export default function EmployeeHeroCard({
   employee,
   isToggling,
+  canManage = true,
   onEdit,
   onResetPassword,
   onToggleStatus,
@@ -67,43 +70,51 @@ export default function EmployeeHeroCard({
               </span>
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              {employee.employeeCode} · {employee.team === 'BDA' || !employee.team ? 'Business Development Associate' : employee.team}
+              {employee.employeeCode} · {
+                employee.role === 'HR'
+                  ? 'Human Resources'
+                  : employee.role === 'TEAM_LEAD'
+                  ? `Team Lead${employee.team ? ` · Squad ${employee.team}` : ''}`
+                  : `Business Development Associate${employee.team ? ` · Squad ${employee.team}` : ''}`
+              }
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={onEdit}
-            className="px-3 py-1.5 text-xs font-medium text-foreground bg-card hover:bg-muted border border-border rounded-lg transition-colors cursor-pointer"
-          >
-            Edit
-          </button>
+        {canManage && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={onEdit}
+              className="px-3 py-1.5 text-xs font-medium text-foreground bg-card hover:bg-muted border border-border rounded-lg transition-colors cursor-pointer"
+            >
+              Edit
+            </button>
 
-          <button
-            type="button"
-            onClick={onResetPassword}
-            className="px-3 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 rounded-lg transition-colors cursor-pointer"
-          >
-            Reset password
-          </button>
+            <button
+              type="button"
+              onClick={onResetPassword}
+              className="px-3 py-1.5 text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 rounded-lg transition-colors cursor-pointer"
+            >
+              Reset password
+            </button>
 
-          <button
-            type="button"
-            disabled={isToggling}
-            onClick={onToggleStatus}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
-              employee.isActive
-                ? 'text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20'
-                : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20'
-            }`}
-          >
-            {isToggling && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            <span>{employee.isActive ? 'Deactivate' : 'Reactivate'}</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              disabled={isToggling}
+              onClick={onToggleStatus}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+                employee.isActive
+                  ? 'text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20'
+                  : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20'
+              }`}
+            >
+              {isToggling && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{employee.isActive ? 'Deactivate' : 'Reactivate'}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Clean, Lightweight Inline Metadata */}

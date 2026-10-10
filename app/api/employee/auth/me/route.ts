@@ -55,8 +55,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       employee: {
-        ...employee,
-        role: employee.team || 'Business Development Associate',
+        id: employee.id,
+        employeeCode: employee.employeeCode,
+        name: employee.name,
+        email: employee.email,
+        phoneNumber: employee.phoneNumber,
+        role: employee.role,
+        team: employee.team || 'General',
+        teamId: employee.teamId,
       },
       stats: {
         totalAssigned,

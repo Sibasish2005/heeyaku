@@ -78,11 +78,11 @@ export default function LeadTableToolbar({
     employeeFilter !== 'ALL';
 
   const employeeOptions = [
-    { value: 'ALL', label: 'All Associates' },
+    { value: 'ALL', label: 'All Assignees' },
     { value: 'UNASSIGNED', label: 'Unassigned (Pool)' },
     ...activeEmployees.map((emp) => ({
       value: emp.id,
-      label: `${emp.name} (${emp.employeeCode})`,
+      label: `${emp.name} (${emp.employeeCode})${emp.role === 'TEAM_LEAD' ? ' [Team Lead]' : ' [BDA]'}${emp.team ? ` • Squad ${emp.team}` : ''}`,
     })),
   ];
 

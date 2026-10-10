@@ -27,8 +27,19 @@ export interface RateLimitResult {
 }
 
 /**
- * In-memory sliding window rate limiter.
- * Designed for authentication endpoints and sensitive API routes.
+ * Sliding-window in-memory rate limiter.
+ * Tracks client requests by IP or user identity to protect against brute-force attacks,
+ * credential stuffing, and volumetric request floods.
+ *
+ * @param key - The unique tracking identifier (e.g. `login:ip:192.168.1.1` or `login:account:EMP-0001`)
+ * @param options - Configuration options
+ * @param options.windowMs - Sliding window duration in milliseconds (default: 60,000ms / 1 min)
+ * @param options.maxAttempts - Maximum requests permitted within the window (default: 5)
+ *
+ * @returns {RateLimitResult} Object containing:
+ * - `allowed`: boolean flag indicating whether the current request is within limits
+ * - `remaining`: count of remaining attempts available in current window
+ * - `resetSeconds`: countdown in seconds until window resets
  */
 export function checkRateLimit(
   key: string,
@@ -67,7 +78,10 @@ export function checkRateLimit(
 }
 
 /**
- * Resets the rate limit counter for a key upon successful authentication.
+ * Resets the rate limit counter for a key immediately.
+ * Called upon successful authentication to clear previous failed attempts.
+ *
+ * @param key - The unique tracking identifier to clear
  */
 export function resetRateLimit(key: string): void {
   rateLimitStore.delete(key);

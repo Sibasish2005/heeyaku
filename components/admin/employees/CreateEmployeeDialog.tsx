@@ -76,7 +76,7 @@ export default function CreateEmployeeDialog({
 
   const handleCopy = () => {
     if (!createdCredentials) return;
-    const text = `Staff Account Credentials\nName: ${createdCredentials.name}\nEmployee Code: ${createdCredentials.employeeCode}\nEmail: ${createdCredentials.email}\nTemporary Password: ${createdCredentials.temporaryPassword}\nLogin URL: ${window.location.origin}/admin/login`;
+    const text = `Staff Account Credentials\nName: ${createdCredentials.name}\nEmployee Code: ${createdCredentials.employeeCode}\nEmail: ${createdCredentials.email}\nTemporary Password: ${createdCredentials.temporaryPassword}\nLogin URL: ${window.location.origin}/sign-in`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -92,6 +92,7 @@ export default function CreateEmployeeDialog({
       teamLeadId: '',
       team: 'Business Development Associates',
       notes: '',
+      password: '',
     });
     onClose();
   };

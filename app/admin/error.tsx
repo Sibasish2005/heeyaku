@@ -26,9 +26,7 @@ export default function AdminError({
         Unable to Load Admin Module
       </h2>
       <p className="text-sm text-muted-foreground max-w-md mb-6">
-        {error.message && !error.message.includes('digest')
-          ? error.message
-          : 'A temporary connection issue occurred while communicating with the database. Please reload to reconnect.'}
+        An unexpected error occurred while loading this module. Please try again or return to the dashboard.
       </p>
 
       <div className="flex items-center gap-3">

@@ -15,18 +15,22 @@ import { getLeadTableColumns } from './table/leadTableColumns';
 import { unassignLeadsAction } from '@/app/admin/leads/assignment-actions';
 import { toast } from 'sonner';
 
-export type { ActiveEmployee, LeadListItem } from './table/types';
+export type { ActiveEmployee, ActiveTeam, LeadListItem } from './table/types';
 
 interface LeadTableProps {
   initialLeads: LeadListItem[];
   activeEmployees: ActiveEmployee[];
+  teams?: import('./table/types').ActiveTeam[];
   initialEmployeeFilter?: string;
+  currentUserRole?: string;
 }
 
 export default function LeadTable({
   initialLeads,
   activeEmployees,
+  teams = [],
   initialEmployeeFilter,
+  currentUserRole,
 }: LeadTableProps) {
   const [leads] = useState<LeadListItem[]>(initialLeads);
   const [searchQuery, setSearchQuery] = useState('');
@@ -240,6 +244,8 @@ export default function LeadTable({
         importMode={importMode}
         selectedIds={selectedIds}
         activeEmployees={activeEmployees}
+        teams={teams}
+        currentUserRole={currentUserRole}
         onCloseCreate={() => setIsCreateOpen(false)}
         onCloseEdit={() => setEditingLead(null)}
         onCloseBulkAssign={() => setIsBulkAssignOpen(false)}

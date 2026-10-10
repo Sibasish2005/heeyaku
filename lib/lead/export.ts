@@ -18,6 +18,13 @@ export interface LeadExportData {
   callCount?: number | null;
 }
 
+/**
+ * Sanitizes spreadsheet cell content to prevent CSV/Formula injection attacks (CWE-1236).
+ * Prepends a single quote if string begins with dangerous formula trigger characters (=, +, -, @, tab, CR).
+ *
+ * @param val - The cell value to sanitize
+ * @returns {string} Sanitized string safe for spreadsheet insertion
+ */
 function sanitizeCell(val: string | null | undefined): string {
   if (!val) return '';
   const str = String(val).trim();
@@ -28,8 +35,12 @@ function sanitizeCell(val: string | null | undefined): string {
 }
 
 /**
- * Formats lead records into clean, user-friendly rows for CSV/XLSX export.
- * Neutralizes spreadsheet formula injection and excludes internal hashes.
+ * Transforms raw database lead records into sanitized, formatted rows for spreadsheet export.
+ * Formats timestamps to Indian locale (en-IN), resolves unassigned employee placeholders,
+ * and escapes formulas.
+ *
+ * @param leads - Array of LeadExportData objects
+ * @returns {Array<Record<string, string>>} Sanitized export-ready row objects with friendly column names
  */
 export function formatLeadsForExport(leads: LeadExportData[]) {
   return leads.map((lead) => ({
@@ -52,9 +63,13 @@ export function formatLeadsForExport(leads: LeadExportData[]) {
 }
 
 /**
- * Generates and triggers browser download of an XLSX file.
+ * Generates an Excel (.xlsx) spreadsheet workbook from lead data and triggers browser file download.
+ * Automatically computes appropriate column widths.
+ *
+ * @param leads - Array of lead data objects
+ * @param filename - Base or complete filename for the downloaded file (e.g. 'Heeyaku_Leads_2026')
  */
-export function downloadLeadsAsXlsx(leads: LeadExportData[], filename: string) {
+export function downloadLeadsAsXlsx(leads: LeadExportData[], filename: string): void {
   const formatted = formatLeadsForExport(leads);
   const worksheet = XLSX.utils.json_to_sheet(formatted);
 
@@ -71,9 +86,13 @@ export function downloadLeadsAsXlsx(leads: LeadExportData[], filename: string) {
 }
 
 /**
- * Generates and triggers browser download of a CSV file.
+ * Generates a comma-separated values (.csv) file from lead data and triggers browser file download.
+ * Creates an in-memory Blob and triggers download via programmatic anchor element click.
+ *
+ * @param leads - Array of lead data objects
+ * @param filename - Base or complete filename for the downloaded file
  */
-export function downloadLeadsAsCsv(leads: LeadExportData[], filename: string) {
+export function downloadLeadsAsCsv(leads: LeadExportData[], filename: string): void {
   const formatted = formatLeadsForExport(leads);
   const worksheet = XLSX.utils.json_to_sheet(formatted);
   const csv = XLSX.utils.sheet_to_csv(worksheet);

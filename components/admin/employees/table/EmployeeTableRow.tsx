@@ -23,6 +23,7 @@ interface EmployeeTableRowProps {
   isMenuOpen: boolean;
   isToggling: boolean;
   canManageEmployees?: boolean;
+  currentUserRole?: string;
   onToggleMenu: () => void;
   onCloseMenu: () => void;
   onEdit: () => void;
@@ -36,6 +37,7 @@ export default function EmployeeTableRow({
   isMenuOpen,
   isToggling,
   canManageEmployees = true,
+  currentUserRole,
   onToggleMenu,
   onCloseMenu,
   onEdit,
@@ -43,6 +45,14 @@ export default function EmployeeTableRow({
   onToggleStatus,
   onDelete,
 }: EmployeeTableRowProps) {
+  const isTargetCeo = emp.role === 'CEO';
+  const isTargetHr = emp.role === 'HR';
+  const isViewerHr = currentUserRole === 'HR';
+
+  // CEO cannot be edited/deleted in table (immutable .env config).
+  // HR cannot manage other HRs.
+  const canManageThisEmployee = canManageEmployees && !isTargetCeo && !(isViewerHr && isTargetHr);
+
   return (
     <tr className="hover:bg-muted/40 transition-[background-color] duration-150 whitespace-nowrap">
       <td className="py-2.5 px-4 whitespace-nowrap">
@@ -70,18 +80,36 @@ export default function EmployeeTableRow({
       </td>
 
       <td className="py-2.5 px-3 whitespace-nowrap">
-        {emp.role === 'TEAM_LEAD' ? (
-          <span className="inline-flex items-center text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded">
-            TL • {emp.team || 'Squad'}
+        {emp.role === 'CEO' ? (
+          <span className="inline-flex items-center text-[10px] font-bold text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">
+            CEO
           </span>
+        ) : emp.role === 'TEAM_LEAD' ? (
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded">
+              Team Lead
+            </span>
+            {emp.team && (
+              <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border/50">
+                Squad {emp.team}
+              </span>
+            )}
+          </div>
         ) : emp.role === 'HR' ? (
           <span className="inline-flex items-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded">
-            HR Operations
+            Human Resources
           </span>
         ) : (
-          <span className="text-[10.5px] font-semibold text-muted-foreground bg-muted px-2 py-0.5 rounded">
-            {emp.team || 'General Squad'}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded">
+              BDA
+            </span>
+            {emp.team && (
+              <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded border border-border/50">
+                Squad {emp.team}
+              </span>
+            )}
+          </div>
         )}
       </td>
 
@@ -99,32 +127,44 @@ export default function EmployeeTableRow({
       </td>
 
       <td className="py-2.5 px-3 text-center whitespace-nowrap">
-        <Link
-          href={`/admin/leads?employeeId=${emp.id}`}
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold text-foreground hover:text-[#2563EB] hover:bg-[#2563EB]/10 transition-colors"
-        >
-          <Users className="w-3 h-3 text-muted-foreground" />
-          <span>{emp._count.leads}</span>
-        </Link>
+        {emp.role === 'HR' || emp.role === 'CEO' ? (
+          <span className="text-muted-foreground/40 text-[11px] font-mono select-none">—</span>
+        ) : (
+          <Link
+            href={`/admin/leads?employeeId=${emp.id}`}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold text-foreground hover:text-[#2563EB] hover:bg-[#2563EB]/10 transition-colors"
+          >
+            <Users className="w-3 h-3 text-muted-foreground" />
+            <span>{emp._count.leads}</span>
+          </Link>
+        )}
       </td>
 
       <td className="py-2.5 px-3 text-center whitespace-nowrap">
-        <Link
-          href={`/admin/employees/${emp.id}`}
-          className="inline-flex flex-col items-center gap-0.5 px-2 py-0.5 rounded-md hover:bg-muted/80 transition-colors"
-        >
-          <span className="inline-flex items-center gap-1 text-xs font-bold font-mono text-blue-600 dark:text-blue-400">
-            <PhoneCall className="w-3 h-3" />
-            <span>{emp._count.callLogs ?? emp.totalCalls ?? 0} tried</span>
-          </span>
-          <span className="text-[10px] font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-            {emp.connectedCalls ?? 0} connected
-          </span>
-        </Link>
+        {emp.role !== 'BDA' ? (
+          <span className="text-muted-foreground/40 text-[11px] font-mono font-medium select-none">N/A</span>
+        ) : (
+          <Link
+            href={`/admin/employees/${emp.id}`}
+            className="inline-flex flex-col items-center gap-0.5 px-2 py-0.5 rounded-md hover:bg-muted/80 transition-colors"
+          >
+            <span className="inline-flex items-center gap-1 text-xs font-bold font-mono text-blue-600 dark:text-blue-400">
+              <PhoneCall className="w-3 h-3" />
+              <span>{emp._count.callLogs ?? emp.totalCalls ?? 0} tried</span>
+            </span>
+            <span className="text-[10px] font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+              {emp.connectedCalls ?? 0} connected
+            </span>
+          </Link>
+        )}
       </td>
 
       <td className="py-2.5 px-3 text-center whitespace-nowrap font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-        {formatDuration(emp.totalTalkTimeSeconds ?? 0)}
+        {emp.role !== 'BDA' ? (
+          <span className="text-muted-foreground/40 text-[11px] font-mono select-none">—</span>
+        ) : (
+          formatDuration(emp.totalTalkTimeSeconds ?? 0)
+        )}
       </td>
 
 
@@ -146,7 +186,7 @@ export default function EmployeeTableRow({
             <ExternalLink className="w-3.5 h-3.5" />
           </Link>
 
-          {canManageEmployees && (
+          {canManageThisEmployee && (
             <button
               type="button"
               onClick={onToggleMenu}
@@ -157,7 +197,7 @@ export default function EmployeeTableRow({
           )}
         </div>
 
-        {canManageEmployees && isMenuOpen && (
+        {canManageThisEmployee && isMenuOpen && (
           <div 
             className="absolute right-5 top-11 z-30 w-44 bg-card text-card-foreground rounded-xl border border-border shadow-xl py-1 text-xs text-left animate-in fade-in-50 zoom-in-95 origin-top-right"
             onMouseLeave={onCloseMenu}

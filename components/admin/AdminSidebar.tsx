@@ -164,7 +164,7 @@ export default function AdminSidebar({
 
           <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <UserButton />
+              <UserButton fallback={<div className="w-7 h-7 rounded-full bg-muted/60" />} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1">
                   <span className="text-xs font-bold text-foreground truncate">{adminName}</span>
@@ -211,7 +211,10 @@ export default function AdminSidebar({
                 </button>
                 <button
                   type="button"
-                  onClick={() => signOut({ redirectUrl: '/' })}
+                  onClick={() => {
+                    document.cookie = 'heeyaku_dev_session=; path=/; max-age=0;';
+                    signOut({ redirectUrl: '/' });
+                  }}
                   className="px-2 py-1.5 text-[11px] font-bold text-white bg-destructive hover:bg-destructive/90 rounded-lg transition-colors shadow-xs cursor-pointer"
                 >
                   Yes, Sign Out

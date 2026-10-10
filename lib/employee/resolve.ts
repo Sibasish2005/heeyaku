@@ -20,9 +20,12 @@ const employeeIdentityCache = new Map<string, CachedResolvedEmployee>();
 const RESOLVE_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Invalidates the employee identity cache when an employee account is modified or deactivated.
+ * Invalidates the employee identity resolution cache when an employee account is modified,
+ * role updated, credentials reset, or deactivated.
+ *
+ * @param identifier - Optional ID, employeeCode, or email to purge specifically. If omitted, clears entire cache.
  */
-export function clearEmployeeIdentityCache(identifier?: string) {
+export function clearEmployeeIdentityCache(identifier?: string): void {
   if (identifier) {
     employeeIdentityCache.delete(identifier);
     // Also clear keys that might match employeeCode or ID
@@ -40,6 +43,14 @@ export function clearEmployeeIdentityCache(identifier?: string) {
  * Resiliently resolves an employee and all associated IDs (including matching
  * records across database reseeds or employeeCode/email aliases).
  * In-memory cached with 5-minute TTL to eliminate repetitive DB lookups on high-frequency mobile requests.
+ *
+ * @param payload - Decoded JWT claims from mobile app token
+ * @param payload.employeeId - Primary database ID from JWT
+ * @param payload.employeeCode - Employee code (e.g. EMP-0001)
+ * @param payload.email - Staff email address
+ * @param payload.name - Staff full name
+ *
+ * @returns {Promise<ResolvedEmployee | null>} The resolved employee identity object with all matching aliases, or null if inactive/nonexistent
  */
 export async function resolveEmployeeIdentity(
   payload: EmployeeTokenPayload

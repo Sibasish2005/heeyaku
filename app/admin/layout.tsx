@@ -13,7 +13,7 @@ export const metadata = {
 
 import { Role } from '@prisma/client';
 import { Smartphone } from 'lucide-react';
-import RoleSwitcherBar from '@/components/admin/RoleSwitcherBar';
+
 
 export default async function AdminLayout({
   children,
@@ -53,15 +53,6 @@ export default async function AdminLayout({
   if (admin.role === Role.BDA) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-[#0B1F33]">
-        {admin.isRealCeo && (
-          <div className="fixed top-0 left-0 right-0 z-50">
-            <RoleSwitcherBar
-              currentRole={admin.role}
-              isRealCeo={true}
-              simulatedRole={admin.simulatedRole}
-            />
-          </div>
-        )}
         <div className="max-w-md w-full bg-white rounded-2xl border border-blue-200 p-8 shadow-sm text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto border border-blue-100">
             <Smartphone className="w-6 h-6" />

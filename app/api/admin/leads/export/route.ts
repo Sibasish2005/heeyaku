@@ -130,8 +130,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error in leads export route:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Export failed' },
-      { status: 403 }
+      { error: 'Unable to export leads data. Please try again.' },
+      { status: 500 }
     );
   }
 }

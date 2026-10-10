@@ -6,21 +6,13 @@ const isProtectedRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
+  // 1. Handle Clerk Frontend API reverse proxy
   if (req.nextUrl.pathname.startsWith("/__clerk")) {
     const headers = new Headers(req.headers);
     const host = headers.get("x-forwarded-host") || headers.get("host") || "";
     if (host.includes("localhost") || host.includes("127.0.0.1")) {
       headers.set("x-forwarded-host", "heeyaku.vercel.app");
       headers.set("x-forwarded-proto", "https");
-      if (headers.get("origin")?.includes("localhost") || headers.get("origin")?.includes("127.0.0.1")) {
-        headers.set("origin", "https://heeyaku.vercel.app");
-      }
-      if (headers.get("referer")?.includes("localhost") || headers.get("referer")?.includes("127.0.0.1")) {
-        headers.set(
-          "referer",
-          headers.get("referer")!.replace(/^http:\/\/(localhost|127\.0\.0\.1):\d+/, "https://heeyaku.vercel.app")
-        );
-      }
     }
     const hasBody = req.method !== "GET" && req.method !== "HEAD" && req.body;
     const proxiedRequest = new Request(req.url, {
@@ -45,6 +37,13 @@ export default clerkMiddleware(async (auth, req) => {
     return response;
   }
 
+  // 2. React Server Actions: Do not intercept with auth.protect() redirect in middleware
+  // Authentication & RBAC are enforced securely inside the server action via assertAuthenticatedUser()
+  if (req.headers.has("next-action")) {
+    return;
+  }
+
+  // 3. Enforce authentication for protected admin pages
   if (isProtectedRoute(req)) {
     await auth.protect();
   }

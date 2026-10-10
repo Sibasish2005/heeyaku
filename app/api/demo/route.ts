@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/security/rate-limit';
+import { handleCorsPreflight } from '@/lib/security/cors';
+
+export async function OPTIONS(req: NextRequest) {
+  return handleCorsPreflight(req, {
+    allowMethods: ['POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Accept', 'Origin'],
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {

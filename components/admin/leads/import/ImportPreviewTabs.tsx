@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { CheckCircle2, AlertTriangle, AlertCircle, ArrowLeft, ArrowRight, UserCheck, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { Shield, CheckCircle2, AlertTriangle, AlertCircle, ArrowLeft, ArrowRight, UserCheck, Loader2 } from 'lucide-react';
 import { ImportPreviewResult } from '@/app/admin/leads/import-actions';
 import ShadcnDropdownSelect from '@/components/ui/shadcn-dropdown-select';
+import { ActiveTeam } from '../table/types';
 
 interface ActiveEmployee {
   id: string;
@@ -15,8 +16,12 @@ interface ActiveEmployee {
 interface ImportPreviewTabsProps {
   previewResult: ImportPreviewResult;
   activeEmployees: ActiveEmployee[];
+  teams?: ActiveTeam[];
+  selectedTeamId?: string;
   assignedEmployeeId: string;
+  currentUserRole?: string;
   loading: boolean;
+  onSelectedTeamIdChange?: (id: string) => void;
   onAssignedEmployeeChange: (id: string) => void;
   onBack: () => void;
   onExecuteImport: () => void;
@@ -25,12 +30,17 @@ interface ImportPreviewTabsProps {
 export default function ImportPreviewTabs({
   previewResult,
   activeEmployees,
+  teams = [],
+  selectedTeamId = '',
   assignedEmployeeId,
+  currentUserRole,
   loading,
+  onSelectedTeamIdChange,
   onAssignedEmployeeChange,
   onBack,
   onExecuteImport,
 }: ImportPreviewTabsProps) {
+  const isCeo = currentUserRole === 'CEO';
   const [previewTab, setPreviewTab] = useState<'VALID' | 'DUPLICATES' | 'INVALID'>('VALID');
 
   return (
@@ -149,26 +159,50 @@ export default function ImportPreviewTabs({
         )}
       </div>
 
-      {/* Staff Assignment Selector */}
-      {previewResult.validRows.length > 0 && activeEmployees.length > 0 && (
+      {/* Staff / Squad Assignment Selector */}
+      {previewResult.validRows.length > 0 && (
         <div className="p-3.5 bg-muted/30 rounded-xl border border-border/80 space-y-1.5">
-          <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-            <UserCheck className="w-3.5 h-3.5 text-[#2563EB]" />
-            <span>Optional: Assign all imported leads to a Business Development Associate</span>
-          </label>
-          <ShadcnDropdownSelect
-            value={assignedEmployeeId}
-            onValueChange={onAssignedEmployeeChange}
-            options={[
-              { value: '', label: 'Leave Unassigned (Add to Pool)' },
-              ...activeEmployees.map((emp) => ({
-                value: emp.id,
-                label: `${emp.name} (${emp.employeeCode})`,
-              })),
-            ]}
-            placeholder="Select Business Development Associate or leave unassigned..."
-            triggerClassName="bg-card"
-          />
+          {isCeo ? (
+            <>
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-[#2563EB]" />
+                <span>Optional: Assign imported leads to a Squad / Team</span>
+              </label>
+              <ShadcnDropdownSelect
+                value={selectedTeamId}
+                onValueChange={(val) => onSelectedTeamIdChange?.(val)}
+                options={[
+                  { value: '', label: 'Leave Unassigned (Add to General Pool)' },
+                  ...teams.map((team) => ({
+                    value: team.id,
+                    label: `Squad ${team.name}${team.teamLead ? ` • TL: ${team.teamLead.name}` : ''}`,
+                  })),
+                ]}
+                placeholder="Select Squad or leave in general pool..."
+                triggerClassName="bg-card"
+              />
+            </>
+          ) : activeEmployees.length > 0 ? (
+            <>
+              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-[#2563EB]" />
+                <span>Optional: Assign imported leads to a Squad BDA</span>
+              </label>
+              <ShadcnDropdownSelect
+                value={assignedEmployeeId}
+                onValueChange={onAssignedEmployeeChange}
+                options={[
+                  { value: '', label: 'Leave in Squad Pool (Unassigned)' },
+                  ...activeEmployees.map((emp) => ({
+                    value: emp.id,
+                    label: `${emp.name} (${emp.employeeCode})`,
+                  })),
+                ]}
+                placeholder="Select Squad BDA or leave unassigned..."
+                triggerClassName="bg-card"
+              />
+            </>
+          ) : null}
         </div>
       )}
 

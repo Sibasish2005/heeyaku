@@ -8,7 +8,10 @@ import {
   Check, 
   AlertCircle, 
   Loader2, 
-  ShieldAlert 
+  ShieldAlert,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { resetEmployeePasswordAction } from '@/app/admin/employees/actions';
 
@@ -30,6 +33,8 @@ export default function ResetPasswordDialog({
 }: ResetPasswordDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customPassword, setCustomPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -37,10 +42,14 @@ export default function ResetPasswordDialog({
 
   const handleReset = async () => {
     setError(null);
+    if (customPassword.trim() && customPassword.trim().length < 15) {
+      setError('Password must be at least 15 characters long to satisfy security policies.');
+      return;
+    }
     setLoading(true);
 
     try {
-      const res = await resetEmployeePasswordAction(employee.id);
+      const res = await resetEmployeePasswordAction(employee.id, customPassword.trim() || undefined);
       if (!res.success || !res.data) {
         setError(res.error || 'Failed to reset password');
         setLoading(false);
@@ -57,7 +66,7 @@ export default function ResetPasswordDialog({
 
   const handleCopy = () => {
     if (!newPassword) return;
-    const text = `HEEYAKU Password Reset:\nEmployee ID: ${employee.employeeCode}\nEmail: ${employee.email}\nNew Temporary Password: ${newPassword}`;
+    const text = `HEEYAKU Password Reset:\nEmployee ID: ${employee.employeeCode}\nEmail: ${employee.email}\nNew Temporary Password: ${newPassword}\nLogin URL: ${window.location.origin}/sign-in`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -65,6 +74,8 @@ export default function ResetPasswordDialog({
 
   const handleFinish = () => {
     setNewPassword(null);
+    setCustomPassword('');
+    setShowPassword(false);
     setError(null);
     onClose();
   };
@@ -79,7 +90,7 @@ export default function ResetPasswordDialog({
             </div>
             <div>
               <h2 className="text-sm font-bold text-foreground">
-                {newPassword ? 'New Password Generated' : 'Reset Employee Password'}
+                {newPassword ? 'Password Updated Successfully' : 'Reset Employee Password'}
               </h2>
               <p className="text-[11px] text-muted-foreground">
                 {employee.name} ({employee.employeeCode})
@@ -99,10 +110,10 @@ export default function ResetPasswordDialog({
           <div className="p-6 space-y-4">
             <div className="p-4 rounded-xl bg-muted/40 border border-border space-y-3">
               <div className="text-xs text-muted-foreground">
-                A new cryptographically secure password has been hashed and updated in the database.
+                A new cryptographically secure password has been hashed and updated in the database and login directory.
               </div>
               <div className="flex items-center justify-between text-xs pt-2 border-t border-border">
-                <span className="text-muted-foreground font-medium">New Temporary Password:</span>
+                <span className="text-muted-foreground font-medium">Assigned Password:</span>
                 <span className="font-mono font-bold text-foreground bg-background px-2 py-0.5 rounded border border-border select-all">
                   {newPassword}
                 </span>
@@ -116,7 +127,7 @@ export default function ResetPasswordDialog({
                 className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-500 rounded-xl transition-colors shadow-2xs cursor-pointer"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied to Clipboard!' : 'Copy New Password'}</span>
+                <span>{copied ? 'Copied to Clipboard!' : 'Copy Password'}</span>
               </button>
               <button
                 type="button"
@@ -141,8 +152,33 @@ export default function ResetPasswordDialog({
               <div className="space-y-1">
                 <div className="font-bold">Are you sure you want to reset this password?</div>
                 <div className="text-[11px] text-amber-600 dark:text-amber-400/90 leading-relaxed">
-                  The employee&apos;s previous credentials will be immediately invalidated and replaced with a new temporary password.
+                  The employee&apos;s previous credentials will be immediately invalidated and updated across the web and mobile systems.
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-foreground">New Password</label>
+                <span className="text-[10px] text-muted-foreground">Optional (leave blank to auto-generate 16-char password)</span>
+              </div>
+              <div className="relative">
+                <Lock className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter custom password (min 15 chars) or leave blank"
+                  value={customPassword}
+                  onChange={(e) => setCustomPassword(e.target.value)}
+                  className="w-full pl-8 pr-9 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
               </div>
             </div>
 
@@ -162,7 +198,7 @@ export default function ResetPasswordDialog({
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition-colors shadow-2xs disabled:opacity-50 cursor-pointer"
               >
                 {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                <span>Reset Password</span>
+                <span>{customPassword.trim() ? 'Save New Password' : 'Reset & Auto-Generate'}</span>
               </button>
             </div>
           </div>

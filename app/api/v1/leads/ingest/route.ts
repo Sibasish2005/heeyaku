@@ -5,8 +5,16 @@ import { verifyExternalApiKey } from '@/lib/auth/external-api';
 import { toLast10Digits } from '@/lib/lead/phone';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
 import { checkRateLimit } from '@/lib/security/rate-limit';
+import { handleCorsPreflight, withCors } from '@/lib/security/cors';
 
 export const dynamic = 'force-dynamic';
+
+export async function OPTIONS(req: NextRequest) {
+  return handleCorsPreflight(req, {
+    allowMethods: ['POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'apiKey'],
+  });
+}
 
 const MAX_INGEST_BATCH = 500;
 
@@ -218,7 +226,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: unknown) {
     console.error('[ExternalLeadIngest] Error:', error);
-    const message = error instanceof Error ? error.message : 'Internal error processing leads.';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Unable to process lead ingestion request.' }, { status: 500 });
   }
 }

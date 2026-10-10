@@ -50,18 +50,60 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://clerk.com https://*.clerk.com https://*.clerk.services https://heeyaku.vercel.app https://challenges.cloudflare.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://clerk.com https://*.clerk.com https://*.clerk.services https://heeyaku.vercel.app https://*.vercel.app https://challenges.cloudflare.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https://images.unsplash.com https://img.clerk.com",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.clerk.accounts.dev https://clerk.com https://*.clerk.com https://*.clerk.services https://heeyaku.vercel.app https://*.supabase.co https://*.supabase.com wss://*.supabase.co",
-              "frame-src 'self' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+              "connect-src 'self' https://*.clerk.accounts.dev https://clerk.com https://*.clerk.com https://*.clerk.services https://heeyaku.vercel.app https://*.vercel.app https://*.supabase.co https://*.supabase.com wss://*.supabase.co",
+              "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com https://*.vercel.app",
               "worker-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
               "frame-ancestors 'none'",
             ].join('; '),
+          },
+        ],
+      },
+      {
+        source: '/api/v1/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization, x-api-key, apiKey, X-Requested-With, Accept, Origin',
+          },
+          {
+            key: 'Access-Control-Max-Age',
+            value: '86400',
+          },
+        ],
+      },
+      {
+        source: '/api/demo',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'POST, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Accept, Origin',
+          },
+          {
+            key: 'Access-Control-Max-Age',
+            value: '86400',
           },
         ],
       },

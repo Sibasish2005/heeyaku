@@ -6,7 +6,7 @@ import EditLeadDialog from '../EditLeadDialog';
 import BulkAssignDialog from '../BulkAssignDialog';
 import ImportLeadsDialog from '../ImportLeadsDialog';
 import AutoAssignDialog from '../AutoAssignDialog';
-import { ActiveEmployee, LeadListItem } from './types';
+import { ActiveEmployee, ActiveTeam, LeadListItem } from './types';
 
 interface LeadTableModalsProps {
   isCreateOpen: boolean;
@@ -17,12 +17,14 @@ interface LeadTableModalsProps {
   importMode?: 'file' | 'sheets';
   selectedIds: string[];
   activeEmployees: ActiveEmployee[];
+  teams?: ActiveTeam[];
+  currentUserRole?: string;
   onCloseCreate: () => void;
   onCloseEdit: () => void;
   onCloseBulkAssign: () => void;
   onCloseAutoAssign: () => void;
   onCloseImport: () => void;
-  onAssigned: (count: number, employeeName?: string) => void;
+  onAssigned: (count: number, targetName?: string) => void;
 }
 
 export default function LeadTableModals({
@@ -34,6 +36,8 @@ export default function LeadTableModals({
   importMode = 'file',
   selectedIds,
   activeEmployees,
+  teams = [],
+  currentUserRole,
   onCloseCreate,
   onCloseEdit,
   onCloseBulkAssign,
@@ -46,6 +50,8 @@ export default function LeadTableModals({
       <CreateLeadDialog
         isOpen={isCreateOpen}
         activeEmployees={activeEmployees}
+        teams={teams}
+        currentUserRole={currentUserRole}
         onClose={onCloseCreate}
         onLeadCreated={() => window.location.reload()}
       />
@@ -54,6 +60,8 @@ export default function LeadTableModals({
         isOpen={!!editingLead}
         lead={editingLead}
         activeEmployees={activeEmployees}
+        teams={teams}
+        currentUserRole={currentUserRole}
         onClose={onCloseEdit}
         onLeadUpdated={() => window.location.reload()}
       />
@@ -62,6 +70,8 @@ export default function LeadTableModals({
         isOpen={isBulkAssignOpen}
         selectedLeadIds={selectedIds}
         activeEmployees={activeEmployees}
+        teams={teams}
+        currentUserRole={currentUserRole}
         onClose={onCloseBulkAssign}
         onAssigned={onAssigned}
       />
@@ -69,6 +79,8 @@ export default function LeadTableModals({
       <AutoAssignDialog
         isOpen={isAutoAssignOpen}
         activeEmployees={activeEmployees}
+        teams={teams}
+        currentUserRole={currentUserRole}
         onClose={onCloseAutoAssign}
         onAssigned={(count) => onAssigned(count)}
       />
@@ -76,6 +88,8 @@ export default function LeadTableModals({
       <ImportLeadsDialog
         isOpen={isImportOpen}
         activeEmployees={activeEmployees}
+        teams={teams}
+        currentUserRole={currentUserRole}
         onClose={onCloseImport}
         onImportSuccess={() => window.location.reload()}
         mode={importMode}

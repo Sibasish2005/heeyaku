@@ -2,7 +2,12 @@ import { NextRequest } from 'next/server';
 import crypto from 'crypto';
 
 /**
- * Constant-time string comparison to prevent timing attacks.
+ * Constant-time string comparison using SHA-256 digests to prevent timing attacks.
+ * Even if string lengths differ, hashing ensures uniform comparison time.
+ *
+ * @param a - First string (e.g. provided token or key)
+ * @param b - Second string (e.g. configured environment secret)
+ * @returns {boolean} True if strings match identically, false otherwise
  */
 function secureCompare(a: string, b: string): boolean {
   if (!a || !b) return false;
@@ -16,8 +21,15 @@ function secureCompare(a: string, b: string): boolean {
 }
 
 /**
- * Validates the API key from incoming external requests (Google Sheets Apps Script, Zapier, Webhooks).
- * Checks 'x-api-key' header, 'Authorization: Bearer <key>', or query parameter '?apiKey=<key>'.
+ * Validates the API key from incoming external webhook/integration requests
+ * (e.g., Google Sheets Apps Script, Zapier, Make.com, or custom lead intake services).
+ * Checks the following locations in order of preference:
+ * 1. Request header `x-api-key`
+ * 2. Request header `Authorization: Bearer <key>`
+ * 3. URL query parameter `?apiKey=<key>` (deprecated fallback)
+ *
+ * @param req - NextRequest instance from Next.js App Router route handler
+ * @returns {boolean} True if the request contains a valid, matching API key
  */
 export function verifyExternalApiKey(req: NextRequest): boolean {
   const configuredKey = process.env.EXTERNAL_INGESTION_API_KEY?.trim();

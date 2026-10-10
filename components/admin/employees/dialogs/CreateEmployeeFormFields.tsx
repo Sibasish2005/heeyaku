@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Mail, Phone, Building2, FileText, Shield, Users } from 'lucide-react';
+import { Mail, Phone, Building2, FileText, Shield, Users, Lock, Eye, EyeOff } from 'lucide-react';
 import ShadcnDropdownSelect from '@/components/ui/shadcn-dropdown-select';
 import { FRONTEND_PHONE_PATTERN } from '@/lib/lead/phone';
 import { fetchActiveTeamLeadsAction } from '@/app/admin/employees/actions';
@@ -14,6 +14,7 @@ export interface EmployeeFormData {
   teamLeadId?: string;
   team?: string;
   notes: string;
+  password?: string;
 }
 
 interface CreateEmployeeFormFieldsProps {
@@ -25,6 +26,7 @@ export default function CreateEmployeeFormFields({
   formData,
   onChange,
 }: CreateEmployeeFormFieldsProps) {
+  const [showPassword, setShowPassword] = useState(false);
   const [teamLeads, setTeamLeads] = useState<Array<{ id: string; name: string; employeeCode: string; teamName: string | null }>>([]);
   const [loadingTLs, setLoadingTLs] = useState(false);
 
@@ -170,6 +172,31 @@ export default function CreateEmployeeFormFields({
           />
         </div>
       )}
+
+      <div className="space-y-1 sm:col-span-2">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-foreground">Account Password</label>
+          <span className="text-[10px] text-muted-foreground">Optional (leave blank to auto-generate 16-char password)</span>
+        </div>
+        <div className="relative">
+          <Lock className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type={showPassword ? 'text' : 'password'}
+            placeholder="Assign manual password (min 15 chars) or leave blank for auto-generated"
+            value={formData.password || ''}
+            onChange={(e) => onChange({ ...formData, password: e.target.value })}
+            className="w-full pl-8 pr-9 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground font-mono"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-0.5 rounded cursor-pointer"
+            title={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </div>
 
       <div className="space-y-1 sm:col-span-2">
         <label className="text-xs font-bold text-foreground">Internal Notes / Remarks</label>

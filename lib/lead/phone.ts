@@ -12,9 +12,12 @@ export const PHONE_REGEX = /^[0-9]{10}$/;
 export const FRONTEND_PHONE_PATTERN = '[0-9]{10}';
 
 /**
- * Normalizes a phone number for consistent storage and robust duplicate detection.
- * Removes spaces, hyphens, parentheses, dots, and prefixes.
- * Handles Indian country code +91 / 91 and leading 0 uniformly.
+ * Normalizes a telephone number for consistent database storage and robust duplicate detection.
+ * Strips all non-digit characters, handles Indian country code (+91 / 91) and leading 0 uniformly,
+ * returning the normalized 10-digit number.
+ *
+ * @param raw - Candidate phone number string (e.g. '+91 98765-43210', '09876543210')
+ * @returns {string} The normalized 10-digit numerical string, or empty string if input empty
  */
 export function normalizePhoneNumber(raw: string): string {
   if (!raw) return '';
@@ -37,7 +40,10 @@ export function normalizePhoneNumber(raw: string): string {
 }
 
 /**
- * Validates whether a phone number string (raw or normalized) is a valid 10-digit number.
+ * Validates whether a phone number string (raw or normalized) corresponds to a valid 10-digit number.
+ *
+ * @param phone - Phone number candidate to test
+ * @returns {boolean} True if exactly 10 numerical digits after normalization
  */
 export function isValidPhoneNumber(phone: string): boolean {
   if (!phone) return false;
@@ -47,7 +53,10 @@ export function isValidPhoneNumber(phone: string): boolean {
 
 /**
  * Extracts the last 10 numerical digits from any phone number string.
- * Uniformly used across call logging, lead matching, and analytics deduplication.
+ * Uniformly used across telephony telemetry logging, lead matching, and analytics deduplication.
+ *
+ * @param phone - Phone number string or null/undefined
+ * @returns {string} The trailing 10 digits
  */
 export function toLast10Digits(phone: string | null | undefined): string {
   if (!phone) return '';
@@ -55,9 +64,8 @@ export function toLast10Digits(phone: string | null | undefined): string {
 }
 
 /**
- * Reusable Zod schema for 10-digit phone number validation.
- * Normalizes common phone formatting (+91, leading 0, spaces, hyphens)
- * and strictly validates that exactly 10 digits remain.
+ * Reusable Zod schema for 10-digit phone number validation in forms, Server Actions, and API routes.
+ * Automatically trims, strips symbols/prefixes via `normalizePhoneNumber`, and enforces `PHONE_REGEX`.
  */
 export const zodPhoneNumberSchema = z
   .string()

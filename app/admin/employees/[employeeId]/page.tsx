@@ -2,7 +2,7 @@ import React from 'react';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
-import { canManageLeads } from '@/lib/auth/rbac';
+import { canManageLeads, isAllowedCeoEmail } from '@/lib/auth/rbac';
 import { Role } from '@prisma/client';
 import EmployeeDetailView from '@/components/admin/employees/EmployeeDetailView';
 
@@ -231,6 +231,14 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
     createdAt: c.createdAt.toISOString(),
   }));
 
+  const isTargetCeo = employee.role === Role.CEO || isAllowedCeoEmail(employee.email);
+  const isTargetHr = employee.role === Role.HR;
+  const isViewerHr = admin.role === Role.HR;
+  const canManage =
+    (admin.role === Role.CEO || admin.role === Role.HR) &&
+    !isTargetCeo &&
+    !(isViewerHr && isTargetHr);
+
   return (
     <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-8 space-y-6">
       <EmployeeDetailView
@@ -238,8 +246,8 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
         leads={formattedLeads}
         leadStatusCounts={leadStatusCounts}
         callLogs={formattedCallLogs}
+        canManage={canManage}
       />
     </main>
   );
-
 }

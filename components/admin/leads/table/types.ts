@@ -5,6 +5,23 @@ export interface ActiveEmployee {
   employeeCode: string;
   name: string;
   team: string | null;
+  role?: string;
+  teamId?: string | null;
+}
+
+export interface ActiveTeam {
+  id: string;
+  name: string;
+  colorTag?: string | null;
+  teamLead?: {
+    id: string;
+    name: string;
+    employeeCode: string;
+  } | null;
+  _count?: {
+    members: number;
+    leads: number;
+  };
 }
 
 export interface LeadListItem {
@@ -17,6 +34,12 @@ export interface LeadListItem {
   source: string;
   status: LeadStatus;
   notes: string | null;
+  teamId?: string | null;
+  team?: {
+    id: string;
+    name: string;
+    colorTag?: string | null;
+  } | null;
   assignedEmployeeId: string | null;
   assignedAt: string | null;
   createdAt: string;

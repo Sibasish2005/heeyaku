@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { LeadStatus } from '@prisma/client';
+import { LeadStatus, Role } from '@prisma/client';
 import { LeadStatusCount } from '@/components/admin/dashboard/TodayLeadStatusSection';
 import { TopEmployeeReport } from '@/components/admin/dashboard/TodayTopPerformerSpotlight';
 
@@ -42,15 +42,28 @@ let metricsCacheMap = new Map<string, CachedMetrics>();
 const DASHBOARD_CACHE_TTL_MS = 25 * 1000; // 25 seconds fast cache
 
 /**
- * Manually busts the dashboard cache when a mutation (create/update lead or employee) happens.
+ * Manually busts the in-memory dashboard metric cache when a mutation
+ * (create lead, update status, change assignment, add employee) occurs.
  */
-export function invalidateDashboardMetricsCache() {
+export function invalidateDashboardMetricsCache(): void {
   metricsCacheMap.clear();
 }
 
 /**
- * Fetches dashboard metrics with a 25-second server-side TTL cache.
- * Scoped by teamId if provided (for Team Leads), or global for CEO.
+ * Computes high-performance administrative telemetry and KPI metrics for the management dashboard.
+ * Executes parallel SQL aggregations using Prisma `$transaction` / `Promise.all` and aggregates
+ * leads today, pipeline breakdown, call times, and top performer spotlights.
+ * Implements a 25-second server memory cache keyed by squad ID or `__global__`.
+ *
+ * @param teamId - Optional squad ID to scope metrics (Team Leads view only their squad; CEO passes null/undefined for organization-wide)
+ *
+ * @returns {Promise<DashboardMetricsResult>} Aggregate object containing:
+ * - `totalLeadsToday`: Count of leads created or updated today
+ * - `statusBreakdown`: Array of 13 LeadStatus counts with color styles and dot classes
+ * - `employeeReports`: List of staff with today's calls, monthly calls, conversions, talk times
+ * - `topPerformer`: Lifetime top performer
+ * - `topPerformerToday`: Top performing staff member for the current day
+ * - `topPerformerThisMonth`: Top performing staff member for the current month
  */
 export async function getDashboardMetrics(teamId?: string | null): Promise<DashboardMetricsResult> {
   const cacheKey = teamId || '__global__';
@@ -91,7 +104,7 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
         _count: { _all: true },
       }),
       prisma.employee.findMany({
-        where: { isActive: true, ...employeeTeamFilter },
+        where: { isActive: true, role: Role.BDA, ...employeeTeamFilter },
         select: {
           id: true,
           employeeCode: true,

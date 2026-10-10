@@ -15,7 +15,12 @@ export interface ColumnMapping {
 }
 
 /**
- * Parses an uploaded File object (CSV or XLSX) into headers and JSON rows.
+ * Parses an uploaded browser File object (.csv, .xlsx, or .xls) into table headers and row objects.
+ * Uses PapaParse for streaming CSV and SheetJS (XLSX) for Excel workbooks.
+ *
+ * @param file - Browser File instance from file input or drag-and-drop
+ * @returns {Promise<{ headers: string[]; rows: RawImportRow[] }>} Array of string header keys and row records
+ * @throws {Error} If the file format is unsupported or contains no sheets
  */
 export async function parseImportFile(file: File): Promise<{
   headers: string[];
@@ -68,7 +73,11 @@ export async function parseImportFile(file: File): Promise<{
 }
 
 /**
- * Parses raw text (e.g. pasted CSV, TSV, or tabular data) into headers and JSON rows.
+ * Parses raw text (e.g. pasted CSV, TSV, or tabular clipboard data) into headers and JSON rows.
+ *
+ * @param text - Raw text string from textarea or clipboard
+ * @returns {{ headers: string[]; rows: RawImportRow[] }} Extracted headers and row records
+ * @throws {Error} If text is empty or contains no valid header/data rows
  */
 export function parseImportCsvText(text: string): {
   headers: string[];
@@ -97,7 +106,11 @@ export function parseImportCsvText(text: string): {
 }
 
 /**
- * Heuristically identifies likely column matches based on common header variations.
+ * Heuristically identifies likely CRM column matches based on common header variations
+ * (e.g. 'Student Name', 'Mobile Number', 'Batch', 'Course').
+ *
+ * @param headers - Array of detected column headers
+ * @returns {ColumnMapping} Inferred mapping dictionary connecting CSV columns to CRM fields
  */
 export function autoDetectColumnMapping(headers: string[]): ColumnMapping {
   const findMatch = (candidates: string[]): string => {
@@ -125,6 +138,10 @@ export function autoDetectColumnMapping(headers: string[]): ColumnMapping {
 /**
  * Parses any Google Sheet link into a direct CSV export URL.
  * Handles edit links, view links, sharing links, published web links, and direct CSV links.
+ * Enforces HTTPS protocol and `docs.google.com` domain.
+ *
+ * @param url - Raw Google Sheet URL string
+ * @returns {{ exportUrl: string; sheetIdentifier: string } | { error: string }} Validated export URL or error message
  */
 export function parseGoogleSheetUrl(url: string): { exportUrl: string; sheetIdentifier: string } | { error: string } {
   const cleanUrl = url.trim();

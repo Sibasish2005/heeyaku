@@ -457,9 +457,8 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: unknown) {
     console.error('Error syncing call logs:', error);
-    const message = error instanceof Error ? error.message : 'Failed to sync call logs.';
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: 'Unable to synchronize call records.' },
       { status: 500 }
     );
   }

@@ -7,24 +7,28 @@ import ShadcnDropdownSelect from '@/components/ui/shadcn-dropdown-select';
 interface EmployeeTableToolbarProps {
   searchQuery: string;
   statusFilter: 'ALL' | 'ACTIVE' | 'INACTIVE';
+  roleFilter: 'ALL' | 'CEO' | 'BDA' | 'TEAM_LEAD' | 'HR';
   canManageEmployees?: boolean;
   onSearchChange: (val: string) => void;
   onStatusChange: (val: 'ALL' | 'ACTIVE' | 'INACTIVE') => void;
+  onRoleChange: (val: 'ALL' | 'CEO' | 'BDA' | 'TEAM_LEAD' | 'HR') => void;
   onCreateOpen: () => void;
 }
 
 export default function EmployeeTableToolbar({
   searchQuery,
   statusFilter,
+  roleFilter,
   canManageEmployees = true,
   onSearchChange,
   onStatusChange,
+  onRoleChange,
   onCreateOpen,
 }: EmployeeTableToolbarProps) {
   return (
     <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card text-card-foreground p-4 rounded-2xl border border-border shadow-2xs">
-      <div className="flex flex-1 items-center gap-2.5">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-1 flex-wrap items-center gap-2.5">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
@@ -32,6 +36,20 @@ export default function EmployeeTableToolbar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground font-medium text-foreground"
+          />
+        </div>
+
+        <div className="w-32 shrink-0">
+          <ShadcnDropdownSelect
+            value={roleFilter}
+            onValueChange={(val) => onRoleChange(val as 'ALL' | 'CEO' | 'BDA' | 'TEAM_LEAD' | 'HR')}
+            options={[
+              { value: 'ALL', label: 'All Roles' },
+              { value: 'CEO', label: 'CEO' },
+              { value: 'BDA', label: 'BDA' },
+              { value: 'TEAM_LEAD', label: 'Team Lead' },
+              { value: 'HR', label: 'HR' },
+            ]}
           />
         </div>
 

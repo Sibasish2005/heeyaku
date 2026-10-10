@@ -73,6 +73,7 @@ model Employee {
   @@index([teamId])
   @@index([clerkUserId])
   @@index([isActive])
+  @@index([isActive, role, teamId])
   @@map("employees")
 }
 
@@ -103,6 +104,8 @@ model Lead {
   @@index([status])
   @@index([teamId])
   @@index([teamId, status])
+  @@index([teamId, assignedEmployeeId])
+  @@index([teamId, updatedAt])
   @@index([assignedEmployeeId])
   @@index([createdAt])
   @@index([updatedAt])
@@ -154,6 +157,10 @@ model CallLog {
   @@index([phoneNumber])
   @@index([startedAt])
   @@index([employeeId, startedAt])
+  @@index([employeeId, connected])
+  @@index([employeeId, leadId])
+  @@index([employeeId, leadId, connected])
+  @@index([leadId, employeeId])
   @@index([leadId, connected])
   @@index([phoneNumber, connected])
   @@map("call_logs")

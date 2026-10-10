@@ -6,6 +6,8 @@ import { createLeadAction } from '@/app/admin/leads/actions';
 import { zodPhoneNumberSchema } from '@/lib/lead/phone';
 import CreateLeadFormFields, { CreateLeadFormData } from './dialogs/CreateLeadFormFields';
 
+import { ActiveTeam } from './table/types';
+
 interface ActiveEmployee {
   id: string;
   employeeCode: string;
@@ -17,6 +19,8 @@ interface CreateLeadDialogProps {
   isOpen: boolean;
   onClose: () => void;
   activeEmployees: ActiveEmployee[];
+  teams?: ActiveTeam[];
+  currentUserRole?: string;
   onLeadCreated?: () => void;
 }
 
@@ -24,6 +28,8 @@ export default function CreateLeadDialog({
   isOpen,
   onClose,
   activeEmployees,
+  teams = [],
+  currentUserRole,
   onLeadCreated,
 }: CreateLeadDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -35,6 +41,7 @@ export default function CreateLeadDialog({
     email: '',
     company: '',
     source: 'MANUAL',
+    teamId: '',
     assignedEmployeeId: '',
   });
 
@@ -59,6 +66,7 @@ export default function CreateLeadDialog({
         email: formData.email || undefined,
         company: formData.company || undefined,
         source: formData.source || 'MANUAL',
+        teamId: formData.teamId || undefined,
         assignedEmployeeId: formData.assignedEmployeeId || undefined,
       });
 
@@ -73,6 +81,7 @@ export default function CreateLeadDialog({
         email: '',
         company: '',
         source: 'MANUAL',
+        teamId: '',
         assignedEmployeeId: '',
       });
 
@@ -118,6 +127,8 @@ export default function CreateLeadDialog({
           <CreateLeadFormFields
             formData={formData}
             activeEmployees={activeEmployees}
+            teams={teams}
+            currentUserRole={currentUserRole}
             onChange={setFormData}
           />
 

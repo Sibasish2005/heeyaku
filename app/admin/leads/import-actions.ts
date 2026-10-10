@@ -9,6 +9,7 @@ import { Role } from '@prisma/client';
 import { normalizePhoneNumber, isValidPhoneNumber, zodPhoneNumberSchema } from '@/lib/lead/phone';
 import { RawImportRow, parseGoogleSheetUrl } from '@/lib/lead/import-parser';
 import { revalidatePath } from 'next/cache';
+import { sanitizeErrorMessage } from '@/lib/security/errors';
 
 export interface PreparedImportLead {
   rowNumber: number;
@@ -56,8 +57,12 @@ export type ActionResponse<T = unknown> = {
 };
 
 /**
- * Validates imported rows, normalizes phone numbers, and performs duplicate detection
- * both within the file and against the Supabase database.
+ * Server Action: Validates imported rows, normalizes 10-digit phone numbers, and performs two-phase duplicate detection:
+ * Phase 1: Internal deduplication within the uploaded spreadsheet or CSV.
+ * Phase 2: Chunked batch database lookup (2,000 phones per query) against existing records in PostgreSQL.
+ *
+ * @param rows - Array of raw parsed rows with rowNumber, prospect name, phone, email, course, and source
+ * @returns {Promise<ActionResponse<ImportPreviewResult>>} Summary containing valid candidates, in-file/db duplicates, and invalid rows
  */
 export async function validateAndPreviewImportAction(
   rows: Array<{
@@ -199,21 +204,29 @@ export async function validateAndPreviewImportAction(
       },
     };
   } catch (error) {
-    console.error('Error previewing lead import:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to validate import file.',
+      error: sanitizeErrorMessage(error, 'Unable to validate import file.'),
     };
   }
 }
 
 /**
- * Inserts valid leads into Supabase with generated sequential lead codes and optional assignment.
+ * Server Action: Inserts validated leads into Supabase PostgreSQL in chunked batches of 1,000 records.
+ * Automatically generates sequential lead codes (`LD-00001`, `LD-00002`...), handles optional initial staff
+ * assignment, enforces Team Lead squad boundaries, and revalidates dashboard tables.
+ *
+ * @param input - Insertion payload
+ * @param input.leads - Array of validated, deduplicated lead records to insert
+ * @param input.assignedEmployeeId - Optional employee ID to assign all imported leads to
+ *
+ * @returns {Promise<ActionResponse<{ insertedCount: number; assignedEmployeeName?: string }>>} Result with count of inserted leads
  */
 export async function executeImportAction(input: {
   leads: PreparedImportLead[];
+  teamId?: string;
   assignedEmployeeId?: string;
-}): Promise<ActionResponse<{ insertedCount: number; assignedEmployeeName?: string }>> {
+}): Promise<ActionResponse<{ insertedCount: number; assignedTargetName?: string }>> {
   try {
     const admin = await assertAdminAccess();
     if (!canManageLeads(admin.role)) {
@@ -225,39 +238,53 @@ export async function executeImportAction(input: {
       return { success: false, error: 'Unauthorized: Team Lead is not assigned to any squad.' };
     }
 
-    const { leads, assignedEmployeeId } = input;
+    const { leads, teamId, assignedEmployeeId } = input;
 
     if (!leads || leads.length === 0) {
       return { success: false, error: 'No valid leads selected for import.' };
     }
 
+    let targetTeamId: string | null = tlTeamId;
     let targetEmployeeId: string | null = null;
-    let targetEmployeeName: string | undefined = undefined;
-    let targetEmployeeTeamId: string | null = null;
+    let targetTargetName: string | undefined = undefined;
     let assignedAt: Date | null = null;
     let initialStatus: 'NEW' | 'ASSIGNED' = 'NEW';
 
-    if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
-      const employee = await prisma.employee.findUnique({
-        where: { id: assignedEmployeeId },
-        select: { id: true, name: true, employeeCode: true, isActive: true, teamId: true },
-      });
+    if (admin.role === Role.CEO) {
+      if (teamId && teamId.trim() !== '') {
+        const team = await prisma.team.findUnique({
+          where: { id: teamId },
+          select: { id: true, name: true },
+        });
+        if (!team) {
+          return { success: false, error: 'Selected squad was not found.' };
+        }
+        targetTeamId = team.id;
+        targetTargetName = `Squad ${team.name}`;
+      }
+    } else if (admin.role === Role.TEAM_LEAD) {
+      targetTeamId = tlTeamId;
+      if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
+        const employee = await prisma.employee.findUnique({
+          where: { id: assignedEmployeeId },
+          select: { id: true, name: true, employeeCode: true, isActive: true, teamId: true, role: true },
+        });
 
-      if (!employee) {
-        return { success: false, error: 'Selected employee not found.' };
-      }
-      if (!employee.isActive) {
-        return { success: false, error: 'Cannot assign imported leads to a deactivated employee.' };
-      }
-      if (admin.role === Role.TEAM_LEAD && employee.teamId !== tlTeamId) {
-        return { success: false, error: 'Unauthorized: Cannot assign leads to an employee outside your squad.' };
-      }
+        if (!employee) {
+          return { success: false, error: 'Selected employee not found.' };
+        }
+        if (!employee.isActive) {
+          return { success: false, error: 'Cannot assign imported leads to a deactivated employee.' };
+        }
+        if (employee.role !== Role.BDA || employee.teamId !== tlTeamId) {
+          return { success: false, error: 'Unauthorized: You can only assign leads to BDA members of your own squad.' };
+        }
 
-      targetEmployeeId = employee.id;
-      targetEmployeeName = `${employee.name} (${employee.employeeCode})`;
-      targetEmployeeTeamId = employee.teamId;
-      assignedAt = new Date();
-      initialStatus = 'ASSIGNED';
+        targetEmployeeId = employee.id;
+        targetTargetName = `${employee.name} (${employee.employeeCode})`;
+        assignedAt = new Date();
+        initialStatus = 'ASSIGNED';
+      }
     }
 
     // Determine sequential lead codes
@@ -284,7 +311,7 @@ export async function executeImportAction(input: {
       source: lead.source || 'File Import',
       status: initialStatus,
       notes: lead.notes || null,
-      teamId: tlTeamId || targetEmployeeTeamId || null,
+      teamId: targetTeamId || null,
       assignedEmployeeId: targetEmployeeId,
       assignedAt,
     }));
@@ -308,20 +335,24 @@ export async function executeImportAction(input: {
       success: true,
       data: {
         insertedCount: recordsToInsert.length,
-        assignedEmployeeName: targetEmployeeName,
+        assignedTargetName: targetTargetName,
       },
     };
   } catch (error) {
-    console.error('Error executing lead import:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to insert imported leads.',
+      error: sanitizeErrorMessage(error, 'Unable to insert imported leads.'),
     };
   }
 }
 
 /**
- * Server action to fetch public Google Sheet CSV data and return column headers and rows.
+ * Server Action: Fetches public Google Sheet spreadsheet data via CSV export endpoint.
+ * Implements strict SSRF protection: validates HTTPS protocol, enforces `docs.google.com` hostname,
+ * checks allowed redirect destinations, parses CSV via PapaParse, and extracts table headers and rows.
+ *
+ * @param sheetUrl - Raw Google Sheet sharing URL pasted by administrator
+ * @returns {Promise<ActionResponse<FetchGoogleSheetResult>>} Parsed sheet title, column headers, and data rows
  */
 export async function fetchGoogleSheetDataAction(
   sheetUrl: string
@@ -437,10 +468,9 @@ export async function fetchGoogleSheetDataAction(
       },
     };
   } catch (error) {
-    console.error('Error fetching Google Sheet:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unexpected error fetching Google Sheet data.',
+      error: sanitizeErrorMessage(error, 'Unable to fetch Google Sheet data.'),
     };
   }
 }

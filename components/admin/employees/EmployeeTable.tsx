@@ -24,6 +24,7 @@ export default function EmployeeTable({
   const [totalCount, setTotalCount] = useState<number>(totalEmployeesCount);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+  const [roleFilter, setRoleFilter] = useState<'ALL' | 'CEO' | 'BDA' | 'TEAM_LEAD' | 'HR'>('ALL');
   const [isLoadingChunk, setIsLoadingChunk] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -36,10 +37,20 @@ export default function EmployeeTable({
 
   // Requirement-based server fetch on search / filter changes
   const isInitialMount = useRef(true);
-  const executeFilterFetch = useCallback(async (query: string, status: 'ALL' | 'ACTIVE' | 'INACTIVE') => {
+  const executeFilterFetch = useCallback(async (
+    query: string,
+    status: 'ALL' | 'ACTIVE' | 'INACTIVE',
+    role: 'ALL' | 'CEO' | 'BDA' | 'TEAM_LEAD' | 'HR'
+  ) => {
     setIsLoadingChunk(true);
     try {
-      const res = await fetchEmployeesChunkAction({ skip: 0, take: 10, searchQuery: query, statusFilter: status });
+      const res = await fetchEmployeesChunkAction({
+        skip: 0,
+        take: 10,
+        searchQuery: query,
+        statusFilter: status,
+        roleFilter: role,
+      });
       if (res.success) {
         setEmployees(res.items);
         setTotalCount(res.totalCount);
@@ -52,16 +63,22 @@ export default function EmployeeTable({
 
   useEffect(() => {
     if (isInitialMount.current) { isInitialMount.current = false; return; }
-    const timer = setTimeout(() => executeFilterFetch(searchQuery, statusFilter), 250);
+    const timer = setTimeout(() => executeFilterFetch(searchQuery, statusFilter, roleFilter), 250);
     return () => clearTimeout(timer);
-  }, [searchQuery, statusFilter, executeFilterFetch]);
+  }, [searchQuery, statusFilter, roleFilter, executeFilterFetch]);
 
   // Requirement-based fetch for the NEXT 10 records
   const handleLoadMore = useCallback(async () => {
     if (isLoadingChunk || employees.length >= totalCount) return;
     setIsLoadingChunk(true);
     try {
-      const res = await fetchEmployeesChunkAction({ skip: employees.length, take: 10, searchQuery, statusFilter });
+      const res = await fetchEmployeesChunkAction({
+        skip: employees.length,
+        take: 10,
+        searchQuery,
+        statusFilter,
+        roleFilter,
+      });
       if (res.success && res.items.length > 0) {
         setEmployees((prev) => [...prev, ...res.items]);
         setTotalCount(res.totalCount);
@@ -69,7 +86,7 @@ export default function EmployeeTable({
     } finally {
       setIsLoadingChunk(false);
     }
-  }, [isLoadingChunk, employees.length, totalCount, searchQuery, statusFilter]);
+  }, [isLoadingChunk, employees.length, totalCount, searchQuery, statusFilter, roleFilter]);
 
   const handleContainerScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -108,14 +125,23 @@ export default function EmployeeTable({
     }
   };
 
+  const getItemName = () => {
+    if (roleFilter === 'BDA') return 'Business Development Associates';
+    if (roleFilter === 'TEAM_LEAD') return 'Team Leads';
+    if (roleFilter === 'HR') return 'Human Resources Staff';
+    return 'Staff Members';
+  };
+
   return (
     <div className="space-y-6">
       <EmployeeTableToolbar
         searchQuery={searchQuery}
         statusFilter={statusFilter}
+        roleFilter={roleFilter}
         canManageEmployees={canManageEmployees}
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
+        onRoleChange={setRoleFilter}
         onCreateOpen={() => setIsCreateOpen(true)}
       />
 
@@ -154,6 +180,7 @@ export default function EmployeeTable({
                     key={row.original.id}
                     emp={row.original}
                     canManageEmployees={canManageEmployees}
+                    currentUserRole={currentUserRole}
                     isMenuOpen={activeMenuId === row.original.id}
                     isToggling={togglingId === row.original.id}
                     onToggleMenu={() => setActiveMenuId(activeMenuId === row.original.id ? null : row.original.id)}
@@ -176,7 +203,7 @@ export default function EmployeeTable({
           totalCount={totalCount}
           currentCount={employees.length}
           isLoading={isLoadingChunk}
-          itemName="Business Development Associates"
+          itemName={getItemName()}
           scrollContainerRef={scrollContainerRef}
         />
       </div>

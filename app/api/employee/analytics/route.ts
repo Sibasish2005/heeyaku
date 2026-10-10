@@ -214,9 +214,8 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: unknown) {
     console.error('Error fetching employee analytics:', error);
-    const message = error instanceof Error ? error.message : 'Failed to fetch analytics.';
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: 'Unable to load performance analytics.' },
       { status: 500 }
     );
   }

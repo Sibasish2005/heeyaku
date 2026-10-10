@@ -7,6 +7,8 @@ import { LeadStatus } from '@prisma/client';
 import { zodPhoneNumberSchema } from '@/lib/lead/phone';
 import EditLeadFormFields, { EditLeadFormData } from './dialogs/EditLeadFormFields';
 
+import { ActiveTeam } from './table/types';
+
 interface ActiveEmployee {
   id: string;
   employeeCode: string;
@@ -24,6 +26,7 @@ export interface LeadDetailItem {
   source: string;
   status: LeadStatus;
   notes: string | null;
+  teamId?: string | null;
   assignedEmployeeId: string | null;
   assignedEmployee?: { id: string; employeeCode: string; name: string } | null;
 }
@@ -32,6 +35,8 @@ interface EditLeadDialogProps {
   isOpen: boolean;
   lead: LeadDetailItem | null;
   activeEmployees: ActiveEmployee[];
+  teams?: ActiveTeam[];
+  currentUserRole?: string;
   onClose: () => void;
   onLeadUpdated?: () => void;
 }
@@ -40,6 +45,8 @@ export default function EditLeadDialog({
   isOpen,
   lead,
   activeEmployees,
+  teams = [],
+  currentUserRole,
   onClose,
   onLeadUpdated,
 }: EditLeadDialogProps) {
@@ -50,6 +57,8 @@ export default function EditLeadDialog({
       key={lead.id}
       lead={lead}
       activeEmployees={activeEmployees}
+      teams={teams}
+      currentUserRole={currentUserRole}
       onClose={onClose}
       onLeadUpdated={onLeadUpdated}
     />
@@ -59,11 +68,15 @@ export default function EditLeadDialog({
 function EditLeadDialogContent({
   lead,
   activeEmployees,
+  teams = [],
+  currentUserRole,
   onClose,
   onLeadUpdated,
 }: {
   lead: NonNullable<EditLeadDialogProps['lead']>;
   activeEmployees: ActiveEmployee[];
+  teams?: ActiveTeam[];
+  currentUserRole?: string;
   onClose: () => void;
   onLeadUpdated?: () => void;
 }) {
@@ -79,6 +92,7 @@ function EditLeadDialogContent({
     source: lead.source,
     status: lead.status,
     notes: lead.notes || '',
+    teamId: lead.teamId || '',
     assignedEmployeeId: lead.assignedEmployeeId || '',
   });
 
@@ -95,10 +109,16 @@ function EditLeadDialogContent({
     setLoading(true);
     try {
       const res = await updateLeadAction({
-        id: lead.id, name: formData.name, phoneNumber: formData.phoneNumber,
-        email: formData.email || undefined, company: formData.company || undefined,
-        source: formData.source || 'MANUAL', status: formData.status,
-        notes: formData.notes || undefined, assignedEmployeeId: formData.assignedEmployeeId || undefined,
+        id: lead.id,
+        name: formData.name,
+        phoneNumber: formData.phoneNumber,
+        email: formData.email || undefined,
+        company: formData.company || undefined,
+        source: formData.source || 'MANUAL',
+        status: formData.status,
+        notes: formData.notes || undefined,
+        teamId: formData.teamId !== undefined ? formData.teamId : undefined,
+        assignedEmployeeId: formData.assignedEmployeeId || undefined,
       });
       if (!res.success) {
         setError(res.error || 'Failed to update lead.');
@@ -168,6 +188,8 @@ function EditLeadDialogContent({
           <EditLeadFormFields
             formData={formData}
             activeEmployees={activeEmployees}
+            teams={teams}
+            currentUserRole={currentUserRole}
             onChange={setFormData}
           />
 

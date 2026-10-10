@@ -5,6 +5,7 @@ import Link from 'next/link';
 import HeeyakuLogo from '../shared/HeeyakuLogo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MorphIcon } from 'morphicons/react';
+import { useAuth } from '@clerk/nextjs';
 
 
 const ICONS = {
@@ -15,6 +16,7 @@ const ICONS = {
 };
 
 export default function Navbar() {
+  const { isSignedIn } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [solutionsOpen, setSolutionsOpen] = useState(false);
@@ -210,21 +212,22 @@ export default function Navbar() {
             Book Demo
           </Link>
 
-          {/* Sign In CTA */}
-          <Link
-            href="/sign-in"
-            className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold tracking-wider uppercase text-white bg-[#0B1F33] hover:bg-[#2563EB] rounded-full transition-[background-color,transform,box-shadow] duration-180 ease-out shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.97] cursor-pointer"
-          >
-            Sign In
-          </Link>
-
-          {/* Dashboard Direct Link */}
-          <Link
-            href="/admin/dashboard"
-            className="inline-flex items-center justify-center px-3.5 py-1.5 text-xs font-bold tracking-wider uppercase text-[#0B1F33] hover:text-[#2563EB] bg-slate-100 hover:bg-slate-200/80 border border-slate-200 rounded-full transition-all duration-150 shadow-xs hover:shadow-sm active:scale-[0.97] cursor-pointer"
-          >
-            Dashboard
-          </Link>
+          {/* Show Sign In if not logged in, Dashboard if logged in */}
+          {isSignedIn ? (
+            <Link
+              href="/admin/dashboard"
+              className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold tracking-wider uppercase text-white bg-[#0B1F33] hover:bg-[#2563EB] rounded-full transition-[background-color,transform,box-shadow] duration-180 ease-out shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.97] cursor-pointer"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <Link
+              href="/sign-in"
+              className="inline-flex items-center justify-center px-4 py-2 text-xs font-bold tracking-wider uppercase text-white bg-[#0B1F33] hover:bg-[#2563EB] rounded-full transition-[background-color,transform,box-shadow] duration-180 ease-out shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.97] cursor-pointer"
+            >
+              Sign In
+            </Link>
+          )}
         </div>
 
         {/* Mobile MorphIcon Hamburger <-> Cross Button */}
@@ -381,20 +384,23 @@ export default function Navbar() {
             </div>
 
             <div className="pt-4 border-t border-slate-200 flex flex-col gap-2.5">
-              <Link
-                href="/sign-in"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full flex items-center justify-center py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[#0B1F33] hover:bg-[#2563EB] rounded-full shadow-sm active:scale-[0.97] transition-all duration-150 cursor-pointer"
-              >
-                Sign In / Login
-              </Link>
-              <Link
-                href="/admin/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full flex items-center justify-center py-2.5 text-xs font-bold uppercase tracking-wider text-slate-700 hover:text-[#0B1F33] bg-slate-100 hover:bg-slate-200/80 border border-slate-200 rounded-full shadow-xs active:scale-[0.97] transition-all duration-150 cursor-pointer"
-              >
-                Go to Dashboard
-              </Link>
+              {isSignedIn ? (
+                <Link
+                  href="/admin/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[#0B1F33] hover:bg-[#2563EB] rounded-full shadow-sm active:scale-[0.97] transition-all duration-150 cursor-pointer"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <Link
+                  href="/sign-in"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full flex items-center justify-center py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-[#0B1F33] hover:bg-[#2563EB] rounded-full shadow-sm active:scale-[0.97] transition-all duration-150 cursor-pointer"
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
           </motion.div>
         )}

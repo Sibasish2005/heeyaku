@@ -23,6 +23,7 @@ interface EmployeeDetailProps {
     name: string;
     email: string;
     phoneNumber: string;
+    role?: string;
     team: string | null;
     notes: string | null;
     isActive: boolean;
@@ -32,12 +33,14 @@ interface EmployeeDetailProps {
   leads: LeadItem[];
   callLogs?: CallLogItem[];
   leadStatusCounts?: Record<string, number>;
+  canManage?: boolean;
 }
 
 export default function EmployeeDetailView({
   employee: initialEmployee,
   leads,
   callLogs = [],
+  canManage = true,
 }: EmployeeDetailProps) {
   const [employee, setEmployee] = useState(initialEmployee);
   const [isResetOpen, setIsResetOpen] = useState(false);
@@ -153,82 +156,211 @@ export default function EmployeeDetailView({
       <EmployeeHeroCard
         employee={employee}
         isToggling={isToggling}
+        canManage={canManage}
         onEdit={() => setIsEditOpen(true)}
         onResetPassword={() => setIsResetOpen(true)}
         onToggleStatus={handleToggleStatus}
       />
 
-      <EmployeeTimeframeSelector
-        timeframe={timeframe}
-        onSelectTimeframe={(tf) => { setTimeframe(tf); setStatusFilter('ALL'); }}
-        counts={{ today: todayCount, month: monthCount, lifetime: leads.length }}
-      />
+      {employee.role === 'CEO' ? (
+        <div className="bg-card text-card-foreground border border-border rounded-2xl p-6 space-y-4 shadow-2xs">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              Executive Leadership Profile
+            </div>
+            <h3 className="text-sm font-bold text-foreground">
+              Chief Executive Officer (CEO)
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+              Root executive account overseeing all squads, staff rosters, and lead distribution pipelines. Telephony and personal telecalling queues do not apply to the executive office.
+            </p>
+          </div>
 
-      {/* Mobile Telephony Analytical KPI Cards */}
-      <EmployeeCallStatsCards
-        totalCalls={totalCalls}
-        connectedCalls={connectedCalls}
-        connectionRate={connectionRate}
-        totalTalkTimeSeconds={totalTalkTimeSeconds}
-        averageTalkTimeSeconds={averageTalkTimeSeconds}
-        convertedLeads={convertedLeads}
-        conversionRate={conversionRate}
-      />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase">Assigned Leads</div>
+              <div className="text-base font-mono font-bold text-muted-foreground/60 mt-1 select-none">—</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">Oversees general pool &amp; squads</div>
+            </div>
+            <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase">Calls Logged</div>
+              <div className="text-base font-mono font-bold text-muted-foreground/60 mt-1 select-none">N/A</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">No telephony tracking</div>
+            </div>
+            <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase">Talk Time</div>
+              <div className="text-base font-mono font-bold text-muted-foreground/60 mt-1 select-none">—</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">Voice calls not recorded</div>
+            </div>
+          </div>
+        </div>
+      ) : employee.role === 'HR' ? (
+        <div className="bg-card text-card-foreground border border-border rounded-2xl p-6 space-y-4 shadow-2xs">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+              Administrative & Operational Profile
+            </div>
+            <h3 className="text-sm font-bold text-foreground">
+              Human Resources Department
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+              This staff account belongs to Human Resources personnel. Non-telephony staff members do not handle outbound student/admission calls or manage pipeline inquiry leads. Telephony telemetry and lead pipeline metrics are designated as N/A.
+            </p>
+          </div>
 
-      {/* Outcome Distribution */}
-      <EmployeeCallOutcomesBreakdown
-        totalCalls={totalCalls}
-        outcomeDistribution={outcomeDistribution}
-      />
-
-      {/* View Switcher: Assigned Leads vs Call History */}
-      <div className="flex items-center gap-2 border-b border-border/80 pb-2">
-        <button
-          onClick={() => setActiveTab('leads')}
-          className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
-            activeTab === 'leads'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
-          }`}
-        >
-          <Users className="w-3.5 h-3.5" />
-          <span>Assigned Leads ({filteredLeads.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('calls')}
-          className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
-            activeTab === 'calls'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
-          }`}
-        >
-          <PhoneCall className="w-3.5 h-3.5" />
-          <span>Mobile Call Logs ({activePeriodCalls.length})</span>
-        </button>
-      </div>
-
-      {activeTab === 'leads' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+            <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase">Assigned Leads</div>
+              <div className="text-base font-mono font-bold text-muted-foreground/60 mt-1 select-none">—</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">Not applicable for HR</div>
+            </div>
+            <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase">Calls Logged</div>
+              <div className="text-base font-mono font-bold text-muted-foreground/60 mt-1 select-none">N/A</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">No telephony tracking</div>
+            </div>
+            <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase">Talk Time</div>
+              <div className="text-base font-mono font-bold text-muted-foreground/60 mt-1 select-none">—</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5">Voice calls not recorded</div>
+            </div>
+          </div>
+        </div>
+      ) : employee.role === 'TEAM_LEAD' ? (
         <>
-          <EmployeePipelineFilters
-            statusFilter={statusFilter}
-            totalAssigned={activePeriodLeads.length}
-            leadStatusCounts={activeStatusCounts}
-            pipelineStatuses={PIPELINE_STATUSES}
-            onSelectStatus={setStatusFilter}
-          />
-          <EmployeeAssignedLeadsTable
-            filteredLeads={filteredLeads}
-            statusFilter={statusFilter}
-            searchLead={searchLead}
-            employeeId={employee.id}
-            statusBadgeStyles={STATUS_BADGE_STYLES}
-            onSearchChange={setSearchLead}
-            onExport={handleExport}
-          />
+          <div className="bg-card text-card-foreground border border-border rounded-2xl p-6 space-y-4 shadow-2xs">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
+                Squad Leadership & Distribution Profile
+              </div>
+              <h3 className="text-sm font-bold text-foreground">
+                Team Lead ({employee.team ? `Squad ${employee.team}` : 'General Squad'})
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+                Team Leads oversee squad distribution and assign leads directly to their squad&apos;s BDAs. Telephony calls are performed exclusively by BDAs via the mobile application (telephony metrics designated as N/A).
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 pt-2">
+              <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase">Squad Leads</div>
+                <div className="text-xl font-mono font-extrabold text-foreground mt-1">{leads.length}</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">Supervised in squad pool</div>
+              </div>
+              <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase">Squad Conversions</div>
+                <div className="text-xl font-mono font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
+                  {leads.filter(l => l.status === 'CONVERTED').length}
+                </div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">Converted admissions</div>
+              </div>
+              <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase">Calls Logged</div>
+                <div className="text-xl font-mono font-bold text-muted-foreground/60 mt-1 select-none">N/A</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">Executed by BDAs</div>
+              </div>
+              <div className="p-3.5 rounded-xl border border-border bg-muted/20">
+                <div className="text-[10px] font-semibold text-muted-foreground uppercase">Talk Time</div>
+                <div className="text-xl font-mono font-bold text-muted-foreground/60 mt-1 select-none">—</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">Non-telephony role</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <EmployeePipelineFilters
+              statusFilter={statusFilter}
+              totalAssigned={activePeriodLeads.length}
+              leadStatusCounts={activeStatusCounts}
+              pipelineStatuses={PIPELINE_STATUSES}
+              onSelectStatus={setStatusFilter}
+            />
+            <EmployeeAssignedLeadsTable
+              filteredLeads={filteredLeads}
+              statusFilter={statusFilter}
+              searchLead={searchLead}
+              employeeId={employee.id}
+              statusBadgeStyles={STATUS_BADGE_STYLES}
+              onSearchChange={setSearchLead}
+              onExport={handleExport}
+            />
+          </div>
         </>
       ) : (
-        <EmployeeCallLogsTable callLogs={activePeriodCalls} />
+        <>
+          <EmployeeTimeframeSelector
+            timeframe={timeframe}
+            onSelectTimeframe={(tf) => { setTimeframe(tf); setStatusFilter('ALL'); }}
+            counts={{ today: todayCount, month: monthCount, lifetime: leads.length }}
+          />
+
+          {/* Mobile Telephony Analytical KPI Cards */}
+          <EmployeeCallStatsCards
+            totalCalls={totalCalls}
+            connectedCalls={connectedCalls}
+            connectionRate={connectionRate}
+            totalTalkTimeSeconds={totalTalkTimeSeconds}
+            averageTalkTimeSeconds={averageTalkTimeSeconds}
+            convertedLeads={convertedLeads}
+            conversionRate={conversionRate}
+          />
+
+          {/* Outcome Distribution */}
+          <EmployeeCallOutcomesBreakdown
+            totalCalls={totalCalls}
+            outcomeDistribution={outcomeDistribution}
+          />
+
+          {/* View Switcher: Assigned Leads vs Call History */}
+          <div className="flex items-center gap-2 border-b border-border/80 pb-2">
+            <button
+              onClick={() => setActiveTab('leads')}
+              className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                activeTab === 'leads'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Assigned Leads ({filteredLeads.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('calls')}
+              className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors ${
+                activeTab === 'calls'
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+              }`}
+            >
+              <PhoneCall className="w-3.5 h-3.5" />
+              <span>Mobile Call Logs ({activePeriodCalls.length})</span>
+            </button>
+          </div>
+
+          {activeTab === 'leads' ? (
+            <>
+              <EmployeePipelineFilters
+                statusFilter={statusFilter}
+                totalAssigned={activePeriodLeads.length}
+                leadStatusCounts={activeStatusCounts}
+                pipelineStatuses={PIPELINE_STATUSES}
+                onSelectStatus={setStatusFilter}
+              />
+              <EmployeeAssignedLeadsTable
+                filteredLeads={filteredLeads}
+                statusFilter={statusFilter}
+                searchLead={searchLead}
+                employeeId={employee.id}
+                statusBadgeStyles={STATUS_BADGE_STYLES}
+                onSearchChange={setSearchLead}
+                onExport={handleExport}
+              />
+            </>
+          ) : (
+            <EmployeeCallLogsTable callLogs={activePeriodCalls} />
+          )}
+        </>
       )}
 
       <ResetPasswordDialog isOpen={isResetOpen} employee={employee} onClose={() => setIsResetOpen(false)} />

@@ -19,6 +19,7 @@ import ImportDropzone from './import/ImportDropzone';
 import ImportColumnMapper from './import/ImportColumnMapper';
 import ImportPreviewTabs from './import/ImportPreviewTabs';
 import ImportCompleteCard from './import/ImportCompleteCard';
+import { ActiveTeam } from './table/types';
 
 interface ActiveEmployee {
   id: string;
@@ -30,6 +31,8 @@ interface ActiveEmployee {
 interface ImportLeadsDialogProps {
   isOpen: boolean;
   activeEmployees: ActiveEmployee[];
+  teams?: ActiveTeam[];
+  currentUserRole?: string;
   onClose: () => void;
   onImportSuccess?: () => void;
   mode?: 'file' | 'sheets';
@@ -41,11 +44,14 @@ type Step = 'DROPZONE' | 'MAPPING' | 'PREVIEW' | 'DONE';
 export default function ImportLeadsDialog({
   isOpen,
   activeEmployees,
+  teams = [],
+  currentUserRole,
   onClose,
   onImportSuccess,
   mode,
   initialMode = 'file',
 }: ImportLeadsDialogProps) {
+  const isCeo = currentUserRole === 'CEO';
   const effectiveMode: 'file' | 'sheets' = mode || initialMode;
   const isGoogleSheet = effectiveMode === 'sheets';
 
@@ -56,6 +62,7 @@ export default function ImportLeadsDialog({
   const [rawRows, setRawRows] = useState<RawImportRow[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({ nameCol: '', phoneCol: '' });
   const [previewResult, setPreviewResult] = useState<ImportPreviewResult | null>(null);
+  const [selectedTeamId, setSelectedTeamId] = useState('');
   const [assignedEmployeeId, setAssignedEmployeeId] = useState('');
   const [importSummary, setImportSummary] = useState<{ count: number; assignedEmployee?: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -69,6 +76,7 @@ export default function ImportLeadsDialog({
     setRawRows([]);
     setMapping({ nameCol: '', phoneCol: '' });
     setPreviewResult(null);
+    setSelectedTeamId('');
     setAssignedEmployeeId('');
     setImportSummary(null);
     setError(null);
@@ -191,10 +199,11 @@ export default function ImportLeadsDialog({
       setError(null);
       const res = await executeImportAction({
         leads: previewResult.validRows,
-        assignedEmployeeId: assignedEmployeeId || undefined,
+        teamId: isCeo ? (selectedTeamId || undefined) : undefined,
+        assignedEmployeeId: !isCeo ? (assignedEmployeeId || undefined) : undefined,
       });
       if (!res.success || !res.data) throw new Error(res.error || 'Import failed.');
-      setImportSummary({ count: res.data.insertedCount, assignedEmployee: res.data.assignedEmployeeName });
+      setImportSummary({ count: res.data.insertedCount, assignedEmployee: res.data.assignedTargetName });
       setStep('DONE');
       onImportSuccess?.();
     } catch (err) {
@@ -287,8 +296,12 @@ export default function ImportLeadsDialog({
           <ImportPreviewTabs
             previewResult={previewResult}
             activeEmployees={activeEmployees}
+            teams={teams}
+            selectedTeamId={selectedTeamId}
             assignedEmployeeId={assignedEmployeeId}
+            currentUserRole={currentUserRole}
             loading={loading}
+            onSelectedTeamIdChange={setSelectedTeamId}
             onAssignedEmployeeChange={setAssignedEmployeeId}
             onBack={() => setStep('MAPPING')}
             onExecuteImport={handleExecute}

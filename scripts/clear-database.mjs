@@ -3,21 +3,48 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Clearing database records...');
+  console.log('=== Checking Database Row Counts Before Wipe ===');
+  const beforeCounts = {
+    callLogs: await prisma.callLog.count(),
+    leads: await prisma.lead.count(),
+    employees: await prisma.employee.count(),
+    teams: await prisma.team.count(),
+    syncMeta: await prisma.syncMeta.count(),
+  };
+  console.log('Before wipe:', beforeCounts);
 
-  // 1. Delete all Call Logs
-  const deletedCalls = await prisma.callLog.deleteMany({});
-  console.log(`Deleted ${deletedCalls.count} call logs.`);
+  console.log('\n=== Wiping Entire Database ===');
 
-  // 2. Delete all Leads
-  const deletedLeads = await prisma.lead.deleteMany({});
-  console.log(`Deleted ${deletedLeads.count} leads.`);
+  await prisma.$transaction(async (tx) => {
+    // 1. Delete dependent tables
+    await tx.callLog.deleteMany({});
+    await tx.lead.deleteMany({});
 
-  // Note: We preserve the Employee accounts so you can still log into the mobile app and admin dashboard!
-  const employeeCount = await prisma.employee.count();
-  console.log(`Preserved ${employeeCount} employee accounts.`);
+    // 2. Disconnect circular relations between teams and employees
+    await tx.team.updateMany({ data: { teamLeadId: null } });
+    await tx.employee.updateMany({ data: { teamId: null } });
 
-  console.log('Database successfully cleared for fresh entries!');
+    // 3. Delete employees, teams, and sync metadata
+    await tx.employee.deleteMany({});
+    await tx.team.deleteMany({});
+    await tx.syncMeta.deleteMany({});
+
+    // 4. Run TRUNCATE CASCADE for absolute thoroughness and identity reset
+    await tx.$executeRawUnsafe(`
+      TRUNCATE TABLE "call_logs", "leads", "employees", "teams", "sync_meta" CASCADE;
+    `);
+  });
+
+  const afterCounts = {
+    callLogs: await prisma.callLog.count(),
+    leads: await prisma.lead.count(),
+    employees: await prisma.employee.count(),
+    teams: await prisma.team.count(),
+    syncMeta: await prisma.syncMeta.count(),
+  };
+
+  console.log('After wipe:', afterCounts);
+  console.log('\n=== Entire Database Wiped Clean (0 Records Remaining) ===');
 }
 
 main()
@@ -28,3 +55,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

@@ -51,7 +51,7 @@ export default function CreateEmployeeCredentialsCard({
           <span className="font-semibold text-foreground">{credentials.email}</span>
         </div>
         <div className="flex items-center justify-between text-xs pt-1 border-t border-border">
-          <span className="text-muted-foreground font-medium">Temporary Password:</span>
+          <span className="text-muted-foreground font-medium">Assigned Password:</span>
           <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded border border-emerald-200/60 dark:border-emerald-900/50 select-all">
             {credentials.temporaryPassword}
           </span>

@@ -12,9 +12,9 @@ export function getLeadTableColumns() {
     columnHelper.accessor('email', { header: 'Email' }),
     columnHelper.accessor('company', { header: 'Target Course / School' }),
     columnHelper.accessor('status', { header: 'Status' }),
-    columnHelper.accessor((row) => row.assignedEmployee?.name || 'Unassigned', {
+    columnHelper.accessor((row) => row.assignedEmployee?.name || (row.team ? `Squad ${row.team.name}` : 'Unassigned'), {
       id: 'associate',
-      header: 'BDA',
+      header: 'Squad / BDA',
     }),
     columnHelper.accessor('createdAt', { header: 'Added On' }),
     columnHelper.display({ id: 'action', header: 'Action' }),

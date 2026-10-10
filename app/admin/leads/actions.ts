@@ -9,6 +9,7 @@ import { LeadStatus, Role } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
 import { zodPhoneNumberSchema } from '@/lib/lead/phone';
+import { sanitizeErrorMessage } from '@/lib/security/errors';
 
 const LeadStatusEnum = z.enum([
   'NEW',
@@ -34,6 +35,7 @@ const CreateLeadSchema = z.object({
   source: z.string().optional().default('MANUAL'),
   status: LeadStatusEnum.optional().default('NEW'),
   notes: z.string().optional().or(z.literal('')),
+  teamId: z.string().optional().or(z.literal('')),
   assignedEmployeeId: z.string().optional().or(z.literal('')),
 });
 
@@ -46,6 +48,7 @@ const UpdateLeadSchema = z.object({
   source: z.string().optional().default('MANUAL'),
   status: LeadStatusEnum,
   notes: z.string().optional().or(z.literal('')),
+  teamId: z.string().optional().or(z.literal('')),
   assignedEmployeeId: z.string().optional().or(z.literal('')),
 });
 
@@ -56,7 +59,13 @@ export type ActionResponse<T = unknown> = {
 };
 
 /**
- * Creates a new lead manually with an auto-generated unique LED-xxxx code.
+ * Server Action: Creates a new sales/admissions lead manually with an auto-generated unique LED-xxxx code.
+ * Accessible ONLY by CEO and Team Leads (scoped to Team Lead squad).
+ * Validates 10-digit phone number, parses optional assigned employee, sets status (NEW vs ASSIGNED),
+ * invalidates dashboard caches, and revalidates Next.js lead tables.
+ *
+ * @param input - Unknown client form input parsed against CreateLeadSchema
+ * @returns {Promise<ActionResponse<{ id: string; leadCode: string }>>} ActionResponse with ID and unique Lead Code
  */
 export async function createLeadAction(input: unknown): Promise<ActionResponse<{ id: string; leadCode: string }>> {
   try {
@@ -78,34 +87,53 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
       };
     }
 
-    const { name, phoneNumber, email, company, source, notes, assignedEmployeeId } = validated.data;
+    const { name, phoneNumber, email, company, source, notes, teamId, assignedEmployeeId } = validated.data;
     let initialStatus = validated.data.status;
 
+    let targetTeamId: string | null = tlTeamId;
     let targetEmployeeId: string | null = null;
-    let targetEmployeeTeamId: string | null = null;
     let assignedAt: Date | null = null;
 
-    if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
-      const employee = await prisma.employee.findUnique({
-        where: { id: assignedEmployeeId },
-        select: { id: true, isActive: true, teamId: true },
-      });
+    if (admin.role === Role.CEO) {
+      if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
+        return {
+          success: false,
+          error: 'As CEO, assign leads to a Squad / Team. The Team Lead will assign to individual BDAs.',
+        };
+      }
+      if (teamId && teamId.trim() !== '') {
+        const team = await prisma.team.findUnique({
+          where: { id: teamId },
+          select: { id: true },
+        });
+        if (!team) {
+          return { success: false, error: 'Selected squad was not found.' };
+        }
+        targetTeamId = team.id;
+      }
+    } else if (admin.role === Role.TEAM_LEAD) {
+      targetTeamId = tlTeamId;
+      if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
+        const employee = await prisma.employee.findUnique({
+          where: { id: assignedEmployeeId },
+          select: { id: true, isActive: true, teamId: true, role: true },
+        });
 
-      if (!employee) {
-        return { success: false, error: 'Selected employee does not exist.' };
-      }
-      if (!employee.isActive) {
-        return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
-      }
-      if (admin.role === Role.TEAM_LEAD && employee.teamId !== tlTeamId) {
-        return { success: false, error: 'Unauthorized: Cannot assign leads to employees outside your squad.' };
-      }
+        if (!employee) {
+          return { success: false, error: 'Selected employee does not exist.' };
+        }
+        if (!employee.isActive) {
+          return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
+        }
+        if (employee.role !== Role.BDA || employee.teamId !== tlTeamId) {
+          return { success: false, error: 'Unauthorized: You can only assign leads to BDA members of your own squad.' };
+        }
 
-      targetEmployeeId = employee.id;
-      targetEmployeeTeamId = employee.teamId;
-      assignedAt = new Date();
-      if (initialStatus === 'NEW') {
-        initialStatus = 'ASSIGNED';
+        targetEmployeeId = employee.id;
+        assignedAt = new Date();
+        if (initialStatus === 'NEW') {
+          initialStatus = 'ASSIGNED';
+        }
       }
     }
 
@@ -121,7 +149,7 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
         source: source?.trim() || 'MANUAL',
         status: initialStatus,
         notes: notes?.trim() || null,
-        teamId: tlTeamId || targetEmployeeTeamId || null,
+        teamId: targetTeamId || null,
         assignedEmployeeId: targetEmployeeId,
         assignedAt,
       },
@@ -143,16 +171,20 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
       data: lead,
     };
   } catch (error) {
-    console.error('Error creating lead:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create lead.',
+      error: sanitizeErrorMessage(error, 'Unable to create lead. Please check the entered information and try again.'),
     };
   }
 }
 
 /**
- * Updates lead details, status, and assignment.
+ * Server Action: Updates lead details, pipeline status, remarks, and employee assignment.
+ * Accessible ONLY by CEO and Team Leads (Team Leads can only update leads within their squad).
+ * Automatically handles status transitions between NEW and ASSIGNED when employee assignment changes.
+ *
+ * @param input - Unknown client form input parsed against UpdateLeadSchema
+ * @returns {Promise<ActionResponse>} Success indicator
  */
 export async function updateLeadAction(input: unknown): Promise<ActionResponse> {
   try {
@@ -174,7 +206,7 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
       };
     }
 
-    const { id, name, phoneNumber, email, company, source, status, notes, assignedEmployeeId } = validated.data;
+    const { id, name, phoneNumber, email, company, source, status, notes, teamId, assignedEmployeeId } = validated.data;
 
     const existing = await prisma.lead.findUnique({
       where: { id },
@@ -185,48 +217,68 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
       return { success: false, error: 'Lead not found.' };
     }
 
-    if (admin.role === Role.TEAM_LEAD && existing.teamId !== tlTeamId) {
-      return { success: false, error: 'Unauthorized: You can only modify leads assigned to your squad.' };
+    if (admin.role === Role.TEAM_LEAD && existing.teamId !== tlTeamId && existing.assignedEmployeeId !== admin.employeeId) {
+      return { success: false, error: 'Unauthorized: You can only modify leads assigned to your squad or assigned to you.' };
     }
 
-    let targetEmployeeId: string | null = null;
+    let targetEmployeeId: string | null = existing.assignedEmployeeId;
     let targetEmployeeTeamId: string | null = existing.teamId;
     let assignedAt: Date | undefined = undefined;
     let newStatus: LeadStatus = status;
 
-    if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
-      const employee = await prisma.employee.findUnique({
-        where: { id: assignedEmployeeId },
-        select: { id: true, isActive: true, teamId: true },
-      });
+    if (admin.role === Role.CEO) {
+      if (assignedEmployeeId && assignedEmployeeId.trim() !== '' && assignedEmployeeId !== existing.assignedEmployeeId) {
+        return {
+          success: false,
+          error: 'As CEO, assign leads to a Squad / Team. The Team Lead will assign to individual BDAs.',
+        };
+      }
+      if (teamId !== undefined) {
+        if (teamId && teamId.trim() !== '') {
+          targetEmployeeTeamId = teamId;
+          if (teamId !== existing.teamId) {
+            targetEmployeeId = null;
+            assignedAt = undefined;
+            if (newStatus === 'ASSIGNED') newStatus = 'NEW';
+          }
+        } else {
+          targetEmployeeTeamId = null;
+          targetEmployeeId = null;
+          assignedAt = undefined;
+          if (newStatus === 'ASSIGNED') newStatus = 'NEW';
+        }
+      }
+    } else if (admin.role === Role.TEAM_LEAD) {
+      targetEmployeeTeamId = tlTeamId;
+      if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
+        const employee = await prisma.employee.findUnique({
+          where: { id: assignedEmployeeId },
+          select: { id: true, isActive: true, teamId: true, role: true },
+        });
 
-      if (!employee) {
-        return { success: false, error: 'Selected employee does not exist.' };
-      }
-      if (!employee.isActive) {
-        return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
-      }
-      if (admin.role === Role.TEAM_LEAD && employee.teamId !== tlTeamId) {
-        return { success: false, error: 'Unauthorized: Cannot assign leads to employees outside your squad.' };
-      }
+        if (!employee) {
+          return { success: false, error: 'Selected employee does not exist.' };
+        }
+        if (!employee.isActive) {
+          return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
+        }
+        if (employee.role !== Role.BDA || employee.teamId !== tlTeamId) {
+          return { success: false, error: 'Unauthorized: Cannot assign leads to employees outside your squad.' };
+        }
 
-      targetEmployeeId = employee.id;
-      if (employee.teamId) {
-        targetEmployeeTeamId = employee.teamId;
-      }
-      // If reassigned or newly assigned, update assignedAt
-      if (existing.assignedEmployeeId !== targetEmployeeId) {
-        assignedAt = new Date();
-      }
-      if (newStatus === 'NEW') {
-        newStatus = 'ASSIGNED';
-      }
-    } else {
-      // Unassigned
-      targetEmployeeId = null;
-      assignedAt = undefined;
-      if (newStatus === 'ASSIGNED') {
-        newStatus = 'NEW';
+        targetEmployeeId = employee.id;
+        if (existing.assignedEmployeeId !== targetEmployeeId) {
+          assignedAt = new Date();
+        }
+        if (newStatus === 'NEW') {
+          newStatus = 'ASSIGNED';
+        }
+      } else {
+        targetEmployeeId = null;
+        assignedAt = undefined;
+        if (newStatus === 'ASSIGNED') {
+          newStatus = 'NEW';
+        }
       }
     }
 
@@ -258,16 +310,20 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
 
     return { success: true };
   } catch (error) {
-    console.error('Error updating lead:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to update lead.',
+      error: sanitizeErrorMessage(error, 'Unable to update lead details.'),
     };
   }
 }
 
 /**
- * Deletes or archives a lead record.
+ * Server Action: Permanently removes a lead record from PostgreSQL.
+ * Accessible ONLY by CEO and Team Leads (scoped strictly to Team Lead squad).
+ * Invalidates metrics cache and updates lead tables.
+ *
+ * @param id - Unique database ID of the lead record to delete
+ * @returns {Promise<ActionResponse>} Success indicator
  */
 export async function deleteLeadAction(id: string): Promise<ActionResponse> {
   try {
@@ -303,10 +359,9 @@ export async function deleteLeadAction(id: string): Promise<ActionResponse> {
 
     return { success: true };
   } catch (error) {
-    console.error('Error deleting lead:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete lead.',
+      error: sanitizeErrorMessage(error, 'Unable to delete lead.'),
     };
   }
 }

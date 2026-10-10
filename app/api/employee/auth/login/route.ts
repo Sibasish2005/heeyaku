@@ -72,6 +72,9 @@ export async function POST(req: NextRequest) {
           { email: { equals: trimmedId, mode: 'insensitive' } },
         ],
       },
+      include: {
+        teamGroup: true,
+      },
     });
 
     if (!employee) {
@@ -89,6 +92,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Role boundary: Mobile app is strictly for Business Development Associates (BDA)
+    if (employee.role !== 'BDA') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Mobile app access is restricted to Business Development Associates (BDA). For administrative or team lead access, please log in via the Web Portal.',
+        },
+        { status: 403 }
+      );
+    }
+
     // Reset rate limiter on successful authentication
     resetRateLimit(rateLimitKey);
     resetRateLimit(accountRateLimitKey);
@@ -98,6 +112,7 @@ export async function POST(req: NextRequest) {
       employeeCode: employee.employeeCode,
       email: employee.email,
       name: employee.name,
+      role: employee.role,
     });
 
     return NextResponse.json({
@@ -109,7 +124,9 @@ export async function POST(req: NextRequest) {
         name: employee.name,
         email: employee.email,
         phoneNumber: employee.phoneNumber,
-        team: employee.team || 'Business Development Associate',
+        role: employee.role,
+        team: employee.teamGroup?.name || employee.team || 'General',
+        teamId: employee.teamId,
       },
     });
   } catch (error) {
