@@ -4,6 +4,8 @@ import { verifyEmployeeToken } from '@/lib/auth/employee-token';
 import { resolveEmployeeIdentity } from '@/lib/employee/resolve';
 import { getStartOfTodayIST } from '@/lib/utils/date';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     const authHeader = req.headers.get('authorization') || '';
