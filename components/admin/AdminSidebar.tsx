@@ -164,7 +164,14 @@ export default function AdminSidebar({
 
           <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <UserButton fallback={<div className="w-7 h-7 rounded-full bg-muted/60" />} />
+              <UserButton
+                appearance={{
+                  elements: {
+                    userButtonPopoverActionButton__manageAccount: 'hidden',
+                  },
+                }}
+                fallback={<div className="w-7 h-7 rounded-full bg-muted/60" />}
+              />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1">
                   <span className="text-xs font-bold text-foreground truncate">{adminName}</span>

@@ -3,17 +3,14 @@ import { redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
 import { getAuthenticatedAdmin } from '@/lib/auth/admin';
 import AdminShell from '@/components/admin/AdminShell';
-import { ShieldAlert } from 'lucide-react';
-import { UserButton } from '@clerk/nextjs';
+import { ShieldAlert, Smartphone, LogOut } from 'lucide-react';
+import { SignOutButton } from '@clerk/nextjs';
+import { Role } from '@prisma/client';
 
 export const metadata = {
   title: 'HEEYAKU Admin OS — Control Center',
   description: 'Operations, lead management, and employee administration.',
 };
-
-import { Role } from '@prisma/client';
-import { Smartphone } from 'lucide-react';
-
 
 export default async function AdminLayout({
   children,
@@ -40,9 +37,16 @@ export default async function AdminLayout({
           <p className="text-xs text-slate-500 leading-relaxed">
             You do not have permission to access this page. Please sign in with an authorized account or contact support.
           </p>
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-center gap-3">
-            <UserButton />
-            <span className="text-xs font-semibold text-slate-600">Switch account or sign out</span>
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-center">
+            <SignOutButton redirectUrl="/sign-in">
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log Out</span>
+              </button>
+            </SignOutButton>
           </div>
         </div>
       </div>
@@ -70,9 +74,16 @@ export default async function AdminLayout({
             >
               Download Android Call Tracker
             </a>
-            <div className="pt-2 border-t border-slate-100 flex items-center justify-center gap-3">
-              <UserButton />
-              <span className="text-xs font-semibold text-slate-600">Sign out or switch account</span>
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-center">
+              <SignOutButton redirectUrl="/sign-in">
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Log Out</span>
+                </button>
+              </SignOutButton>
             </div>
           </div>
         </div>

@@ -63,7 +63,14 @@ export default function AdminShell({
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggler />
-            <UserButton fallback={<div className="w-7 h-7 rounded-full bg-muted/60" />} />
+            <UserButton
+              appearance={{
+                elements: {
+                  userButtonPopoverActionButton__manageAccount: 'hidden',
+                },
+              }}
+              fallback={<div className="w-7 h-7 rounded-full bg-muted/60" />}
+            />
           </div>
         </header>
 

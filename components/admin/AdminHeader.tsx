@@ -81,7 +81,13 @@ export default function AdminHeader({ adminEmail, adminName }: AdminHeaderProps)
         </div>
 
         <div className="pl-3 border-l border-slate-200/80 flex items-center gap-2">
-          <UserButton />
+          <UserButton
+            appearance={{
+              elements: {
+                userButtonPopoverActionButton__manageAccount: 'hidden',
+              },
+            }}
+          />
         </div>
       </div>
     </header>
