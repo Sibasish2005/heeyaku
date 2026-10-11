@@ -358,7 +358,7 @@ export class EmployeeService {
     });
 
     if (target.clerkUserId) {
-      await ClerkSyncService.deleteUser(target.clerkUserId);
+      await ClerkSyncService.deleteUser(target.clerkUserId, target.email);
     }
   }
 

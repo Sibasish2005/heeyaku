@@ -30,28 +30,41 @@ export class ClerkSyncService {
    *
    * @returns {Promise<string | null>} The Clerk user ID if successful, or null if Clerk sync failed
    */
-  static async provisionUser(input: ClerkCreateUserInput): Promise<string | null> {
+  static async provisionUser(input: ClerkCreateUserInput): Promise<string> {
     const normalizedEmail = input.email.toLowerCase().trim();
     const nameParts = input.name.trim().split(/\s+/);
     const firstName = nameParts[0] || 'Staff';
     const lastName = nameParts.slice(1).join(' ') || undefined;
 
+    const clerk = await clerkClient();
+
+    // 1. If Clerk has allowlist restrictions enabled, ensure email is on allowlist
     try {
-      const clerk = await clerkClient();
-      const existing = await clerk.users.getUserList({
-        emailAddress: [normalizedEmail],
+      await clerk.allowlistIdentifiers.createAllowlistIdentifier({
+        identifier: normalizedEmail,
+        notify: false,
       });
+    } catch {
+      // Ignore if already allowed or allowlist is not enabled
+    }
 
-      if (existing.data && existing.data.length > 0) {
-        const existingId = existing.data[0].id;
-        await clerk.users.updateUser(existingId, {
-          password: input.password,
-          firstName,
-          lastName,
-        });
-        return existingId;
-      }
+    // 2. Check if user with this email already exists in Clerk
+    const existing = await clerk.users.getUserList({
+      emailAddress: [normalizedEmail],
+    });
 
+    if (existing.data && existing.data.length > 0) {
+      const existingId = existing.data[0].id;
+      await clerk.users.updateUser(existingId, {
+        password: input.password,
+        firstName,
+        lastName,
+      });
+      return existingId;
+    }
+
+    // 3. Create user in Clerk with reserved (unverified) email status so real mail OTP is required!
+    try {
       const newUser = await clerk.users.createUser({
         emailAddress: [normalizedEmail],
         password: input.password,
@@ -59,12 +72,13 @@ export class ClerkSyncService {
         lastName,
         skipPasswordChecks: true,
         skipPasswordRequirement: false,
+        emailAddressIdentificationStatus: ['reserved'],
       });
 
       return newUser.id;
-    } catch (error) {
-      console.warn('[ClerkSyncService] Warning: Could not auto-provision Clerk user (proceeding with local DB):', error);
-      return null;
+    } catch (error: unknown) {
+      const clerkMsg = extractClerkErrorMessage(error);
+      throw new Error(`Failed to create employee in Clerk: ${clerkMsg}`);
     }
   }
 
@@ -200,11 +214,20 @@ export class ClerkSyncService {
    *
    * @returns {Promise<boolean>} True if successfully deleted, false otherwise
    */
-  static async deleteUser(clerkUserId: string): Promise<boolean> {
+  static async deleteUser(clerkUserId: string, email?: string): Promise<boolean> {
     if (!clerkUserId) return false;
     try {
       const clerk = await clerkClient();
       await clerk.users.deleteUser(clerkUserId);
+      if (email) {
+        try {
+          const alList = await clerk.allowlistIdentifiers.getAllowlistIdentifierList();
+          const al = alList.data.find((a) => a.identifier.toLowerCase() === email.toLowerCase().trim());
+          if (al) await clerk.allowlistIdentifiers.deleteAllowlistIdentifier(al.id);
+        } catch {
+          // Ignore allowlist deletion cleanup error
+        }
+      }
       return true;
     } catch (error) {
       console.warn('[ClerkSyncService] Warning: Failed to delete user from Clerk:', error);
