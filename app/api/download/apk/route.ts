@@ -1,15 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { Readable } from 'stream';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const filePath = path.join(process.cwd(), 'public', 'downloads', 'heeyaku-calltracker.apk');
     if (!fs.existsSync(filePath)) {
-      return new NextResponse('APK file not found', { status: 404 });
+      // In serverless platforms (e.g. Vercel) where static public files are served at root by CDN
+      return NextResponse.redirect(new URL('/downloads/heeyaku-calltracker.apk', req.url));
     }
 
     const stat = fs.statSync(filePath);

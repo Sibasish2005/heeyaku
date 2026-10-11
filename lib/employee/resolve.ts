@@ -57,6 +57,12 @@ export async function resolveEmployeeIdentity(
 ): Promise<ResolvedEmployee | null> {
   const cacheKey = payload.employeeId || payload.employeeCode || payload.email || '';
   if (cacheKey) {
+    if (employeeIdentityCache.size > 2000) {
+      const now = Date.now();
+      for (const [k, v] of employeeIdentityCache.entries()) {
+        if (now > v.expiresAt) employeeIdentityCache.delete(k);
+      }
+    }
     const cached = employeeIdentityCache.get(cacheKey);
     if (cached && Date.now() < cached.expiresAt) {
       return cached.resolved;

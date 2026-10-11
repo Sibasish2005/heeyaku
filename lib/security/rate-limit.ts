@@ -46,6 +46,16 @@ export function checkRateLimit(
   options: RateLimitOptions = { windowMs: 60 * 1000, maxAttempts: 5 }
 ): RateLimitResult {
   const now = Date.now();
+
+  // Bounded store protection against memory exhaustion
+  if (rateLimitStore.size > 10000) {
+    for (const [k, r] of rateLimitStore.entries()) {
+      if (now > r.resetAt) {
+        rateLimitStore.delete(k);
+      }
+    }
+  }
+
   const record = rateLimitStore.get(key);
 
   if (!record || now > record.resetAt) {

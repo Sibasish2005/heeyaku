@@ -53,6 +53,13 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
     const simulatedRoleValue = cookieStore.get('heeyaku_simulated_role')?.value;
     const cacheKey = `${userId}:${simulatedRoleValue || 'DEFAULT'}`;
 
+    if (sessionCache.size > 1000) {
+      const now = Date.now();
+      for (const [k, v] of sessionCache.entries()) {
+        if (now > v.expiresAt) sessionCache.delete(k);
+      }
+    }
+
     const cached = sessionCache.get(cacheKey);
     if (cached && cached.user && Date.now() < cached.expiresAt) {
       return cached.user;
