@@ -4,6 +4,26 @@ import { prisma } from '@/lib/prisma';
 import { signEmployeeToken } from '@/lib/auth/employee-token';
 import { checkRateLimit, resetRateLimit } from '@/lib/security/rate-limit';
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+}
+
+export async function GET() {
+  return NextResponse.json({
+    success: true,
+    service: 'heeyaku-employee-auth',
+    message: 'HEEYAKU Employee Authentication API is operational',
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown-ip';

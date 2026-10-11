@@ -108,8 +108,24 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        source: '/api/employee/(.*)',
+        source: '/api/employee/:path*',
         headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET, POST, OPTIONS',
+          },
+          {
+            key: 'Access-Control-Allow-Headers',
+            value: 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+          },
+          {
+            key: 'Access-Control-Max-Age',
+            value: '86400',
+          },
           {
             key: 'Cache-Control',
             value: 'private, no-cache, no-store, must-revalidate',
