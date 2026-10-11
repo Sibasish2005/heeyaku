@@ -343,7 +343,7 @@ export function isAllowedCeoEmail(email?: string | null): boolean {
 
   // 2. Wildcard company domain match (e.g. '@heeyaku.com' or '@company.com')
   for (const entry of allowed) {
-    if (entry.startsWith('@') && normalized.endsWith(entry)) {
+    if (entry.startsWith('@') && entry.length > 3 && entry.includes('.') && normalized.endsWith(entry)) {
       return true;
     }
   }
