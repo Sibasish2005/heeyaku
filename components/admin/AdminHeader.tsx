@@ -3,13 +3,14 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { UserButton } from '@clerk/nextjs';
+import { SignOutButton } from '@clerk/nextjs';
 import { 
   Users, 
   UserCheck, 
   LayoutDashboard, 
   ShieldCheck,
-  Building2
+  Building2,
+  LogOut
 } from 'lucide-react';
 
 interface AdminHeaderProps {
@@ -81,13 +82,16 @@ export default function AdminHeader({ adminEmail, adminName }: AdminHeaderProps)
         </div>
 
         <div className="pl-3 border-l border-slate-200/80 flex items-center gap-2">
-          <UserButton
-            appearance={{
-              elements: {
-                userButtonPopoverActionButton__manageAccount: 'hidden',
-              },
-            }}
-          />
+          <SignOutButton redirectUrl="/sign-in">
+            <button
+              type="button"
+              className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </SignOutButton>
         </div>
       </div>
     </header>

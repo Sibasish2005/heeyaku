@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, LogOut } from 'lucide-react';
 import AdminSidebar from './AdminSidebar';
 import HeeyakuLogo from '@/components/landingpage/shared/HeeyakuLogo';
 import ThemeToggler from '@/components/ThemeToggler';
-import { UserButton } from '@clerk/nextjs';
+import { useClerk } from '@clerk/nextjs';
 import NavigationProgressBar from '@/components/NavigationProgressBar';
 
 import { Role } from '@prisma/client';
@@ -30,6 +30,7 @@ export default function AdminShell({
   children,
 }: AdminShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { signOut } = useClerk();
 
   return (
     <div className="min-h-screen bg-background text-foreground flex transition-colors duration-200">
@@ -63,14 +64,18 @@ export default function AdminShell({
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggler />
-            <UserButton
-              appearance={{
-                elements: {
-                  userButtonPopoverActionButton__manageAccount: 'hidden',
-                },
+            <button
+              type="button"
+              onClick={() => {
+                document.cookie = 'heeyaku_dev_session=; path=/; max-age=0;';
+                signOut({ redirectUrl: '/sign-in' });
               }}
-              fallback={<div className="w-7 h-7 rounded-full bg-muted/60" />}
-            />
+              className="p-2 text-muted-foreground hover:text-destructive rounded-lg hover:bg-muted/70 transition-colors cursor-pointer"
+              title="Sign Out"
+              aria-label="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </header>
 

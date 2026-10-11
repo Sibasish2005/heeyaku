@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LayoutDashboard, UserCheck, Users, X, ShieldCheck, LogOut, Home, ArrowUpRight, Trophy, Sparkles } from 'lucide-react';
 import HeeyakuLogo from '@/components/landingpage/shared/HeeyakuLogo';
 import ThemeToggler from '@/components/ThemeToggler';
-import { UserButton, useClerk } from '@clerk/nextjs';
+import { useClerk } from '@clerk/nextjs';
 import { Role } from '@prisma/client';
 
 export interface AdminSidebarProps {
@@ -28,7 +28,6 @@ export default function AdminSidebar({
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const { signOut } = useClerk();
-  const [isConfirmingSignOut, setIsConfirmingSignOut] = React.useState(false);
 
   // Dynamic role-based navigation
   const navItems = React.useMemo(() => {
@@ -164,14 +163,9 @@ export default function AdminSidebar({
 
           <div className="pt-2 border-t border-border/60 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <UserButton
-                appearance={{
-                  elements: {
-                    userButtonPopoverActionButton__manageAccount: 'hidden',
-                  },
-                }}
-                fallback={<div className="w-7 h-7 rounded-full bg-muted/60" />}
-              />
+              <div className="w-8 h-8 rounded-full bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/20 dark:text-blue-400 font-bold text-xs flex items-center justify-center shrink-0 border border-[#2563EB]/20 select-none">
+                {adminName ? adminName.charAt(0).toUpperCase() : 'A'}
+              </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1">
                   <span className="text-xs font-bold text-foreground truncate">{adminName}</span>
@@ -193,42 +187,18 @@ export default function AdminSidebar({
             </div>
           </div>
 
-          {/* Sign Out Button with Confirmation Prompt */}
-          {!isConfirmingSignOut ? (
-            <button
-              type="button"
-              onClick={() => setIsConfirmingSignOut(true)}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-border/80 hover:border-destructive/40 text-muted-foreground hover:text-destructive hover:bg-destructive/5 active:scale-[0.98] transition-colors duration-150 cursor-pointer"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Sign Out</span>
-            </button>
-          ) : (
-            <div className="p-2.5 rounded-xl border border-destructive/30 bg-destructive/5 space-y-2 animate-in fade-in duration-150">
-              <p className="text-[11px] font-semibold text-center text-foreground">
-                Are you sure you want to sign out?
-              </p>
-              <div className="grid grid-cols-2 gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setIsConfirmingSignOut(false)}
-                  className="px-2 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground bg-muted/80 hover:bg-muted rounded-lg transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    document.cookie = 'heeyaku_dev_session=; path=/; max-age=0;';
-                    signOut({ redirectUrl: '/' });
-                  }}
-                  className="px-2 py-1.5 text-[11px] font-bold text-white bg-destructive hover:bg-destructive/90 rounded-lg transition-colors shadow-xs cursor-pointer"
-                >
-                  Yes, Sign Out
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Clean Standalone Sign Out Button */}
+          <button
+            type="button"
+            onClick={() => {
+              document.cookie = 'heeyaku_dev_session=; path=/; max-age=0;';
+              signOut({ redirectUrl: '/sign-in' });
+            }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-border/80 hover:border-destructive/40 text-muted-foreground hover:text-destructive hover:bg-destructive/5 active:scale-[0.98] transition-colors duration-150 cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
     </>

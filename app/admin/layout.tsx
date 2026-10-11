@@ -67,24 +67,13 @@ export default async function AdminLayout({
           <p className="text-xs text-slate-500 leading-relaxed">
             Welcome, {admin.name}! Sales Associates conduct lead outreach and telephony calling via the dedicated Android Call Tracker mobile app.
           </p>
-          <div className="pt-4 flex flex-col gap-2">
+          <div className="pt-4">
             <a
               href="/download"
-              className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors shadow-sm"
+              className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors shadow-sm"
             >
               Download Android Call Tracker
             </a>
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-center">
-              <SignOutButton redirectUrl="/sign-in">
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Log Out</span>
-                </button>
-              </SignOutButton>
-            </div>
           </div>
         </div>
       </div>
