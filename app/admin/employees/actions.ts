@@ -298,6 +298,121 @@ export async function resetEmployeePasswordAction(id: string, newPassword?: stri
 }
 
 /**
+ * Server Action: Sends a Clerk 6-digit OTP verification email to an existing employee
+ * before permitting a password reset.
+ * Accessible ONLY by CEO and HR administrators.
+ */
+export async function sendResetPasswordOtpAction(employeeId: string): Promise<ActionResponse<{ emailAddressId: string; verificationId: string; targetEmail: string }>> {
+  try {
+    const user = await assertAuthenticatedUser();
+    if (!canManageEmployees(user.role)) {
+      return {
+        success: false,
+        error: 'Unauthorized access. Only CEO and HR administrators can reset employee passwords.',
+      };
+    }
+
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { id: true, name: true, email: true, employeeCode: true, role: true },
+    });
+
+    if (!employee) {
+      return {
+        success: false,
+        error: 'Employee account not found.',
+      };
+    }
+
+    const prep = await ClerkSyncService.prepareEmailOtpVerification({
+      email: employee.email,
+      name: employee.name,
+    });
+
+    return {
+      success: true,
+      data: {
+        emailAddressId: prep.emailAddressId,
+        verificationId: prep.verificationId,
+        targetEmail: employee.email,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeErrorMessage(error, 'Failed to send OTP verification email via Clerk.'),
+    };
+  }
+}
+
+/**
+ * Server Action: Verifies the 6-digit Clerk email OTP and resets the employee's password.
+ * Accessible ONLY by CEO and HR administrators.
+ */
+export async function verifyResetPasswordOtpAndResetAction(input: {
+  employeeId: string;
+  emailAddressId: string;
+  verificationId: string;
+  code: string;
+  newPassword?: string;
+}): Promise<ActionResponse<PasswordResetResult>> {
+  try {
+    const user = await assertAuthenticatedUser();
+    if (!canManageEmployees(user.role)) {
+      return {
+        success: false,
+        error: 'Unauthorized access. Only CEO and HR administrators can reset employee passwords.',
+      };
+    }
+
+    const { employeeId, emailAddressId, verificationId, code, newPassword } = input;
+    const cleanCode = (code || '').trim();
+
+    if (!employeeId || !emailAddressId || !verificationId || cleanCode.length !== 6) {
+      return {
+        success: false,
+        error: 'Please enter the complete 6-digit verification code received by email.',
+      };
+    }
+
+    if (newPassword && newPassword.trim().length > 0 && newPassword.trim().length < 8) {
+      return {
+        success: false,
+        error: 'Password must be at least 8 characters long.',
+      };
+    }
+
+    // Verify OTP against Clerk
+    const verifyRes = await ClerkSyncService.attemptEmailOtpVerification({
+      emailAddressId,
+      verificationId,
+      code: cleanCode,
+    });
+
+    if (!verifyRes.verified) {
+      return {
+        success: false,
+        error: verifyRes.error || 'Incorrect OTP verification code. Please check email and try again.',
+      };
+    }
+
+    // OTP verified successfully: proceed to reset password in PostgreSQL and Clerk
+    const result = await EmployeeService.resetPassword(employeeId, user.role, newPassword?.trim());
+    clearEmployeeIdentityCache(employeeId);
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeErrorMessage(error, 'Unable to reset employee password.'),
+    };
+  }
+}
+
+/**
  * Server Action: Permanently deletes an employee account, unlinks leads/squads, and purges Clerk user.
  * Accessible ONLY by CEO and HR administrators (prevents self-deletion).
  *
