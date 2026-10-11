@@ -22,9 +22,9 @@ export default function AdminHeader({ adminEmail, adminName }: AdminHeaderProps)
   const pathname = usePathname();
 
   const navItems = [
-    { label: 'Overview', href: '/admin/dashboard', icon: LayoutDashboard },
-    { label: 'Employees', href: '/admin/employees', icon: UserCheck },
-    { label: 'Leads CRM', href: '/admin/leads', icon: Users },
+    { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+    { label: 'Leads', href: '/admin/leads', icon: Users },
+    { label: 'Staff', href: '/admin/employees', icon: UserCheck },
   ];
 
   return (

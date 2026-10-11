@@ -33,24 +33,24 @@ export default function AdminSidebar({
   const navItems = React.useMemo(() => {
     if (role === Role.HR) {
       return [
-        { label: 'Staff Management', href: '/admin/employees', icon: UserCheck },
-        { label: 'Teams Roster', href: '/admin/teams', icon: Trophy },
+        { label: 'Staff', href: '/admin/employees', icon: UserCheck },
+        { label: 'Teams', href: '/admin/teams', icon: Trophy },
       ];
     }
     if (role === Role.TEAM_LEAD) {
       return [
-        { label: 'Squad Overview', href: '/admin/dashboard', icon: LayoutDashboard },
-        { label: 'My Squad', href: '/admin/teams', icon: Trophy },
-        { label: 'Squad Leads CRM', href: '/admin/leads', icon: Users },
-        { label: 'My Squad BDAs', href: '/admin/employees', icon: UserCheck },
+        { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Leads', href: '/admin/leads', icon: Users },
+        { label: 'My Team', href: '/admin/teams', icon: Trophy },
+        { label: 'Staff', href: '/admin/employees', icon: UserCheck },
       ];
     }
     // CEO has universal omni-privilege access
     return [
-      { label: 'Overview', href: '/admin/dashboard', icon: LayoutDashboard },
-      { label: 'Teams Leaderboard', href: '/admin/teams', icon: Trophy },
-      { label: 'Leads CRM', href: '/admin/leads', icon: Users },
-      { label: 'Employees & Staff', href: '/admin/employees', icon: UserCheck },
+      { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+      { label: 'Leads', href: '/admin/leads', icon: Users },
+      { label: 'Teams', href: '/admin/teams', icon: Trophy },
+      { label: 'Staff', href: '/admin/employees', icon: UserCheck },
     ];
   }, [role]);
 
@@ -95,10 +95,10 @@ export default function AdminSidebar({
           </div>
 
           <div className="pt-2 space-y-5">
-            {/* Home / Website Section */}
+            {/* Website Section */}
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-3 mb-2">
-                Home
+                Website
               </div>
               <nav className="space-y-1">
                 <Link
@@ -109,19 +109,19 @@ export default function AdminSidebar({
                 >
                   <div className="flex items-center gap-3">
                     <Home className="w-4 h-4 shrink-0 text-muted-foreground group-hover:text-[#2563EB] dark:group-hover:text-blue-400 transition-colors" />
-                    <span>Landing Page</span>
+                    <span>Home Page</span>
                   </div>
                   <span className="text-[10px] font-medium text-muted-foreground/70 group-hover:text-foreground flex items-center gap-0.5">
-                    View <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    Visit <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                   </span>
                 </Link>
               </nav>
             </div>
 
-            {/* Main Operations */}
+            {/* Menu */}
             <div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-3 mb-2">
-                Main Operations
+                Menu
               </div>
               <nav className="space-y-1">
                 {navItems.map((item) => {
