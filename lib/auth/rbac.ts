@@ -83,12 +83,9 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
 
     if (dbEmployee) {
       const normalizedEmail = dbEmployee.email.toLowerCase().trim();
-      const isConfiguredCeo = allowedCeoEmails.includes(normalizedEmail);
+      const isConfiguredCeo = isAllowedCeoEmail(normalizedEmail) || dbEmployee.role === Role.CEO;
       
       let effectiveRole = dbEmployee.role;
-      if (effectiveRole === Role.CEO && !isConfiguredCeo) {
-        effectiveRole = Role.HR;
-      }
 
       let effectiveTeamId: string | null = dbEmployee.teamId;
       let effectiveTeamName: string | null = dbEmployee.teamGroup?.name || null;
@@ -154,8 +151,8 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       clerkUser.username ||
       primaryEmail;
 
-    // Check if user is configured as CEO via ADMIN_EMAIL
-    if (allowedCeoEmails.includes(normalizedEmail)) {
+    // Check if user is configured as CEO via ADMIN_EMAIL or company domain wildcard
+    if (isAllowedCeoEmail(normalizedEmail)) {
       let effectiveRole: Role = Role.CEO;
       let effectiveTeamId: string | null = null;
       let effectiveTeamName: string | null = null;
@@ -229,10 +226,7 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       });
     }
 
-    const effectiveRole =
-      employee.role === Role.CEO && !allowedCeoEmails.includes(normalizedEmail)
-        ? Role.HR
-        : employee.role;
+    const effectiveRole = employee.role;
 
     const authUser: AuthenticatedUser = {
       userId,
@@ -342,7 +336,19 @@ export function isAllowedCeoEmail(email?: string | null): boolean {
     .split(',')
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
-  return allowed.includes(email.toLowerCase().trim());
+  const normalized = email.toLowerCase().trim();
+
+  // 1. Direct email match
+  if (allowed.includes(normalized)) return true;
+
+  // 2. Wildcard company domain match (e.g. '@heeyaku.com' or '@company.com')
+  for (const entry of allowed) {
+    if (entry.startsWith('@') && normalized.endsWith(entry)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
