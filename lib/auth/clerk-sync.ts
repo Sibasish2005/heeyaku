@@ -307,7 +307,7 @@ export class ClerkSyncService {
       return null;
     } catch (error: unknown) {
       const clerkMsg = extractClerkErrorMessage(error);
-      throw new Error(`Clerk rejected password: ${clerkMsg}`);
+      throw new Error(clerkMsg);
     }
   }
 

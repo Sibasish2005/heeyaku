@@ -56,8 +56,8 @@ export function sanitizeErrorMessage(
       return fallback;
     }
 
-    // Only allow brief, clean application-level domain validation messages (< 120 chars)
-    if (msg.length <= 120 && !msg.includes('{') && !msg.includes('}')) {
+    // Only allow brief, clean application-level domain validation messages (< 250 chars)
+    if (msg.length <= 250 && !msg.includes('{') && !msg.includes('}')) {
       return msg;
     }
   }
