@@ -7,6 +7,18 @@ import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
 
 const VALID_STATUSES = new Set(Object.values(LeadStatus));
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+}
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ leadId: string }> }
