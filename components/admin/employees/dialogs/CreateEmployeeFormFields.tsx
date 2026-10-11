@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Mail, Phone, Building2, FileText, Shield, Users, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Phone, Building2, FileText, Shield, Users, Lock, Eye, EyeOff, Send, CheckCircle2, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 import ShadcnDropdownSelect from '@/components/ui/shadcn-dropdown-select';
 import { FRONTEND_PHONE_PATTERN } from '@/lib/lead/phone';
 import { fetchActiveTeamLeadsAction } from '@/app/admin/employees/actions';
@@ -17,14 +17,32 @@ export interface EmployeeFormData {
   password?: string;
 }
 
+export interface OtpVerificationState {
+  sent: boolean;
+  sending: boolean;
+  verified: boolean;
+  verifying: boolean;
+  code: string;
+  error?: string | null;
+  resendCountdown: number;
+}
+
 interface CreateEmployeeFormFieldsProps {
   formData: EmployeeFormData;
   onChange: (data: EmployeeFormData) => void;
+  otpState: OtpVerificationState;
+  onSendOtp: () => Promise<void>;
+  onVerifyOtp: (code?: string) => Promise<void>;
+  onOtpCodeChange: (code: string) => void;
 }
 
 export default function CreateEmployeeFormFields({
   formData,
   onChange,
+  otpState,
+  onSendOtp,
+  onVerifyOtp,
+  onOtpCodeChange,
 }: CreateEmployeeFormFieldsProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [teamLeads, setTeamLeads] = useState<Array<{ id: string; name: string; employeeCode: string; teamName: string | null }>>([]);
@@ -97,8 +115,21 @@ export default function CreateEmployeeFormFields({
         />
       </div>
 
-      <div className="space-y-1 sm:col-span-2">
-        <label className="text-xs font-bold text-foreground">Email Address (Login) *</label>
+      <div className="space-y-1.5 sm:col-span-2">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-bold text-foreground">Email Address (Login) *</label>
+          {otpState.verified ? (
+            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              Verified via Clerk
+            </span>
+          ) : (
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3 text-[#2563EB]" />
+              Clerk email OTP required
+            </span>
+          )}
+        </div>
         <div className="relative">
           <Mail className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
@@ -106,10 +137,122 @@ export default function CreateEmployeeFormFields({
             required
             placeholder="rahul@heeyaku.com"
             value={formData.email}
+            disabled={otpState.verified}
             onChange={(e) => onChange({ ...formData, email: e.target.value })}
-            className="w-full pl-8 pr-3 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground"
+            className={`w-full pl-8 pr-3 py-2 text-xs bg-muted/40 focus:bg-background border text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground ${
+              otpState.verified
+                ? 'border-emerald-500/50 bg-emerald-500/5'
+                : 'border-border focus:border-[#2563EB]'
+            }`}
           />
         </div>
+
+        {/* OTP Action State */}
+        {!otpState.verified ? (
+          !otpState.sent ? (
+            <div className="flex items-center justify-end pt-1">
+              <button
+                type="button"
+                onClick={onSendOtp}
+                disabled={!formData.email || otpState.sending}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors cursor-pointer shadow-xs"
+              >
+                {otpState.sending ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Sending Clerk OTP...</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3 h-3" />
+                    <span>Send Verification OTP via Clerk</span>
+                  </>
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="mt-2 p-3.5 rounded-xl border border-[#2563EB]/30 bg-[#2563EB]/5 space-y-3 animate-in fade-in duration-200">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-foreground">
+                    <Mail className="w-3.5 h-3.5 text-[#2563EB]" />
+                    <span>Clerk Verification Code Dispatched</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Real 6-digit OTP sent to <span className="font-semibold text-foreground">{formData.email}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onSendOtp}
+                  disabled={otpState.sending || otpState.resendCountdown > 0}
+                  className="text-[11px] font-semibold text-[#2563EB] hover:underline disabled:opacity-50 disabled:no-underline cursor-pointer"
+                >
+                  {otpState.resendCountdown > 0 ? `Resend (${otpState.resendCountdown}s)` : 'Resend Code'}
+                </button>
+              </div>
+
+              {otpState.error && (
+                <div className="p-2 rounded-lg bg-destructive/10 border border-destructive/20 text-[11px] font-semibold text-destructive flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{otpState.error}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="Enter 6-digit OTP"
+                  value={otpState.code}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    onOtpCodeChange(digits);
+                    if (digits.length === 6) {
+                      onVerifyOtp(digits);
+                    }
+                  }}
+                  className="w-40 px-3 py-1.5 text-xs font-mono font-bold tracking-widest text-center bg-background border border-border focus:border-[#2563EB] text-foreground rounded-lg outline-hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => onVerifyOtp(otpState.code)}
+                  disabled={otpState.code.length !== 6 || otpState.verifying}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors cursor-pointer"
+                >
+                  {otpState.verifying ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Verifying...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span>Verify Code</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )
+        ) : (
+          <div className="mt-2 p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-between text-xs animate-in fade-in duration-200">
+            <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+              <span>Real Mail OTP Verified by Clerk!</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                onOtpCodeChange('');
+                onSendOtp();
+              }}
+              className="text-[11px] font-semibold text-muted-foreground hover:text-foreground underline cursor-pointer"
+            >
+              Change Email
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-1">

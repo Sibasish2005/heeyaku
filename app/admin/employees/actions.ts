@@ -9,6 +9,8 @@ import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
 import { clearEmployeeIdentityCache } from '@/lib/employee/resolve';
 import { clearEmployeeChunkCache } from './fetch-actions';
 
+import { prisma } from '@/lib/prisma';
+import { ClerkSyncService } from '@/lib/auth/clerk-sync';
 import { sanitizeErrorMessage } from '@/lib/security/errors';
 
 export type ActionResponse<T = unknown> = {
@@ -16,6 +18,114 @@ export type ActionResponse<T = unknown> = {
   data?: T;
   error?: string;
 };
+
+/**
+ * Server Action: Sends a genuine email verification OTP via Clerk to a staff email address.
+ * Accessible ONLY by CEO and HR administrators.
+ */
+export async function sendEmployeeOtpAction(input: {
+  email: string;
+  name?: string;
+  password?: string;
+}): Promise<ActionResponse<{ emailAddressId: string; verificationId: string }>> {
+  try {
+    const user = await assertAuthenticatedUser();
+    if (!canManageEmployees(user.role)) {
+      return {
+        success: false,
+        error: 'Unauthorized access. Only CEO and HR administrators can onboard employees.',
+      };
+    }
+
+    const normalizedEmail = (input.email || '').toLowerCase().trim();
+    if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return {
+        success: false,
+        error: 'Please enter a valid email address before requesting an OTP.',
+      };
+    }
+
+    // Check email uniqueness in application database
+    const existing = await prisma.employee.findUnique({
+      where: { email: normalizedEmail },
+    });
+    if (existing) {
+      return {
+        success: false,
+        error: 'An employee with this email address already exists in the system.',
+      };
+    }
+
+    const result = await ClerkSyncService.prepareEmailOtpVerification({
+      email: normalizedEmail,
+      name: input.name?.trim() || 'Staff',
+      password: input.password,
+    });
+
+    return {
+      success: true,
+      data: {
+        emailAddressId: result.emailAddressId,
+        verificationId: result.verificationId,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeErrorMessage(error, 'Failed to send OTP verification email via Clerk.'),
+    };
+  }
+}
+
+/**
+ * Server Action: Verifies the 6-digit OTP code against Clerk.
+ * Accessible ONLY by CEO and HR administrators.
+ */
+export async function verifyEmployeeOtpAction(input: {
+  emailAddressId: string;
+  verificationId: string;
+  code: string;
+}): Promise<ActionResponse<{ verified: boolean }>> {
+  try {
+    const user = await assertAuthenticatedUser();
+    if (!canManageEmployees(user.role)) {
+      return {
+        success: false,
+        error: 'Unauthorized access. Only CEO and HR administrators can onboard employees.',
+      };
+    }
+
+    if (!input.emailAddressId || !input.verificationId || !input.code?.trim()) {
+      return {
+        success: false,
+        error: 'Please enter the 6-digit verification code.',
+      };
+    }
+
+    const result = await ClerkSyncService.attemptEmailOtpVerification({
+      emailAddressId: input.emailAddressId,
+      verificationId: input.verificationId,
+      code: input.code.trim(),
+    });
+
+    if (!result.verified) {
+      return {
+        success: false,
+        error: result.error || 'Invalid verification code. Please check employee email inbox.',
+      };
+    }
+
+    return {
+      success: true,
+      data: { verified: true },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: sanitizeErrorMessage(error, 'Verification failed. Please try again.'),
+    };
+  }
+}
 
 /**
  * Server Action: Creates a new employee with an admin-provisioned ID and secure temporary password.

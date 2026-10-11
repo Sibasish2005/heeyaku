@@ -1,11 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
-import { UserPlus, X, Loader2 } from 'lucide-react';
-import { createEmployeeAction } from '@/app/admin/employees/actions';
+import React, { useState, useEffect } from 'react';
+import { UserPlus, X, Loader2, ShieldCheck } from 'lucide-react';
+import {
+  createEmployeeAction,
+  sendEmployeeOtpAction,
+  verifyEmployeeOtpAction,
+} from '@/app/admin/employees/actions';
 import { zodPhoneNumberSchema } from '@/lib/lead/phone';
 import CreateEmployeeCredentialsCard from './dialogs/CreateEmployeeCredentialsCard';
-import CreateEmployeeFormFields, { EmployeeFormData } from './dialogs/CreateEmployeeFormFields';
+import CreateEmployeeFormFields, {
+  EmployeeFormData,
+  OtpVerificationState,
+} from './dialogs/CreateEmployeeFormFields';
 
 interface CreateEmployeeDialogProps {
   isOpen: boolean;
@@ -39,11 +46,156 @@ export default function CreateEmployeeDialog({
     temporaryPassword: string;
   } | null>(null);
 
+  const [otpState, setOtpState] = useState<OtpVerificationState & { verifiedEmail: string; emailAddressId?: string; verificationId?: string }>({
+    sent: false,
+    sending: false,
+    verified: false,
+    verifying: false,
+    verifiedEmail: '',
+    code: '',
+    error: null,
+    resendCountdown: 0,
+  });
+
+  // Countdown timer for OTP resend cooldown
+  useEffect(() => {
+    if (otpState.resendCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setOtpState((prev) => ({
+        ...prev,
+        resendCountdown: Math.max(0, prev.resendCountdown - 1),
+      }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [otpState.resendCountdown]);
+
   if (!isOpen) return null;
+
+  const handleFormDataChange = (newData: EmployeeFormData) => {
+    const emailChanged = newData.email.trim().toLowerCase() !== formData.email.trim().toLowerCase();
+    setFormData(newData);
+    if (emailChanged && (otpState.verified || otpState.sent)) {
+      setOtpState((prev) => ({
+        ...prev,
+        sent: false,
+        verified: false,
+        verifiedEmail: '',
+        code: '',
+        error: null,
+      }));
+    }
+  };
+
+  const handleSendOtp = async () => {
+    const cleanEmail = formData.email.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please provide a valid email address before requesting an OTP.');
+      return;
+    }
+
+    setOtpState((prev) => ({ ...prev, sending: true, error: null }));
+    setError(null);
+
+    try {
+      const res = await sendEmployeeOtpAction({
+        email: cleanEmail,
+        name: formData.name,
+        password: formData.password,
+      });
+
+      if (!res.success || !res.data) {
+        setOtpState((prev) => ({
+          ...prev,
+          sending: false,
+          error: res.error || 'Failed to dispatch verification email.',
+        }));
+        return;
+      }
+
+      const otpPayload = res.data;
+      setOtpState((prev) => ({
+        ...prev,
+        sent: true,
+        sending: false,
+        verified: false,
+        emailAddressId: otpPayload.emailAddressId,
+        verificationId: otpPayload.verificationId,
+        error: null,
+        resendCountdown: 45,
+      }));
+    } catch {
+      setOtpState((prev) => ({
+        ...prev,
+        sending: false,
+        error: 'An unexpected error occurred while sending OTP.',
+      }));
+    }
+  };
+
+  const handleVerifyOtp = async (codeToVerify?: string) => {
+    const code = (codeToVerify || otpState.code).trim();
+    if (!code || code.length !== 6) {
+      setOtpState((prev) => ({
+        ...prev,
+        error: 'Please enter the complete 6-digit verification code.',
+      }));
+      return;
+    }
+
+    if (!otpState.emailAddressId || !otpState.verificationId) {
+      setOtpState((prev) => ({
+        ...prev,
+        error: 'Please send an OTP first before verifying.',
+      }));
+      return;
+    }
+
+    setOtpState((prev) => ({ ...prev, verifying: true, error: null }));
+
+    try {
+      const res = await verifyEmployeeOtpAction({
+        emailAddressId: otpState.emailAddressId,
+        verificationId: otpState.verificationId,
+        code,
+      });
+
+      if (!res.success) {
+        setOtpState((prev) => ({
+          ...prev,
+          verifying: false,
+          error: res.error || 'Invalid OTP code. Please check employee email.',
+        }));
+        return;
+      }
+
+      setOtpState((prev) => ({
+        ...prev,
+        verifying: false,
+        verified: true,
+        verifiedEmail: formData.email.trim().toLowerCase(),
+        error: null,
+      }));
+      setError(null);
+    } catch {
+      setOtpState((prev) => ({
+        ...prev,
+        verifying: false,
+        error: 'Verification request failed. Please try again.',
+      }));
+    }
+  };
+
+  const isEmailVerified =
+    otpState.verified && formData.email.trim().toLowerCase() === otpState.verifiedEmail;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!isEmailVerified) {
+      setError('Real mail OTP verification by Clerk is required before confirming employee account.');
+      return;
+    }
 
     const phoneValidation = zodPhoneNumberSchema.safeParse(formData.phoneNumber);
     if (!phoneValidation.success) {
@@ -94,6 +246,16 @@ export default function CreateEmployeeDialog({
       notes: '',
       password: '',
     });
+    setOtpState({
+      sent: false,
+      sending: false,
+      verified: false,
+      verifying: false,
+      verifiedEmail: '',
+      code: '',
+      error: null,
+      resendCountdown: 0,
+    });
     onClose();
   };
 
@@ -110,13 +272,13 @@ export default function CreateEmployeeDialog({
                 {createdCredentials ? 'Employee Credentials Generated' : 'Create New Employee'}
               </h2>
               <p className="text-[11px] text-muted-foreground">
-                {createdCredentials ? 'Share these credentials securely with staff' : 'Add staff account to manage and assign leads'}
+                {createdCredentials ? 'Share these credentials securely with staff' : 'Add staff account with Clerk OTP email verification'}
               </p>
             </div>
           </div>
           <button
             onClick={createdCredentials ? handleFinish : onClose}
-            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -137,7 +299,14 @@ export default function CreateEmployeeDialog({
               </div>
             )}
 
-            <CreateEmployeeFormFields formData={formData} onChange={setFormData} />
+            <CreateEmployeeFormFields
+              formData={formData}
+              onChange={handleFormDataChange}
+              otpState={otpState}
+              onSendOtp={handleSendOtp}
+              onVerifyOtp={handleVerifyOtp}
+              onOtpCodeChange={(code) => setOtpState((prev) => ({ ...prev, code }))}
+            />
 
             <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
               <button
@@ -149,11 +318,17 @@ export default function CreateEmployeeDialog({
               </button>
               <button
                 type="submit"
-                disabled={loading}
-                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-500 rounded-xl transition-colors shadow-xs disabled:opacity-60 cursor-pointer"
+                disabled={loading || !isEmailVerified}
+                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-500 rounded-xl transition-colors shadow-xs disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
-                {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
-                <span>Create Staff Account</span>
+                {loading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : isEmailVerified ? (
+                  <UserPlus className="w-3.5 h-3.5" />
+                ) : (
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                )}
+                <span>{isEmailVerified ? 'Create Staff Account' : 'Verify OTP to Confirm'}</span>
               </button>
             </div>
           </form>

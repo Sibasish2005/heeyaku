@@ -12,11 +12,166 @@ export interface ClerkUpdateUserInput {
   password?: string;
 }
 
+export interface PrepareOtpResult {
+  clerkUserId: string;
+  emailAddressId: string;
+  verificationId: string;
+}
+
+export interface AttemptOtpResult {
+  verified: boolean;
+  attempts?: number;
+  error?: string;
+}
+
+/**
+ * Low-level authenticated fetch helper for Clerk REST API endpoints.
+ */
+async function clerkFetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const secretKey = process.env.CLERK_SECRET_KEY;
+  if (!secretKey) throw new Error('CLERK_SECRET_KEY environment variable is missing.');
+  return await fetch(`https://api.clerk.com/v1${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+    },
+  });
+}
+
 /**
  * Domain Service: Clerk Backend Synchronization
  * Handles user provisioning, password updates, and identity deletion in Clerk's user directory.
  */
 export class ClerkSyncService {
+  /**
+   * Pre-registers a staff user in Clerk with reserved status and triggers
+   * a genuine Clerk email verification OTP to the employee's email inbox.
+   */
+  static async prepareEmailOtpVerification(input: {
+    email: string;
+    name: string;
+    password?: string;
+  }): Promise<PrepareOtpResult> {
+    const normalizedEmail = input.email.toLowerCase().trim();
+    const nameParts = input.name.trim().split(/\s+/);
+    const firstName = nameParts[0] || 'Staff';
+    const lastName = nameParts.slice(1).join(' ') || undefined;
+
+    const clerk = await clerkClient();
+
+    // 1. Ensure email is on allowlist so Clerk permits sign-in/up
+    try {
+      await clerk.allowlistIdentifiers.createAllowlistIdentifier({
+        identifier: normalizedEmail,
+        notify: false,
+      });
+    } catch {
+      // Ignore if already allowed or allowlist is disabled
+    }
+
+    // 2. Check if user already exists in Clerk
+    const existing = await clerk.users.getUserList({
+      emailAddress: [normalizedEmail],
+    });
+
+    let clerkUserId: string;
+    let emailAddressId: string;
+
+    if (existing.data && existing.data.length > 0) {
+      const user = existing.data[0];
+      clerkUserId = user.id;
+      const foundEmail = user.emailAddresses.find((e) => e.emailAddress.toLowerCase() === normalizedEmail);
+      emailAddressId = foundEmail?.id || user.emailAddresses[0]?.id;
+
+      if (input.password && input.password.trim().length >= 8) {
+        try {
+          await clerk.users.updateUser(clerkUserId, {
+            password: input.password.trim(),
+            firstName,
+            lastName,
+          });
+        } catch {
+          // Non-blocking password update on existing account
+        }
+      }
+    } else {
+      // Create user in Clerk with reserved (unverified) status so OTP is required
+      const newUser = await clerk.users.createUser({
+        emailAddress: [normalizedEmail],
+        password: input.password && input.password.trim().length >= 8 ? input.password.trim() : undefined,
+        firstName,
+        lastName,
+        skipPasswordChecks: true,
+        skipPasswordRequirement: !input.password,
+        emailAddressIdentificationStatus: ['reserved'],
+      });
+      clerkUserId = newUser.id;
+      emailAddressId = newUser.emailAddresses[0].id;
+    }
+
+    // 3. Trigger prepare_verification with strategy: 'email_code'
+    const prepRes = await clerkFetch(`/email_addresses/${emailAddressId}/prepare_verification`, {
+      method: 'POST',
+      body: JSON.stringify({ strategy: 'email_code' }),
+    });
+
+    const prepData = await prepRes.json();
+    if (!prepRes.ok) {
+      const errMsg = extractClerkErrorMessage(prepData);
+      throw new Error(errMsg || 'Failed to send OTP verification email via Clerk');
+    }
+
+    return {
+      clerkUserId,
+      emailAddressId,
+      verificationId: prepData.id,
+    };
+  }
+
+  /**
+   * Attempts verification of the Clerk OTP code sent to the employee's email.
+   * If correct, Clerk marks the email address as verified!
+   */
+  static async attemptEmailOtpVerification(input: {
+    emailAddressId: string;
+    verificationId: string;
+    code: string;
+  }): Promise<AttemptOtpResult> {
+    const { emailAddressId, verificationId, code } = input;
+    const cleanCode = code.trim();
+
+    const verifyRes = await clerkFetch(`/email_addresses/${emailAddressId}/attempt_verification`, {
+      method: 'POST',
+      body: JSON.stringify({
+        code: cleanCode,
+        verification_id: verificationId,
+      }),
+    });
+
+    const verifyData = await verifyRes.json();
+    if (!verifyRes.ok) {
+      const errMsg = extractClerkErrorMessage(verifyData);
+      return {
+        verified: false,
+        error: errMsg || 'Verification code failed',
+      };
+    }
+
+    if (verifyData.status === 'verified') {
+      return {
+        verified: true,
+      };
+    }
+
+    return {
+      verified: false,
+      attempts: verifyData.attempts,
+      error: 'Incorrect verification code. Please check staff email and try again.',
+    };
+  }
+
   /**
    * Provisions or synchronizes an employee account in Clerk so they can log in via the web portal.
    * If a user with the matching email already exists in Clerk, their password and name are updated.
@@ -63,7 +218,7 @@ export class ClerkSyncService {
       return existingId;
     }
 
-    // 3. Create user in Clerk with reserved (unverified) email status so real mail OTP is required!
+    // 3. Create user in Clerk
     try {
       const newUser = await clerk.users.createUser({
         emailAddress: [normalizedEmail],
@@ -72,7 +227,6 @@ export class ClerkSyncService {
         lastName,
         skipPasswordChecks: true,
         skipPasswordRequirement: false,
-        emailAddressIdentificationStatus: ['reserved'],
       });
 
       return newUser.id;
