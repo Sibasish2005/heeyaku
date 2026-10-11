@@ -40,7 +40,7 @@ export default function AdminSidebar({
     if (role === Role.TEAM_LEAD) {
       return [
         { label: 'Squad Overview', href: '/admin/dashboard', icon: LayoutDashboard },
-        { label: 'Teams Leaderboard', href: '/admin/teams', icon: Trophy },
+        { label: 'My Squad', href: '/admin/teams', icon: Trophy },
         { label: 'Squad Leads CRM', href: '/admin/leads', icon: Users },
         { label: 'My Squad BDAs', href: '/admin/employees', icon: UserCheck },
       ];

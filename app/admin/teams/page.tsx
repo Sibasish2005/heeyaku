@@ -16,7 +16,11 @@ export const dynamic = 'force-dynamic';
 export default async function TeamsPage() {
   const admin = await assertAdminAccess();
 
+  const isTeamLead = admin.role === Role.TEAM_LEAD;
+  const targetTeamId = isTeamLead ? (admin.ledTeamId || admin.teamId || null) : null;
+
   const teams = await prisma.team.findMany({
+    where: isTeamLead ? { id: targetTeamId || '__UNASSIGNED_SQUAD__' } : {},
     include: {
       teamLead: {
         select: {

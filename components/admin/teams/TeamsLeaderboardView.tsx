@@ -67,6 +67,8 @@ export default function TeamsLeaderboardView({
     return `${m}m`;
   };
 
+  const isTeamLead = currentUserRole === Role.TEAM_LEAD;
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -74,13 +76,15 @@ export default function TeamsLeaderboardView({
         <div>
           <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-amber-500 uppercase mb-1">
             <Trophy className="w-3.5 h-3.5" />
-            <span>Squad Recognition & Performance League</span>
+            <span>{isTeamLead ? 'Squad Recognition & Performance' : 'Squad Recognition & Performance League'}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-            Teams Leaderboard
+            {isTeamLead ? (squads[0]?.name ? `${squads[0].name} — Squad Performance` : 'My Squad') : 'Teams Leaderboard'}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Recognizing team leads and squads gaining the most clients and driving telephony velocity.
+            {isTeamLead
+              ? 'Recognizing client acquisitions and telephony velocity for your assigned squad.'
+              : 'Recognizing team leads and squads gaining the most clients and driving telephony velocity.'}
           </p>
         </div>
 
@@ -95,22 +99,22 @@ export default function TeamsLeaderboardView({
         )}
       </div>
 
-      {/* Aggregate League Metrics */}
+      {/* Aggregate League / Squad Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 rounded-2xl border border-border bg-card divide-y sm:divide-y-0 sm:divide-x divide-border shadow-2xs overflow-hidden">
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors">
           <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
             <Building2 className="w-3.5 h-3.5 text-blue-500" />
-            <span>Active Squads</span>
+            <span>{isTeamLead ? 'Squad Name' : 'Active Squads'}</span>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
-            {totalSquads}
+          <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono truncate">
+            {isTeamLead ? (squads[0]?.name || 'My Squad') : totalSquads}
           </div>
         </div>
 
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors">
           <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Active BDAs</span>
+            <span>{isTeamLead ? 'Squad BDAs' : 'Active BDAs'}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
             {totalMembers}
@@ -120,7 +124,7 @@ export default function TeamsLeaderboardView({
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors">
           <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Total Clients Acquired</span>
+            <span>{isTeamLead ? 'Clients Acquired' : 'Total Clients Acquired'}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
             {totalConverted}
@@ -130,7 +134,7 @@ export default function TeamsLeaderboardView({
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors">
           <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-amber-500" />
-            <span>Collective Talk Time</span>
+            <span>{isTeamLead ? 'Squad Talk Time' : 'Collective Talk Time'}</span>
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 font-mono">
             {formatTalkTime(totalTalkSec)}
@@ -138,8 +142,8 @@ export default function TeamsLeaderboardView({
         </div>
       </div>
 
-      {/* Podium Cards for Top 3 */}
-      {top3.length > 0 && (
+      {/* Podium Cards for Top 3 (hidden for TL who only views their own squad) */}
+      {!isTeamLead && top3.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-xs font-bold text-foreground">
             <Sparkles className="w-4 h-4 text-amber-500" />
@@ -153,57 +157,59 @@ export default function TeamsLeaderboardView({
         </div>
       )}
 
-      {/* Toolbar & Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search squad or team lead..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground"
-          />
-        </div>
+      {/* Toolbar & Filter (only shown when multiple squads exist) */}
+      {!isTeamLead && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search squad or team lead..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground"
+            />
+          </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-            <ArrowUpDown className="w-3 h-3" /> Sort by:
-          </span>
-          <div className="inline-flex rounded-xl border border-border p-0.5 bg-muted/40 text-xs font-semibold">
-            <button
-              onClick={() => setSortBy('converted')}
-              className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
-                sortBy === 'converted'
-                  ? 'bg-background text-foreground shadow-2xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Clients Acquired
-            </button>
-            <button
-              onClick={() => setSortBy('rate')}
-              className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
-                sortBy === 'rate'
-                  ? 'bg-background text-foreground shadow-2xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Conversion %
-            </button>
-            <button
-              onClick={() => setSortBy('talkTime')}
-              className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
-                sortBy === 'talkTime'
-                  ? 'bg-background text-foreground shadow-2xs font-bold'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Talk Time
-            </button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
+              <ArrowUpDown className="w-3 h-3" /> Sort by:
+            </span>
+            <div className="inline-flex rounded-xl border border-border p-0.5 bg-muted/40 text-xs font-semibold">
+              <button
+                onClick={() => setSortBy('converted')}
+                className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                  sortBy === 'converted'
+                    ? 'bg-background text-foreground shadow-2xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Clients Acquired
+              </button>
+              <button
+                onClick={() => setSortBy('rate')}
+                className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                  sortBy === 'rate'
+                    ? 'bg-background text-foreground shadow-2xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Conversion %
+              </button>
+              <button
+                onClick={() => setSortBy('talkTime')}
+                className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+                  sortBy === 'talkTime'
+                    ? 'bg-background text-foreground shadow-2xs font-bold'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Talk Time
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Full Squad Comparison Table */}
       <div className="bg-card text-card-foreground rounded-2xl border border-border shadow-2xs overflow-hidden">

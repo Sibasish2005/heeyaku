@@ -24,7 +24,9 @@ export default function EmployeeTable({
   const [totalCount, setTotalCount] = useState<number>(totalEmployeesCount);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
-  const [roleFilter, setRoleFilter] = useState<'ALL' | 'CEO' | 'BDA' | 'TEAM_LEAD' | 'HR'>('ALL');
+  const [roleFilter, setRoleFilter] = useState<'ALL' | 'CEO' | 'BDA' | 'TEAM_LEAD' | 'HR'>(
+    currentUserRole === 'TEAM_LEAD' ? 'BDA' : 'ALL'
+  );
   const [isLoadingChunk, setIsLoadingChunk] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -139,6 +141,7 @@ export default function EmployeeTable({
         statusFilter={statusFilter}
         roleFilter={roleFilter}
         canManageEmployees={canManageEmployees}
+        currentUserRole={currentUserRole}
         onSearchChange={setSearchQuery}
         onStatusChange={setStatusFilter}
         onRoleChange={setRoleFilter}

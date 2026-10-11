@@ -108,10 +108,10 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
     notFound();
   }
 
-  // 🔒 Squad Data Isolation: Team Leads cannot view employees outside their own squad
+  // 🔒 Squad Data Isolation: Team Leads cannot view employees outside their own squad, and can strictly only view BDAs
   if (admin.role === Role.TEAM_LEAD) {
     const tlTeamId = admin.ledTeamId || admin.teamId;
-    if (!tlTeamId || employee.teamId !== tlTeamId) {
+    if (!tlTeamId || employee.teamId !== tlTeamId || employee.role !== Role.BDA) {
       notFound();
     }
   }

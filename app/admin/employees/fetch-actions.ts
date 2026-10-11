@@ -73,7 +73,15 @@ export async function fetchEmployeesChunkAction(params: {
     // 🔒 Team Leads only see BDAs in their own squad (fail-closed)
     if (user.role === Role.TEAM_LEAD) {
       const tlTeamId = user.ledTeamId || user.teamId;
-      where.teamId = tlTeamId || 'UNASSIGNED_SQUAD';
+      where.teamId = tlTeamId || '__UNASSIGNED_SQUAD__';
+      where.role = Role.BDA; // 🔒 Strictly BDA only! Never HR, never another TL
+    } else {
+      if (roleFilter !== 'ALL') {
+        where.role = roleFilter as Role;
+      }
+      if (teamFilter !== 'ALL') {
+        where.team = teamFilter;
+      }
     }
 
     if (searchQuery.trim()) {
@@ -87,12 +95,6 @@ export async function fetchEmployeesChunkAction(params: {
     }
     if (statusFilter !== 'ALL') {
       where.isActive = statusFilter === 'ACTIVE';
-    }
-    if (roleFilter !== 'ALL') {
-      where.role = roleFilter as Role;
-    }
-    if (teamFilter !== 'ALL') {
-      where.team = teamFilter;
     }
 
     // Strictly fetch 10 records from database at a time

@@ -28,14 +28,40 @@ export default async function EmployeesPage() {
   let formattedEmployees: EmployeeListItem[] = [];
 
   try {
-    const employeeWhere: Prisma.EmployeeWhereInput = targetTeamId ? { teamId: targetTeamId } : {};
+    // 🔒 Team Leads ONLY see BDAs of their assigned squad. Never HR, never other TLs, never other squads' BDAs.
+    const employeeWhere: Prisma.EmployeeWhereInput = isTeamLead
+      ? {
+          role: Role.BDA,
+          teamId: targetTeamId || '__UNASSIGNED_SQUAD__',
+        }
+      : {};
+
     const leadWhere: Prisma.LeadWhereInput = {
       assignedEmployeeId: { not: null },
-      ...(targetTeamId ? { teamId: targetTeamId } : {}),
+      ...(isTeamLead
+        ? {
+            assignedEmployee: {
+              role: Role.BDA,
+              teamId: targetTeamId || '__UNASSIGNED_SQUAD__',
+            },
+          }
+        : targetTeamId
+        ? { teamId: targetTeamId }
+        : {}),
     };
+
     const callWhere: Prisma.CallLogWhereInput = {
       leadId: { not: null },
-      ...(targetTeamId ? { employee: { teamId: targetTeamId } } : {}),
+      ...(isTeamLead
+        ? {
+            employee: {
+              role: Role.BDA,
+              teamId: targetTeamId || '__UNASSIGNED_SQUAD__',
+            },
+          }
+        : targetTeamId
+        ? { employee: { teamId: targetTeamId } }
+        : {}),
     };
 
     const [
@@ -128,7 +154,9 @@ export default async function EmployeesPage() {
     totalCallsCount = callsTotal;
     connectedCallsCount = connectedCallsTotal;
     totalTalkTimeSeconds = talkTimeAgg._sum.durationSeconds || 0;
-    initialTeams = Array.from(new Set(teamsRaw.map((t) => t.team).filter(Boolean))) as string[];
+    initialTeams = isTeamLead
+      ? (admin.ledTeamName || admin.teamName ? [admin.ledTeamName || admin.teamName!] : [])
+      : (Array.from(new Set(teamsRaw.map((t) => t.team).filter(Boolean))) as string[]);
 
     formattedEmployees = initialEmployeesList.map((e) => {
       const empTalkTime = talkTimeMap.get(e.id) || 0;
@@ -179,7 +207,7 @@ export default async function EmployeesPage() {
             {isTeamLead ? 'Squad Telemetry & Performance' : 'Staff & Tele-caller Management'}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-            {isTeamLead ? (admin.ledTeamName || admin.teamName || 'My Squad Roster') : 'Employee Directory'}
+            {isTeamLead ? (admin.ledTeamName || admin.teamName || 'My Squad BDAs') : 'Employee Directory'}
           </h1>
         </div>
       </div>
@@ -188,13 +216,15 @@ export default async function EmployeesPage() {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 rounded-2xl border border-border bg-card divide-y sm:divide-y-0 sm:divide-x divide-border shadow-2xs overflow-hidden">
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors duration-150">
           <div className="text-xs font-semibold text-muted-foreground">
-            {isTeamLead ? 'Squad Members' : 'Total Staff'}
+            {isTeamLead ? 'Squad BDAs' : 'Total Staff'}
           </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight">{totalEmployees}</div>
         </div>
 
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors duration-150">
-          <div className="text-xs font-semibold text-muted-foreground">Active Members</div>
+          <div className="text-xs font-semibold text-muted-foreground">
+            {isTeamLead ? 'Active BDAs' : 'Active Members'}
+          </div>
           <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono tracking-tight">{activeEmployees}</div>
         </div>
 

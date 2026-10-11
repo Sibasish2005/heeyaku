@@ -122,7 +122,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       prisma.employee.findMany({
         where: {
           isActive: true,
-          role: { in: [Role.BDA, Role.TEAM_LEAD] },
+          role: isTeamLead ? Role.BDA : { in: [Role.BDA, Role.TEAM_LEAD] },
           ...(targetTeamId ? { teamId: targetTeamId } : {}),
         },
         orderBy: { name: 'asc' },
@@ -136,6 +136,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         },
       }),
       prisma.team.findMany({
+        where: isTeamLead ? { id: targetTeamId || '__UNASSIGNED_SQUAD__' } : {},
         select: {
           id: true,
           name: true,
