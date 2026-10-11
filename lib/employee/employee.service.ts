@@ -90,7 +90,7 @@ export class EmployeeService {
     // Generate credentials
     const employeeCode = await generateNextEmployeeCode();
     const assignedPassword =
-      input.password && input.password.trim().length >= 15
+      input.password && input.password.trim().length >= 8
         ? input.password.trim()
         : generateRandomPassword(16);
     const passwordHash = await hashPassword(assignedPassword);
@@ -273,7 +273,7 @@ export class EmployeeService {
     }
 
     const assignedPassword =
-      manualPassword && manualPassword.trim().length >= 15
+      manualPassword && manualPassword.trim().length >= 8
         ? manualPassword.trim()
         : generateRandomPassword(16);
 

@@ -182,7 +182,7 @@ export default function CreateEmployeeFormFields({
           <Lock className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type={showPassword ? 'text' : 'password'}
-            placeholder="Assign manual password (min 15 chars) or leave blank for auto-generated"
+            placeholder="Assign manual password (min 8 chars) or leave blank for auto-generated"
             value={formData.password || ''}
             onChange={(e) => onChange({ ...formData, password: e.target.value })}
             className="w-full pl-8 pr-9 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground font-mono"

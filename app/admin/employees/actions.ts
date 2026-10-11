@@ -165,10 +165,10 @@ export async function resetEmployeePasswordAction(id: string, newPassword?: stri
       };
     }
 
-    if (newPassword && newPassword.trim().length > 0 && newPassword.trim().length < 15) {
+    if (newPassword && newPassword.trim().length > 0 && newPassword.trim().length < 8) {
       return {
         success: false,
-        error: 'Password must be at least 15 characters long to satisfy security policies.',
+        error: 'Password must be at least 8 characters long.',
       };
     }
 

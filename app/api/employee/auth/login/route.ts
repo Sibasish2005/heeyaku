@@ -37,6 +37,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (String(password).length < 8) {
+      return NextResponse.json(
+        { success: false, error: 'Password must be at least 8 characters.' },
+        { status: 400 }
+      );
+    }
+
     const trimmedId = String(identifier).trim();
     const normalizedId = trimmedId.toUpperCase();
     const accountRateLimitKey = `login:account:${normalizedId}`;

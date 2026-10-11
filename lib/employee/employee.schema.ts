@@ -12,7 +12,7 @@ export const CreateEmployeeSchema = z.object({
   notes: z.string().optional(),
   password: z
     .string()
-    .min(15, 'Password must be at least 15 characters to satisfy Clerk security policies')
+    .min(8, 'Password must be at least 8 characters')
     .max(100, 'Password cannot exceed 100 characters')
     .optional()
     .or(z.literal('')),
@@ -24,7 +24,7 @@ export const ResetPasswordSchema = z.object({
   id: z.string().min(1, 'Employee ID is required'),
   password: z
     .string()
-    .min(15, 'Password must be at least 15 characters to satisfy Clerk security policies')
+    .min(8, 'Password must be at least 8 characters')
     .max(100, 'Password cannot exceed 100 characters')
     .optional()
     .or(z.literal('')),

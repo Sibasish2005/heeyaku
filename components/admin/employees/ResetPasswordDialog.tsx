@@ -42,8 +42,8 @@ export default function ResetPasswordDialog({
 
   const handleReset = async () => {
     setError(null);
-    if (customPassword.trim() && customPassword.trim().length < 15) {
-      setError('Password must be at least 15 characters long to satisfy security policies.');
+    if (customPassword.trim() && customPassword.trim().length < 8) {
+      setError('Password must be at least 8 characters long.');
       return;
     }
     setLoading(true);
@@ -166,7 +166,7 @@ export default function ResetPasswordDialog({
                 <Lock className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter custom password (min 15 chars) or leave blank"
+                  placeholder="Enter custom password (min 8 chars) or leave blank"
                   value={customPassword}
                   onChange={(e) => setCustomPassword(e.target.value)}
                   className="w-full pl-8 pr-9 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground font-mono"
