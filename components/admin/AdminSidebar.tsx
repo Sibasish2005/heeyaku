@@ -40,6 +40,7 @@ export default function AdminSidebar({
     if (role === Role.TEAM_LEAD) {
       return [
         { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Prospects', href: '/admin/prospects', icon: Sparkles },
         { label: 'Leads', href: '/admin/leads', icon: Users },
         { label: 'My Team', href: '/admin/teams', icon: Trophy },
         { label: 'Staff', href: '/admin/employees', icon: UserCheck },
@@ -48,6 +49,7 @@ export default function AdminSidebar({
     // CEO has universal omni-privilege access
     return [
       { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+      { label: 'Prospects', href: '/admin/prospects', icon: Sparkles },
       { label: 'Leads', href: '/admin/leads', icon: Users },
       { label: 'Teams', href: '/admin/teams', icon: Trophy },
       { label: 'Staff', href: '/admin/employees', icon: UserCheck },

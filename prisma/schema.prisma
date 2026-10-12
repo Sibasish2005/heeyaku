@@ -64,8 +64,9 @@ model Employee {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  leads        Lead[]
-  callLogs     CallLog[]
+  leads              Lead[]    @relation("AssignedEmployeeLeads")
+  generatedProspects Lead[]    @relation("OriginalBdaProspects")
+  callLogs           CallLog[]
 
   @@index([employeeCode])
   @@index([email])
@@ -91,8 +92,15 @@ model Lead {
   teamId             String?
   team               Team?       @relation("TeamLeads", fields: [teamId], references: [id], onDelete: SetNull)
   assignedEmployeeId String?
-  assignedEmployee   Employee?   @relation(fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
+  assignedEmployee   Employee?   @relation("AssignedEmployeeLeads", fields: [assignedEmployeeId], references: [id], onDelete: SetNull)
   assignedAt         DateTime?
+
+  // --- Prospect Promotion Tracking ---
+  isProspect         Boolean     @default(false)
+  promotedToProspectAt DateTime?
+  originalBdaId      String?
+  originalBda        Employee?   @relation("OriginalBdaProspects", fields: [originalBdaId], references: [id], onDelete: SetNull)
+
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
@@ -102,11 +110,14 @@ model Lead {
   @@index([phoneNumber])
   @@index([phoneDigits])
   @@index([status])
+  @@index([isProspect])
+  @@index([originalBdaId])
   @@index([teamId])
   @@index([teamId, status])
   @@index([teamId, assignedEmployeeId])
   @@index([teamId, updatedAt])
   @@index([assignedEmployeeId])
+  @@index([assignedEmployeeId, isProspect])
   @@index([createdAt])
   @@index([updatedAt])
   @@index([assignedEmployeeId, status])

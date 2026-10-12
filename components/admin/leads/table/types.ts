@@ -48,6 +48,13 @@ export interface LeadListItem {
     employeeCode: string;
     name: string;
   } | null;
+  isProspect?: boolean;
+  originalBdaId?: string | null;
+  originalBda?: {
+    id: string;
+    employeeCode: string;
+    name: string;
+  } | null;
 }
 
 export const LEAD_STATUS_STYLES: Record<string, { label: string; className: string }> = {

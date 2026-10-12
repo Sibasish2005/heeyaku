@@ -104,13 +104,14 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
         _count: { _all: true },
       }),
       prisma.employee.findMany({
-        where: { isActive: true, role: Role.BDA, ...employeeTeamFilter },
+        where: { isActive: true, role: { in: [Role.BDA, Role.TEAM_LEAD] }, ...employeeTeamFilter },
         select: {
           id: true,
           employeeCode: true,
           name: true,
           email: true,
           phoneNumber: true,
+          role: true,
           team: true,
           _count: {
             select: { leads: teamId ? { where: { teamId } } : true },
@@ -248,6 +249,8 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
         email: emp.email,
         phoneNumber: emp.phoneNumber,
         team: emp.team,
+        role: emp.role,
+        isTeamLead: emp.role === Role.TEAM_LEAD,
         totalAssignedToday: todayAssigned,
         totalAssignedMonth: monthAssigned,
         totalAssignedAllTime: allTimeTotal,

@@ -136,12 +136,15 @@ export default function EmployeeTableRow({
           >
             <Users className="w-3 h-3 text-muted-foreground" />
             <span>{emp._count.leads}</span>
+            {emp.role === 'TEAM_LEAD' && (
+              <span className="text-[9px] font-semibold text-indigo-600 dark:text-indigo-400">prospects</span>
+            )}
           </Link>
         )}
       </td>
 
       <td className="py-2.5 px-3 text-center whitespace-nowrap">
-        {emp.role !== 'BDA' ? (
+        {emp.role === 'HR' || emp.role === 'CEO' ? (
           <span className="text-muted-foreground/40 text-[11px] font-mono font-medium select-none">N/A</span>
         ) : (
           <Link
@@ -160,7 +163,7 @@ export default function EmployeeTableRow({
       </td>
 
       <td className="py-2.5 px-3 text-center whitespace-nowrap font-mono text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-        {emp.role !== 'BDA' ? (
+        {emp.role === 'HR' || emp.role === 'CEO' ? (
           <span className="text-muted-foreground/40 text-[11px] font-mono select-none">—</span>
         ) : (
           formatDuration(emp.totalTalkTimeSeconds ?? 0)

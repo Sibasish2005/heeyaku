@@ -48,11 +48,15 @@ export default function LeadTableRow({
 
       <td className="py-2.5 px-3 whitespace-nowrap">
         <span className="font-bold text-foreground text-xs">{lead.name}</span>
-        {lead.status !== 'NEW' && lead.status !== 'ASSIGNED' && (
+        {lead.isProspect ? (
+          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+            Prospect
+          </span>
+        ) : lead.status !== 'NEW' && lead.status !== 'ASSIGNED' ? (
           <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
             Contacted
           </span>
-        )}
+        ) : null}
       </td>
 
       <td className="py-2.5 px-3 whitespace-nowrap">

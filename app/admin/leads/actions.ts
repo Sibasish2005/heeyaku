@@ -210,7 +210,15 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
 
     const existing = await prisma.lead.findUnique({
       where: { id },
-      select: { id: true, assignedEmployeeId: true, status: true, teamId: true },
+      select: {
+        id: true,
+        assignedEmployeeId: true,
+        status: true,
+        teamId: true,
+        isProspect: true,
+        originalBdaId: true,
+        promotedToProspectAt: true,
+      },
     });
 
     if (!existing) {
@@ -282,6 +290,34 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
       }
     }
 
+    // --- Prospect Promotion Handling ---
+    let isProspect = existing.isProspect;
+    let promotedToProspectAt = existing.promotedToProspectAt;
+    let originalBdaId = existing.originalBdaId;
+
+    if (['INTERESTED', 'CALL_BACK', 'FOLLOW_UP'].includes(newStatus)) {
+      isProspect = true;
+      if (!promotedToProspectAt) {
+        promotedToProspectAt = new Date();
+      }
+      if (!originalBdaId && existing.assignedEmployeeId) {
+        originalBdaId = existing.assignedEmployeeId;
+      }
+
+      // If assigned to a squad that has a Team Lead, auto-assign to the Team Lead
+      const effectiveTeamId = tlTeamId || targetEmployeeTeamId || existing.teamId;
+      if (effectiveTeamId) {
+        const squad = await prisma.team.findUnique({
+          where: { id: effectiveTeamId },
+          select: { teamLeadId: true },
+        });
+        if (squad?.teamLeadId && targetEmployeeId !== squad.teamLeadId) {
+          targetEmployeeId = squad.teamLeadId;
+          assignedAt = new Date();
+        }
+      }
+    }
+
     await prisma.lead.update({
       where: { id },
       data: {
@@ -294,6 +330,9 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
         notes: notes?.trim() || null,
         teamId: tlTeamId || targetEmployeeTeamId || undefined,
         assignedEmployeeId: targetEmployeeId,
+        isProspect,
+        promotedToProspectAt,
+        originalBdaId,
         ...(assignedAt !== undefined ? { assignedAt } : {}),
       },
     });

@@ -139,12 +139,76 @@ export async function POST(
       updatedNotes = updatedNotes ? `${updatedNotes}\n${noteEntry}` : noteEntry;
     }
 
+    // --- Lead to Prospect Promotion & Team Lead Auto-Assignment ---
+    const PROSPECT_TRIGGER_STATUSES = new Set<LeadStatus>([
+      'INTERESTED',
+      'CALL_BACK',
+      'FOLLOW_UP',
+    ]);
+
+    let targetEmployeeId = existingLead.assignedEmployeeId;
+    let isPromotedToProspect = existingLead.isProspect;
+    let promotedToProspectAt = existingLead.promotedToProspectAt;
+    let originalBdaId = existingLead.originalBdaId;
+    let tlNotificationMessage: string | null = null;
+
+    if (PROSPECT_TRIGGER_STATUSES.has(targetStatus)) {
+      isPromotedToProspect = true;
+      if (!promotedToProspectAt) {
+        promotedToProspectAt = new Date();
+      }
+      if (!originalBdaId) {
+        originalBdaId = resolved.primaryId;
+      }
+
+      // Reassign to squad Team Lead for closing
+      const callerTeamId = resolved.employee?.teamId || existingLead.teamId;
+      if (callerTeamId) {
+        const squad = await prisma.team.findUnique({
+          where: { id: callerTeamId },
+          include: {
+            teamLead: {
+              select: { id: true, name: true, employeeCode: true, isActive: true },
+            },
+          },
+        });
+
+        if (squad?.teamLead && squad.teamLead.isActive) {
+          if (targetEmployeeId !== squad.teamLead.id) {
+            targetEmployeeId = squad.teamLead.id;
+            tlNotificationMessage = `Promoted to Prospect. Reassigned to Team Lead ${squad.teamLead.name} (${squad.teamLead.employeeCode}) for closing.`;
+            const timestamp = new Date().toLocaleTimeString('en-IN', {
+              hour: '2-digit',
+              minute: '2-digit',
+              day: '2-digit',
+              month: 'short',
+            });
+            const systemNote = `[${timestamp}]: ⚡ ${tlNotificationMessage}`;
+            updatedNotes = updatedNotes ? `${updatedNotes}\n${systemNote}` : systemNote;
+          }
+        }
+      }
+    }
+
     const updatedLead = await prisma.lead.update({
       where: { id: leadId },
       data: {
         status: targetStatus,
         notes: updatedNotes,
+        isProspect: isPromotedToProspect,
+        promotedToProspectAt,
+        originalBdaId,
+        assignedEmployeeId: targetEmployeeId,
+        ...(targetEmployeeId !== existingLead.assignedEmployeeId ? { assignedAt: new Date() } : {}),
         updatedAt: new Date(),
+      },
+      include: {
+        assignedEmployee: {
+          select: { id: true, name: true, employeeCode: true, role: true },
+        },
+        originalBda: {
+          select: { id: true, name: true, employeeCode: true },
+        },
       },
     });
 
@@ -181,6 +245,9 @@ export async function POST(
     return NextResponse.json({
       success: true,
       lead: updatedLead,
+      isProspect: isPromotedToProspect,
+      reassignedToTl: targetEmployeeId !== existingLead.assignedEmployeeId,
+      message: tlNotificationMessage || 'Lead disposition recorded successfully.',
     });
   } catch (error) {
     console.error('Error submitting lead disposition:', error);

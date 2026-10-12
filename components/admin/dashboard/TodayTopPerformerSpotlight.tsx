@@ -21,6 +21,8 @@ export interface TopEmployeeReport {
   contactedMonth?: number;
   conversionRate: string;
   conversionRateMonth?: string;
+  role?: string;
+  isTeamLead?: boolean;
 }
 
 interface TodayTopPerformerSpotlightProps {
@@ -61,6 +63,8 @@ function MinimalPerformerCard({
     );
   }
 
+  const isTL = performer.isTeamLead || performer.role === 'TEAM_LEAD';
+
   return (
     <div className="group p-4 sm:p-5 rounded-xl border border-border/70 bg-card hover:border-border transition-all duration-150 flex flex-col justify-between gap-3.5">
       {/* Top row: Category tag & View Profile link */}
@@ -92,22 +96,31 @@ function MinimalPerformerCard({
           <span className="font-mono text-[11px] text-muted-foreground shrink-0 font-medium">
             {performer.employeeCode}
           </span>
+          {isTL && (
+            <span className="text-[9px] font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
+              Team Lead
+            </span>
+          )}
         </div>
         <p className="text-xs text-muted-foreground truncate mt-0.5">
-          {performer.team || 'Business Development Associates'}
+          {performer.team ? `Squad ${performer.team}` : isTL ? 'Squad Lead' : 'Business Development Associates'}
         </p>
       </div>
 
       {/* Clean, minimal metric summary */}
       <div className="pt-2.5 border-t border-border/50 flex items-baseline justify-between text-xs">
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[11px] text-muted-foreground">Assigned:</span>
+          <span className="text-[11px] text-muted-foreground">
+            {isTL ? 'Prospects:' : 'Assigned:'}
+          </span>
           <span className="font-mono font-bold text-foreground text-xs">{assignedCount}</span>
           <span className="text-[10px] text-muted-foreground font-medium">({contactedCount} contacted)</span>
         </div>
 
         <div className="flex items-baseline gap-1.5">
-          <span className="text-[11px] text-muted-foreground">Converted:</span>
+          <span className="text-[11px] text-muted-foreground">
+            {isTL ? 'Closed:' : 'Converted:'}
+          </span>
           <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 text-xs">{convertedCount}</span>
           <span className="font-mono text-[10px] text-emerald-600/80 dark:text-emerald-400/80 font-medium">({conversionRate}%)</span>
         </div>

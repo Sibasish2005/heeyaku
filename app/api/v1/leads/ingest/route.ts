@@ -188,7 +188,18 @@ export async function POST(req: NextRequest) {
         };
 
         recordsToInsert.push(newRecord);
-        existingMap.set(last10, { ...newRecord, teamId: null, status: 'NEW', createdAt: new Date(), updatedAt: new Date(), assignedEmployeeId: null, assignedAt: null });
+        existingMap.set(last10, {
+          ...newRecord,
+          teamId: null,
+          status: 'NEW',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          assignedEmployeeId: null,
+          assignedAt: null,
+          isProspect: false,
+          promotedToProspectAt: null,
+          originalBdaId: null,
+        });
         createdCount++;
 
         results.push({

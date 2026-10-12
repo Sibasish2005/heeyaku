@@ -110,6 +110,13 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
               name: true,
             },
           },
+          originalBda: {
+            select: {
+              id: true,
+              employeeCode: true,
+              name: true,
+            },
+          },
           team: {
             select: {
               id: true,

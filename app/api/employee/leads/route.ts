@@ -64,6 +64,14 @@ export async function GET(req: NextRequest) {
         source: true,
         status: true,
         notes: true,
+        isProspect: true,
+        originalBda: {
+          select: {
+            id: true,
+            name: true,
+            employeeCode: true,
+          },
+        },
         assignedAt: true,
         createdAt: true,
         updatedAt: true,
