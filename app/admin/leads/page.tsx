@@ -75,7 +75,15 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
             ],
           }
         : {}),
-      ...(employeeId ? { assignedEmployeeId: employeeId } : {}),
+      ...(employeeId
+        ? {
+            OR: [
+              { assignedEmployeeId: employeeId },
+              { originalBdaId: employeeId },
+              { callLogs: { some: { employeeId } } },
+            ],
+          }
+        : {}),
     };
 
     const countWhere: Prisma.LeadWhereInput = targetTeamId

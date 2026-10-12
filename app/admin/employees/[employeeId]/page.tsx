@@ -34,75 +34,102 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
   const admin = await assertAdminAccess();
   const { employeeId } = await params;
 
-  const employee = await prisma.employee.findUnique({
-    where: { id: employeeId },
-    include: {
-      leads: {
-        orderBy: {
-          updatedAt: 'desc',
-        },
-        select: {
-          id: true,
-          leadCode: true,
-          name: true,
-          phoneNumber: true,
-          email: true,
-          company: true,
-          status: true,
-          source: true,
-          notes: true,
-          assignedAt: true,
-          createdAt: true,
-          updatedAt: true,
-          callLogs: {
-            where: {
-              employeeId: employeeId,
-            },
-            orderBy: {
-              startedAt: 'desc',
-            },
-            select: {
-              id: true,
-              phoneNumber: true,
-              durationSeconds: true,
-              connected: true,
-              outcomeId: true,
-              outcomeLabel: true,
-              notes: true,
-              startedAt: true,
+  const [employee, allWorkedLeads] = await Promise.all([
+    prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: {
+        callLogs: {
+          orderBy: {
+            startedAt: 'desc',
+          },
+          select: {
+            id: true,
+            leadId: true,
+            phoneNumber: true,
+            contactName: true,
+            callType: true,
+            durationSeconds: true,
+            connected: true,
+            outcomeId: true,
+            outcomeLabel: true,
+            notes: true,
+            startedAt: true,
+            endedAt: true,
+            createdAt: true,
+            lead: {
+              select: {
+                id: true,
+                name: true,
+                leadCode: true,
+              },
             },
           },
         },
       },
-      callLogs: {
-        orderBy: {
-          startedAt: 'desc',
+    }),
+    prisma.lead.findMany({
+      where: {
+        OR: [
+          { assignedEmployeeId: employeeId },
+          { originalBdaId: employeeId },
+          { callLogs: { some: { employeeId } } },
+        ],
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      select: {
+        id: true,
+        leadCode: true,
+        name: true,
+        phoneNumber: true,
+        email: true,
+        company: true,
+        status: true,
+        source: true,
+        notes: true,
+        assignedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        isProspect: true,
+        assignedEmployeeId: true,
+        assignedEmployee: {
+          select: {
+            id: true,
+            name: true,
+            employeeCode: true,
+            role: true,
+          },
         },
-        select: {
-          id: true,
-          leadId: true,
-          phoneNumber: true,
-          contactName: true,
-          callType: true,
-          durationSeconds: true,
-          connected: true,
-          outcomeId: true,
-          outcomeLabel: true,
-          notes: true,
-          startedAt: true,
-          endedAt: true,
-          createdAt: true,
-          lead: {
-            select: {
-              id: true,
-              name: true,
-              leadCode: true,
-            },
+        originalBdaId: true,
+        originalBda: {
+          select: {
+            id: true,
+            name: true,
+            employeeCode: true,
+          },
+        },
+        callLogs: {
+          where: {
+            employeeId: employeeId,
+          },
+          orderBy: {
+            startedAt: 'desc',
+          },
+          select: {
+            id: true,
+            phoneNumber: true,
+            durationSeconds: true,
+            connected: true,
+            outcomeId: true,
+            outcomeLabel: true,
+            notes: true,
+            startedAt: true,
           },
         },
       },
-    },
-  });
+    }),
+  ]);
 
   if (!employee) {
     notFound();
@@ -118,9 +145,9 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
 
   const isHr = !canManageLeads(admin.role);
 
-  // Count leads by status
+  // Count leads by status across all worked leads
   const leadStatusCounts: Record<string, number> = {};
-  for (const lead of employee.leads) {
+  for (const lead of allWorkedLeads) {
     leadStatusCounts[lead.status] = (leadStatusCounts[lead.status] || 0) + 1;
   }
 
@@ -141,7 +168,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
     }
   }
 
-  const formattedLeads = employee.leads.map((l) => {
+  const formattedLeads = allWorkedLeads.map((l) => {
     const leadDigits = l.phoneNumber.replace(/[^0-9]/g, '').slice(-10);
     const matchedMap = new Map<string, {
       id: string;

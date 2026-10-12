@@ -191,9 +191,15 @@ export async function POST(req: NextRequest) {
     // Sort parsed calls chronologically so earliest calls are processed first
     parsedCalls.sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
 
-    // 2. Pre-fetch employee's assigned leads ONLY
+    // 2. Pre-fetch employee's assigned and worked leads
     const employeeLeads = await prisma.lead.findMany({
-      where: { assignedEmployeeId: { in: resolved.allIds } },
+      where: {
+        OR: [
+          { assignedEmployeeId: { in: resolved.allIds } },
+          { originalBdaId: { in: resolved.allIds } },
+          { callLogs: { some: { employeeId: { in: resolved.allIds } } } },
+        ],
+      },
       select: {
         id: true,
         phoneNumber: true,

@@ -75,9 +75,10 @@ export async function POST(
 
     const allowedEmployeeIds = new Set(resolved.allIds);
 
-    // Strictly enforce assignment: an employee can only update leads assigned to them.
-    // Unassigned leads cannot be updated through this endpoint.
-    if (!existingLead.assignedEmployeeId || !allowedEmployeeIds.has(existingLead.assignedEmployeeId)) {
+    // Strictly enforce assignment: an employee can only update leads assigned to them or originated by them.
+    const isAssigned = Boolean(existingLead.assignedEmployeeId && allowedEmployeeIds.has(existingLead.assignedEmployeeId));
+    const isOriginalBda = Boolean(existingLead.originalBdaId && allowedEmployeeIds.has(existingLead.originalBdaId));
+    if (!isAssigned && !isOriginalBda) {
       return NextResponse.json(
         { success: false, error: 'Access denied.' },
         { status: 403 }

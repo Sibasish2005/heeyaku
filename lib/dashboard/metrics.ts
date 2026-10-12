@@ -94,6 +94,10 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
       allTimeConvertedAgg,
       todayContactedAgg,
       monthContactedAgg,
+      todayOriginalBdaContactedAgg,
+      monthOriginalBdaContactedAgg,
+      todayCallLogAgg,
+      monthCallLogAgg,
     ] = await Promise.all([
       prisma.lead.groupBy({
         by: ['status'],
@@ -114,7 +118,10 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
           role: true,
           team: true,
           _count: {
-            select: { leads: teamId ? { where: { teamId } } : true },
+            select: {
+              leads: teamId ? { where: { teamId } } : true,
+              generatedProspects: teamId ? { where: { teamId } } : true,
+            },
           },
         },
         orderBy: { name: 'asc' },
@@ -186,6 +193,46 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
         },
         _count: { _all: true },
       }),
+      // Credit original BDA for qualified/contacted prospects even after reassignment to TL/other staff
+      prisma.lead.groupBy({
+        by: ['originalBdaId'],
+        where: {
+          ...leadTeamFilter,
+          status: { in: ['CONTACTED', 'INTERESTED', 'FOLLOW_UP', 'CALL_BACK', 'CONVERTED'] },
+          updatedAt: { gte: startOfToday },
+          originalBdaId: { not: null },
+        },
+        _count: { _all: true },
+      }),
+      prisma.lead.groupBy({
+        by: ['originalBdaId'],
+        where: {
+          ...leadTeamFilter,
+          status: { in: ['CONTACTED', 'INTERESTED', 'FOLLOW_UP', 'CALL_BACK', 'CONVERTED'] },
+          updatedAt: { gte: startOfMonth },
+          originalBdaId: { not: null },
+        },
+        _count: { _all: true },
+      }),
+      // Direct connected calls recorded by employee
+      prisma.callLog.groupBy({
+        by: ['employeeId'],
+        where: {
+          connected: true,
+          durationSeconds: { gt: 0 },
+          startedAt: { gte: startOfToday },
+        },
+        _count: { _all: true },
+      }),
+      prisma.callLog.groupBy({
+        by: ['employeeId'],
+        where: {
+          connected: true,
+          durationSeconds: { gt: 0 },
+          startedAt: { gte: startOfMonth },
+        },
+        _count: { _all: true },
+      }),
     ]);
 
     const totalLeadsToday = todayStatusCounts.reduce((acc, sc) => acc + sc._count._all, 0);
@@ -210,6 +257,17 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
       return m;
     };
 
+    const mapGenericAgg = <T extends Record<string, any>>(agg: T[], idField: keyof T) => {
+      const m = new Map<string, number>();
+      for (const item of agg) {
+        const val = item[idField];
+        if (val && typeof val === 'string') {
+          m.set(val, item._count?._all || 0);
+        }
+      }
+      return m;
+    };
+
     const todayAssignedMap = mapAgg(todayAssignedAgg);
     const monthAssignedMap = mapAgg(monthAssignedAgg);
     const todayConvertedMap = mapAgg(todayConvertedAgg);
@@ -217,18 +275,30 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
     const allTimeConvertedMap = mapAgg(allTimeConvertedAgg);
     const todayContactedMap = mapAgg(todayContactedAgg);
     const monthContactedMap = mapAgg(monthContactedAgg);
+    const todayOriginalBdaContactedMap = mapGenericAgg(todayOriginalBdaContactedAgg, 'originalBdaId');
+    const monthOriginalBdaContactedMap = mapGenericAgg(monthOriginalBdaContactedAgg, 'originalBdaId');
+    const todayCallLogMap = mapGenericAgg(todayCallLogAgg, 'employeeId');
+    const monthCallLogMap = mapGenericAgg(monthCallLogAgg, 'employeeId');
 
     const employeeReports: TopEmployeeReport[] = allEmployees.map((emp) => {
       const todayAssigned = todayAssignedMap.get(emp.id) || 0;
       const monthAssigned = monthAssignedMap.get(emp.id) || 0;
-      const allTimeTotal = emp._count.leads;
+      const allTimeTotal = (emp._count?.leads || 0) + (emp._count?.generatedProspects || 0);
 
       const todayConverted = todayConvertedMap.get(emp.id) || 0;
       const monthConverted = monthConvertedMap.get(emp.id) || 0;
       const allTimeConverted = allTimeConvertedMap.get(emp.id) || 0;
 
-      const todayContacted = todayContactedMap.get(emp.id) || 0;
-      const monthContacted = monthContactedMap.get(emp.id) || 0;
+      // Contacted credit: includes currently assigned contacted leads, qualified prospects reassigned to TL, and direct verified connected calls
+      const assignedContactedToday = todayContactedMap.get(emp.id) || 0;
+      const originalBdaContactedToday = todayOriginalBdaContactedMap.get(emp.id) || 0;
+      const callsToday = todayCallLogMap.get(emp.id) || 0;
+      const todayContacted = Math.max(assignedContactedToday + originalBdaContactedToday, callsToday);
+
+      const assignedContactedMonth = monthContactedMap.get(emp.id) || 0;
+      const originalBdaContactedMonth = monthOriginalBdaContactedMap.get(emp.id) || 0;
+      const callsMonth = monthCallLogMap.get(emp.id) || 0;
+      const monthContacted = Math.max(assignedContactedMonth + originalBdaContactedMonth, callsMonth);
 
       const rateToday = todayAssigned > 0
         ? ((todayConverted / todayAssigned) * 100).toFixed(1)

@@ -104,6 +104,11 @@ export default function LeadTableRow({
                 ({lead.assignedEmployee.employeeCode})
               </span>
             </Link>
+            {lead.originalBda && (!lead.assignedEmployee || lead.originalBda.id !== lead.assignedEmployee.id) && (
+              <span className="text-[9.5px] font-mono text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                <span>📞 Qualifier: {lead.originalBda.name} ({lead.originalBda.employeeCode})</span>
+              </span>
+            )}
             {lead.team && (
               <span className="text-[9.5px] font-mono text-muted-foreground flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: lead.team.colorTag || '#2563EB' }} />

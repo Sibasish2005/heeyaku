@@ -46,10 +46,15 @@ export async function GET(req: NextRequest) {
     }
 
     const employeeIds = resolved.allIds;
+    const employeeIdSet = new Set(employeeIds);
 
     const leads = await prisma.lead.findMany({
       where: {
-        assignedEmployeeId: { in: employeeIds },
+        OR: [
+          { assignedEmployeeId: { in: employeeIds } },
+          { originalBdaId: { in: employeeIds } },
+          { callLogs: { some: { employeeId: { in: employeeIds } } } },
+        ],
       },
       orderBy: {
         updatedAt: 'desc',
@@ -65,6 +70,16 @@ export async function GET(req: NextRequest) {
         status: true,
         notes: true,
         isProspect: true,
+        assignedEmployeeId: true,
+        assignedEmployee: {
+          select: {
+            id: true,
+            name: true,
+            employeeCode: true,
+            role: true,
+          },
+        },
+        originalBdaId: true,
         originalBda: {
           select: {
             id: true,
@@ -77,19 +92,31 @@ export async function GET(req: NextRequest) {
         updatedAt: true,
         callLogs: {
           where: {
+            employeeId: { in: employeeIds },
             connected: true,
             durationSeconds: { gt: 0 },
           },
-          select: { id: true },
-          take: 1,
+          select: { id: true, durationSeconds: true, startedAt: true },
+          take: 5,
         },
       },
     });
 
-    const enrichedLeads = leads.map(({ callLogs, ...l }) => ({
-      ...l,
-      hasConnectedCall: (callLogs && callLogs.length > 0) || false,
-    }));
+    const enrichedLeads = leads.map(({ callLogs, assignedEmployee, originalBda, ...l }) => {
+      const isReassigned = Boolean(l.assignedEmployeeId && !employeeIdSet.has(l.assignedEmployeeId));
+      const hasConnectedCall = (callLogs && callLogs.length > 0) || Boolean(l.originalBdaId && employeeIdSet.has(l.originalBdaId));
+      return {
+        ...l,
+        assignedEmployee,
+        originalBda,
+        isReassigned,
+        assignedEmployeeName: assignedEmployee?.name || null,
+        assignedEmployeeRole: assignedEmployee?.role || null,
+        originalBdaName: originalBda?.name || null,
+        hasConnectedCall,
+        callsMadeByMe: callLogs ? callLogs.length : 0,
+      };
+    });
 
     return NextResponse.json({
       success: true,
