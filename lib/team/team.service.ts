@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
+import { invalidateUserSessionCache } from '@/lib/auth/rbac';
 
 export interface UpdateTeamInput {
   id: string;
@@ -128,24 +129,38 @@ export class TeamService {
     const previousLeadId = existingTeam.teamLeadId;
     const newLeadId = teamLeadId || null;
 
-    // If team lead changed, handle promotion and squad assignment
-    if (newLeadId && newLeadId !== previousLeadId) {
-      const prospectiveLead = await prisma.employee.findUnique({
-        where: { id: newLeadId },
-        select: { id: true, role: true },
-      });
-      if (!prospectiveLead) {
-        throw new Error('Selected Team Lead was not found.');
+    // If team lead changed, handle promotion of new lead and demotion of previous lead
+    if (newLeadId !== previousLeadId) {
+      if (newLeadId) {
+        const prospectiveLead = await prisma.employee.findUnique({
+          where: { id: newLeadId },
+          select: { id: true, role: true },
+        });
+        if (!prospectiveLead) {
+          throw new Error('Selected Team Lead was not found.');
+        }
+
+        await prisma.employee.update({
+          where: { id: newLeadId },
+          data: {
+            role: Role.TEAM_LEAD,
+            teamId: id,
+            team: name.trim(),
+          },
+        });
       }
 
-      await prisma.employee.update({
-        where: { id: newLeadId },
-        data: {
-          role: Role.TEAM_LEAD,
-          teamId: id,
-          team: name.trim(),
-        },
-      });
+      // Demote previous Team Lead back to BDA
+      if (previousLeadId) {
+        await prisma.employee.update({
+          where: { id: previousLeadId },
+          data: {
+            role: Role.BDA,
+          },
+        });
+      }
+
+      invalidateUserSessionCache();
     }
 
     const team = await prisma.team.update({
@@ -234,11 +249,29 @@ export class TeamService {
    * @returns {Promise<void>}
    */
   static async deleteTeam(teamId: string): Promise<void> {
+    const teamToDelete = await prisma.team.findUnique({
+      where: { id: teamId },
+      select: { teamLeadId: true },
+    });
+
     await prisma.lead.updateMany({
       where: { teamId },
       data: { teamId: null },
     });
 
+    // Demote any Team Leads assigned to this squad or leading it back to BDA
+    await prisma.employee.updateMany({
+      where: {
+        OR: [
+          { teamId },
+          ...(teamToDelete?.teamLeadId ? [{ id: teamToDelete.teamLeadId }] : []),
+        ],
+        role: Role.TEAM_LEAD,
+      },
+      data: { role: Role.BDA, teamId: null, team: 'General' },
+    });
+
+    // Reset remaining squad members back to General squad
     await prisma.employee.updateMany({
       where: { teamId },
       data: { teamId: null, team: 'General' },
@@ -247,6 +280,8 @@ export class TeamService {
     await prisma.team.delete({
       where: { id: teamId },
     });
+
+    invalidateUserSessionCache();
   }
 
   /**

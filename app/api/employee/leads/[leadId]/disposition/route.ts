@@ -75,10 +75,23 @@ export async function POST(
 
     const allowedEmployeeIds = new Set(resolved.allIds);
 
-    // Strictly enforce assignment: an employee can only update leads assigned to them or originated by them.
+    // Enforce authorization: an employee can update leads assigned to them, originated by them, or that they have called.
     const isAssigned = Boolean(existingLead.assignedEmployeeId && allowedEmployeeIds.has(existingLead.assignedEmployeeId));
     const isOriginalBda = Boolean(existingLead.originalBdaId && allowedEmployeeIds.has(existingLead.originalBdaId));
+    
+    let hasCallerHistory = false;
     if (!isAssigned && !isOriginalBda) {
+      const priorCall = await prisma.callLog.findFirst({
+        where: {
+          leadId,
+          employeeId: { in: resolved.allIds },
+        },
+        select: { id: true },
+      });
+      hasCallerHistory = Boolean(priorCall);
+    }
+
+    if (!isAssigned && !isOriginalBda && !hasCallerHistory) {
       return NextResponse.json(
         { success: false, error: 'Access denied.' },
         { status: 403 }

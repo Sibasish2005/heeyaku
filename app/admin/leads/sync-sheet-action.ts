@@ -8,6 +8,7 @@ import { Role } from '@prisma/client';
 import { autoDetectColumnMapping, RawImportRow } from '@/lib/lead/import-parser';
 import { revalidatePath } from 'next/cache';
 import crypto from 'crypto';
+import { getNextSequentialLeadNumber } from '@/lib/lead/code';
 
 const LEAD_CODE_PREFIX = 'LD';
 const LEAD_CODE_START = 1;
@@ -37,22 +38,11 @@ function parseGoogleSheetUrl(url: string): { sheetId: string | null; gid: string
 }
 
 /**
- * Gets the next sequential lead code number from the database.
+ * Gets the next sequential lead code number from the database with collision prevention.
  * Returns the starting number for a batch of codes.
  */
 async function getNextLeadCodeStart(): Promise<number> {
-  const latest = await prisma.lead.findFirst({
-    where: { leadCode: { startsWith: `${LEAD_CODE_PREFIX}-` } },
-    orderBy: { createdAt: 'desc' },
-    select: { leadCode: true },
-  });
-
-  if (!latest) {
-    return LEAD_CODE_START;
-  }
-
-  const numericPart = parseInt(latest.leadCode.replace(`${LEAD_CODE_PREFIX}-`, ''), 10);
-  return isNaN(numericPart) ? LEAD_CODE_START : numericPart + 1;
+  return getNextSequentialLeadNumber();
 }
 
 /**

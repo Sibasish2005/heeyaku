@@ -66,25 +66,28 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   let convertedLeads = 0;
 
   try {
-    const leadWhere: Prisma.LeadWhereInput = {
-      ...(targetTeamId
-        ? {
-            OR: [
-              { teamId: targetTeamId },
-              ...(admin.employeeId ? [{ assignedEmployeeId: admin.employeeId }] : []),
-            ],
-          }
-        : {}),
-      ...(employeeId
-        ? {
-            OR: [
-              { assignedEmployeeId: employeeId },
-              { originalBdaId: employeeId },
-              { callLogs: { some: { employeeId } } },
-            ],
-          }
-        : {}),
-    };
+    const andClauses: Prisma.LeadWhereInput[] = [];
+
+    if (targetTeamId) {
+      andClauses.push({
+        OR: [
+          { teamId: targetTeamId },
+          ...(admin.employeeId ? [{ assignedEmployeeId: admin.employeeId }] : []),
+        ],
+      });
+    }
+
+    if (employeeId) {
+      andClauses.push({
+        OR: [
+          { assignedEmployeeId: employeeId },
+          { originalBdaId: employeeId },
+          { callLogs: { some: { employeeId } } },
+        ],
+      });
+    }
+
+    const leadWhere: Prisma.LeadWhereInput = andClauses.length > 0 ? { AND: andClauses } : {};
 
     const countWhere: Prisma.LeadWhereInput = targetTeamId
       ? {

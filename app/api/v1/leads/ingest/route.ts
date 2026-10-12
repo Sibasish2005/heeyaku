@@ -6,6 +6,7 @@ import { toLast10Digits } from '@/lib/lead/phone';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 import { handleCorsPreflight, withCors } from '@/lib/security/cors';
+import { getNextSequentialLeadNumber } from '@/lib/lead/code';
 
 export const dynamic = 'force-dynamic';
 
@@ -120,19 +121,8 @@ export async function POST(req: NextRequest) {
     let createdCount = 0;
     let updatedCount = 0;
 
-    // Pre-calculate sequential lead code starting number once
-    const latestLead = await prisma.lead.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { leadCode: true },
-    });
-
-    let currentLeadNumber = 1;
-    if (latestLead && latestLead.leadCode.startsWith('LD-')) {
-      const parsed = parseInt(latestLead.leadCode.replace('LD-', ''), 10);
-      if (!isNaN(parsed)) {
-        currentLeadNumber = parsed + 1;
-      }
-    }
+    // Pre-calculate sequential lead code starting number once using collision-safe sequence resolution
+    let currentLeadNumber = await getNextSequentialLeadNumber();
 
     const recordsToInsert: Array<{
       id: string;
@@ -218,6 +208,7 @@ export async function POST(req: NextRequest) {
       const batch = recordsToInsert.slice(i, i + INSERT_BATCH_SIZE);
       await prisma.lead.createMany({
         data: batch,
+        skipDuplicates: true,
       });
     }
 

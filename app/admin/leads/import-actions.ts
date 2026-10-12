@@ -10,6 +10,7 @@ import { normalizePhoneNumber, isValidPhoneNumber, zodPhoneNumberSchema } from '
 import { RawImportRow, parseGoogleSheetUrl } from '@/lib/lead/import-parser';
 import { revalidatePath } from 'next/cache';
 import { sanitizeErrorMessage } from '@/lib/security/errors';
+import { getNextSequentialLeadNumber } from '@/lib/lead/code';
 
 export interface PreparedImportLead {
   rowNumber: number;
@@ -308,19 +309,8 @@ export async function executeImportAction(input: {
       }
     }
 
-    // Determine sequential lead codes
-    const latestLead = await prisma.lead.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { leadCode: true },
-    });
-
-    let currentNumber = 1;
-    if (latestLead && latestLead.leadCode.startsWith('LD-')) {
-      const parsed = parseInt(latestLead.leadCode.replace('LD-', ''), 10);
-      if (!isNaN(parsed)) {
-        currentNumber = parsed + 1;
-      }
-    }
+    // Determine sequential lead codes with collision-safe sequence resolution
+    const currentNumber = await getNextSequentialLeadNumber();
 
     const recordsToInsert = leads.map((lead, idx) => ({
       leadCode: `LD-${String(currentNumber + idx).padStart(5, '0')}`,
@@ -343,6 +333,7 @@ export async function executeImportAction(input: {
       const batch = recordsToInsert.slice(i, i + INSERT_BATCH_SIZE);
       await prisma.lead.createMany({
         data: batch,
+        skipDuplicates: true,
       });
     }
 

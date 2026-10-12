@@ -73,12 +73,11 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
     return cached.data;
   }
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
-  const startOfMonth = new Date();
-  startOfMonth.setDate(1);
-  startOfMonth.setHours(0, 0, 0, 0);
+  // Enforce Indian Standard Time (Asia/Kolkata, UTC+5:30) date boundaries
+  const istFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const [yearStr, monthStr, dayStr] = istFormatter.format(new Date()).split('-');
+  const startOfToday = new Date(`${yearStr}-${monthStr}-${dayStr}T00:00:00.000+05:30`);
+  const startOfMonth = new Date(`${yearStr}-${monthStr}-01T00:00:00.000+05:30`);
 
   try {
     const leadTeamFilter = teamId ? { teamId } : {};

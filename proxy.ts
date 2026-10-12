@@ -10,7 +10,7 @@ export default clerkMiddleware(async (auth, req) => {
   if (req.nextUrl.pathname.startsWith("/__clerk")) {
     const headers = new Headers(req.headers);
     const host = headers.get("x-forwarded-host") || headers.get("host") || "";
-    if (host.includes("localhost") || host.includes("127.0.0.1")) {
+    if (/^localhost(:\d+)?$/i.test(host) || /^127\.0\.0\.1(:\d+)?$/.test(host)) {
       headers.set("x-forwarded-host", "heeyaku.vercel.app");
       headers.set("x-forwarded-proto", "https");
     }

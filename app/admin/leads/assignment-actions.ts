@@ -463,12 +463,29 @@ export async function autoAssignLeadsAction(input: unknown): Promise<ActionRespo
         if (assignedLeadIds.length === 0) continue;
         const emp = employees.find(e => e.id === empId);
         
+        // 1. Uncontacted leads in 'NEW' -> transition to 'ASSIGNED'
         await tx.lead.updateMany({
-          where: { id: { in: assignedLeadIds } },
+          where: {
+            id: { in: assignedLeadIds },
+            status: 'NEW',
+          },
           data: {
             assignedEmployeeId: empId,
             assignedAt,
             status: 'ASSIGNED',
+            ...(emp?.teamId ? { teamId: emp.teamId } : {}),
+          },
+        });
+
+        // 2. Leads already in active pipeline stages -> preserve stage, only update assignment
+        await tx.lead.updateMany({
+          where: {
+            id: { in: assignedLeadIds },
+            status: { not: 'NEW' },
+          },
+          data: {
+            assignedEmployeeId: empId,
+            assignedAt,
             ...(emp?.teamId ? { teamId: emp.teamId } : {}),
           },
         });
@@ -581,13 +598,30 @@ export async function autoAssignLeadsToTeamsAction(input: unknown): Promise<Acti
         if (assignedLeadIds.length === 0) continue;
         const team = teams.find((t) => t.id === teamId);
 
+        // 1. Leads currently 'ASSIGNED' -> transition back to 'NEW' pool
         await tx.lead.updateMany({
-          where: { id: { in: assignedLeadIds } },
+          where: {
+            id: { in: assignedLeadIds },
+            status: 'ASSIGNED',
+          },
           data: {
             teamId,
             assignedEmployeeId: null,
             assignedAt: null,
             status: 'NEW',
+          },
+        });
+
+        // 2. Leads in other stages -> preserve stage, only route squad
+        await tx.lead.updateMany({
+          where: {
+            id: { in: assignedLeadIds },
+            status: { not: 'ASSIGNED' },
+          },
+          data: {
+            teamId,
+            assignedEmployeeId: null,
+            assignedAt: null,
           },
         });
 

@@ -8,7 +8,7 @@ import { canManageLeads } from '@/lib/auth/rbac';
 import { LeadStatus, Role } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
-import { zodPhoneNumberSchema } from '@/lib/lead/phone';
+import { zodPhoneNumberSchema, toLast10Digits } from '@/lib/lead/phone';
 import { sanitizeErrorMessage } from '@/lib/security/errors';
 
 const LeadStatusEnum = z.enum([
@@ -158,12 +158,14 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
     }
 
     const leadCode = await generateNextLeadCode();
+    const phoneDigits = toLast10Digits(phoneNumber);
 
     const lead = await prisma.lead.create({
       data: {
         leadCode,
         name: name.trim(),
         phoneNumber: phoneNumber.trim(),
+        phoneDigits: phoneDigits || null,
         email: email?.trim() || null,
         company: company?.trim() || null,
         source: source?.trim() || 'MANUAL',
@@ -350,11 +352,14 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
       }
     }
 
+    const phoneDigits = toLast10Digits(phoneNumber);
+
     await prisma.lead.update({
       where: { id },
       data: {
         name: name.trim(),
         phoneNumber: phoneNumber.trim(),
+        phoneDigits: phoneDigits || null,
         email: email?.trim() || null,
         company: company?.trim() || null,
         source: source?.trim() || 'MANUAL',

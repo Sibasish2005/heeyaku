@@ -338,17 +338,8 @@ export function isAllowedCeoEmail(email?: string | null): boolean {
     .filter(Boolean);
   const normalized = email.toLowerCase().trim();
 
-  // 1. Direct email match
-  if (allowed.includes(normalized)) return true;
-
-  // 2. Wildcard company domain match (e.g. '@heeyaku.com' or '@company.com')
-  for (const entry of allowed) {
-    if (entry.startsWith('@') && entry.length > 3 && entry.includes('.') && normalized.endsWith(entry)) {
-      return true;
-    }
-  }
-
-  return false;
+  // Direct exact email match only to prevent unintended domain privilege escalation
+  return allowed.includes(normalized);
 }
 
 /**

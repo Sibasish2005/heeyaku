@@ -341,13 +341,44 @@ export class EmployeeService {
       throw new Error('Action blocked: You cannot delete your own active account.');
     }
 
-    // Unassign leads
+    // Check if employee has historical call records
+    const callCount = await prisma.callLog.count({
+      where: { employeeId },
+    });
+
+    if (callCount > 0) {
+      // Deactivate account instead of hard deleting to preserve critical telemetry & historical call logs
+      await prisma.lead.updateMany({
+        where: { assignedEmployeeId: employeeId },
+        data: { assignedEmployeeId: null, assignedAt: null },
+      });
+
+      await prisma.team.updateMany({
+        where: { teamLeadId: employeeId },
+        data: { teamLeadId: null },
+      });
+
+      await prisma.employee.update({
+        where: { id: employeeId },
+        data: {
+          isActive: false,
+          teamId: null,
+          team: 'Deactivated',
+        },
+      });
+
+      if (target.clerkUserId) {
+        await ClerkSyncService.deleteUser(target.clerkUserId, target.email);
+      }
+      return;
+    }
+
+    // If zero call logs, safely perform hard deletion
     await prisma.lead.updateMany({
       where: { assignedEmployeeId: employeeId },
       data: { assignedEmployeeId: null, assignedAt: null },
     });
 
-    // Unlink team lead
     await prisma.team.updateMany({
       where: { teamLeadId: employeeId },
       data: { teamLeadId: null },

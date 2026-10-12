@@ -355,6 +355,8 @@ export async function POST(req: NextRequest) {
 
     // 5. Build transaction batch to execute all writes in a single round-trip
     const dbOperations: Prisma.PrismaPromise<unknown>[] = [];
+    const createdCallIds = new Set<string>();
+    const leadUpdatesMap = new Map<string, Prisma.LeadUncheckedUpdateInput>();
 
     for (const { item, matchedLead } of assignedCalls) {
       const targetLeadId = matchedLead ? matchedLead.id : null;
@@ -413,6 +415,13 @@ export async function POST(req: NextRequest) {
         );
       } else {
         targetCallId = item.idCandidate || crypto.randomUUID();
+        if (createdCallIds.has(targetCallId)) {
+          targetCallId = crypto.randomUUID();
+        }
+        createdCallIds.add(targetCallId);
+        if (item.idCandidate) {
+          existingLogsMap.set(item.idCandidate, { id: targetCallId, durationSeconds: item.duration, connected: isConnected } as any);
+        }
         dbOperations.push(
           prisma.callLog.create({
             data: {
@@ -519,21 +528,17 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          dbOperations.push(
-            prisma.lead.update({
-              where: { id: matchedLead.id },
-              data: {
-                status: targetStatus,
-                notes: updatedLeadNotes || undefined,
-                isProspect: isPromotedToProspect,
-                promotedToProspectAt,
-                originalBdaId,
-                assignedEmployeeId: targetEmployeeId,
-                ...(targetEmployeeId !== matchedLead.assignedEmployeeId ? { assignedAt: new Date() } : {}),
-                updatedAt: new Date(),
-              },
-            })
-          );
+          leadUpdatesMap.set(matchedLead.id, {
+            status: targetStatus,
+            notes: updatedLeadNotes || undefined,
+            isProspect: isPromotedToProspect,
+            promotedToProspectAt,
+            originalBdaId,
+            assignedEmployeeId: targetEmployeeId,
+            ...(targetEmployeeId !== matchedLead.assignedEmployeeId ? { assignedAt: new Date() } : {}),
+            updatedAt: new Date(),
+          });
+
           matchedLead.status = targetStatus;
           matchedLead.notes = updatedLeadNotes;
           matchedLead.isProspect = isPromotedToProspect;
@@ -542,6 +547,16 @@ export async function POST(req: NextRequest) {
           matchedLead.assignedEmployeeId = targetEmployeeId;
         }
       }
+    }
+
+    // Push consolidated lead updates into transaction
+    for (const [id, updateData] of leadUpdatesMap.entries()) {
+      dbOperations.push(
+        prisma.lead.update({
+          where: { id },
+          data: updateData,
+        })
+      );
     }
 
     if (dbOperations.length > 0) {
