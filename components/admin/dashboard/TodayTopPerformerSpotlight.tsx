@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, Award, TrendingUp } from 'lucide-react';
+import { ArrowUpRight, Target, TrendingUp } from 'lucide-react';
 
 export interface TopEmployeeReport {
   id: string;
@@ -141,7 +141,7 @@ export default function TodayTopPerformerSpotlight({
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <MinimalPerformerCard
         periodLabel="Top Performer Today"
-        icon={Award}
+        icon={Target}
         performer={effectiveToday}
         assignedCount={effectiveToday?.totalAssignedToday || 0}
         contactedCount={effectiveToday?.contactedToday || 0}

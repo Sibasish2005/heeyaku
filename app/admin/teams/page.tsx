@@ -65,7 +65,6 @@ export default async function TeamsPage() {
       by: ['employeeId', 'connected'],
       where: {
         employee: { teamId: { in: teamIds } },
-        leadId: { not: null },
       },
       _sum: { durationSeconds: true },
       _count: { id: true },

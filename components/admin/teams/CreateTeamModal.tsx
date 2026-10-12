@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Shield, Loader2, Sparkles } from 'lucide-react';
+import { X, Shield, Loader2, Building2 } from 'lucide-react';
 import { createTeamAction, fetchActiveTeamLeadsAction } from '@/app/admin/employees/actions';
 import ShadcnDropdownSelect from '@/components/ui/shadcn-dropdown-select';
 
@@ -103,7 +103,7 @@ export default function CreateTeamModal({
               className="w-8 h-8 rounded-lg flex items-center justify-center text-white"
               style={{ backgroundColor: colorTag }}
             >
-              <Sparkles className="w-4 h-4" />
+              <Building2 className="w-4 h-4" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-foreground">Create New Squad</h2>

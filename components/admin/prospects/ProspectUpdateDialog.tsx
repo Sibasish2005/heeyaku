@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { LeadStatus } from '@prisma/client';
-import { X, CheckCircle2, Phone, User, Clock, ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { X, CheckCircle2, Phone, User, Clock, ArrowRight, Loader2 } from 'lucide-react';
 import { ProspectItem, PROSPECT_STATUS_META } from './types';
 import { updateProspectStatusAction } from '@/app/admin/prospects/actions';
 import { toast } from 'sonner';
@@ -60,7 +60,7 @@ export default function ProspectUpdateDialog({
       if (res.success && res.data) {
         toast.success(
           selectedStatus === 'CONVERTED'
-            ? `🎉 Deal Closed! ${prospect.name} marked as CONVERTED.`
+            ? `Deal closed: ${prospect.name} marked as CONVERTED.`
             : `Prospect status updated to ${PROSPECT_STATUS_META[selectedStatus]?.label || selectedStatus}.`
         );
         onSuccess(res.data);
@@ -83,24 +83,20 @@ export default function ProspectUpdateDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-card border border-border/80 rounded-2xl shadow-2xl p-6 overflow-hidden">
-        {/* Glow Accent */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-indigo-500 to-emerald-500" />
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="relative w-full max-w-xl bg-card border border-border rounded-2xl shadow-2xl p-6 overflow-hidden">
         {/* Modal Header */}
-        <div className="flex items-start justify-between pb-4 border-b border-border/70">
+        <div className="flex items-start justify-between pb-4 border-b border-border">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-[#2563EB] dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/40">
+              <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-muted text-foreground border border-border">
                 {prospect.leadCode}
               </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-500/30">
-                <Sparkles className="w-3 h-3 text-amber-500" />
-                <span>Prospect</span>
+              <span className="inline-flex items-center text-[10px] font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded border border-amber-500/20">
+                Prospect
               </span>
             </div>
-            <h2 className="text-lg font-black text-foreground mt-1.5 flex items-center gap-2">
+            <h2 className="text-base font-bold text-foreground mt-1.5 flex items-center gap-2">
               <span>{prospect.name}</span>
             </h2>
             <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">

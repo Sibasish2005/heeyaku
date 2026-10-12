@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, UserCheck, Users, X, ShieldCheck, LogOut, Home, ArrowUpRight, Trophy, Sparkles } from 'lucide-react';
+import { LayoutDashboard, UserCheck, Users, X, ShieldCheck, LogOut, Home, ArrowUpRight, Building2, Target } from 'lucide-react';
 import HeeyakuLogo from '@/components/landingpage/shared/HeeyakuLogo';
 import ThemeToggler from '@/components/ThemeToggler';
 import { useClerk } from '@clerk/nextjs';
@@ -34,24 +34,24 @@ export default function AdminSidebar({
     if (role === Role.HR) {
       return [
         { label: 'Staff', href: '/admin/employees', icon: UserCheck },
-        { label: 'Teams', href: '/admin/teams', icon: Trophy },
+        { label: 'Teams', href: '/admin/teams', icon: Building2 },
       ];
     }
     if (role === Role.TEAM_LEAD) {
       return [
         { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-        { label: 'Prospects', href: '/admin/prospects', icon: Sparkles },
+        { label: 'Prospects', href: '/admin/prospects', icon: Target },
         { label: 'Leads', href: '/admin/leads', icon: Users },
-        { label: 'My Team', href: '/admin/teams', icon: Trophy },
+        { label: 'My Team', href: '/admin/teams', icon: Building2 },
         { label: 'Staff', href: '/admin/employees', icon: UserCheck },
       ];
     }
     // CEO has universal omni-privilege access
     return [
       { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-      { label: 'Prospects', href: '/admin/prospects', icon: Sparkles },
+      { label: 'Prospects', href: '/admin/prospects', icon: Target },
       { label: 'Leads', href: '/admin/leads', icon: Users },
-      { label: 'Teams', href: '/admin/teams', icon: Trophy },
+      { label: 'Teams', href: '/admin/teams', icon: Building2 },
       { label: 'Staff', href: '/admin/employees', icon: UserCheck },
     ];
   }, [role]);

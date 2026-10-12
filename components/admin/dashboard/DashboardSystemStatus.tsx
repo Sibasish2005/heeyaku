@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, ShieldCheck, Smartphone, Flame } from 'lucide-react';
+import { Database, ShieldCheck, Smartphone, Activity } from 'lucide-react';
 
 interface DashboardSystemStatusProps {
   inDiscussionLeads: number;
@@ -46,7 +46,7 @@ export default function DashboardSystemStatus({ inDiscussionLeads }: DashboardSy
 
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2.5 text-foreground">
-            <Flame className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <Activity className="w-4 h-4 text-primary" />
             <span className="font-semibold">Active Discussion</span>
           </div>
           <span className="text-[10px] font-bold text-purple-700 bg-purple-500/10 px-2 py-0.5 rounded-full border border-purple-500/20 font-mono">

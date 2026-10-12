@@ -26,28 +26,28 @@ export default function DashboardKpiMetrics({
       value: totalLeads.toLocaleString('en-IN'),
       meta: `${newLeads} new`,
       icon: Users,
-      iconBg: 'bg-blue-50 text-blue-600',
+      iconBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20',
     },
     {
       label: 'Active Business Development Associates',
       value: activeEmployees.toLocaleString('en-IN'),
       meta: `${totalEmployees} total`,
       icon: UserCheck,
-      iconBg: 'bg-emerald-50 text-emerald-600',
+      iconBg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
     },
     {
       label: 'Unassigned Pool',
       value: unassignedLeads.toLocaleString('en-IN'),
       meta: `${totalLeads - unassignedLeads} assigned`,
       icon: Layers,
-      iconBg: 'bg-amber-50 text-amber-600',
+      iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
     },
     {
       label: 'Conversion Rate',
       value: `${conversionRate}%`,
       meta: `${convertedLeads} converted`,
       icon: TrendingUp,
-      iconBg: 'bg-purple-50 text-purple-600',
+      iconBg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20',
     },
   ];
 

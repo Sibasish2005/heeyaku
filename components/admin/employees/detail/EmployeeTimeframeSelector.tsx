@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { TimeFrame } from './types';
-import { Calendar, Clock, Award } from 'lucide-react';
+import { Calendar, Clock, History } from 'lucide-react';
 
 interface EmployeeTimeframeSelectorProps {
   timeframe: TimeFrame;
@@ -37,7 +37,7 @@ export default function EmployeeTimeframeSelector({
     {
       id: 'LIFETIME',
       label: 'Lifetime',
-      icon: <Award className="w-3.5 h-3.5" />,
+      icon: <History className="w-3.5 h-3.5" />,
       count: counts.lifetime,
       desc: 'All-time career',
     },

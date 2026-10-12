@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   PhoneCall,
   Clock,
-  Trophy,
   Edit,
   UserPlus,
   Trash2,
@@ -18,10 +17,8 @@ import {
   Phone,
   Mail,
   Filter,
-  Flame,
   Search,
   UserMinus,
-  Sparkles,
 } from 'lucide-react';
 import { removeBdaFromTeamAction, deleteTeamAction } from '@/app/admin/employees/actions';
 import EditTeamModal from './EditTeamModal';
@@ -103,8 +100,10 @@ export default function TeamDetailsView({
     if (!sec || sec <= 0) return '0s';
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
+    const s = Math.floor(sec % 60);
+    if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`;
+    return `${s}s`;
   };
 
   const handleRemoveBda = async (bdaId: string, bdaName: string) => {
@@ -296,7 +295,7 @@ export default function TeamDetailsView({
         {/* Telephony Velocity */}
         <div className="p-4 rounded-2xl border border-border bg-card shadow-2xs space-y-1">
           <div className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5">
-            <PhoneCall className="w-3.5 h-3.5 text-amber-500" />
+            <Clock className="w-3.5 h-3.5 text-amber-500" />
             <span>Talk Time</span>
           </div>
           <div className="text-2xl font-black text-foreground font-mono">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Sparkles, AlertCircle, PlusCircle, Loader2 } from 'lucide-react';
+import { X, AlertCircle, PlusCircle, Loader2 } from 'lucide-react';
 import { createLeadAction } from '@/app/admin/leads/actions';
 import { zodPhoneNumberSchema } from '@/lib/lead/phone';
 import CreateLeadFormFields, { CreateLeadFormData } from './dialogs/CreateLeadFormFields';
@@ -113,7 +113,7 @@ export default function CreateLeadDialog({
         <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border flex items-center justify-between bg-muted/20 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-[#2563EB]/10 text-[#2563EB] dark:bg-[#2563EB]/20 dark:text-blue-400 flex items-center justify-center shrink-0 font-bold">
-              <Sparkles className="w-4 h-4" />
+              <PlusCircle className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <h2 className="text-sm font-bold text-foreground">Add New Lead</h2>

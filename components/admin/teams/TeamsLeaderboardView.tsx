@@ -2,14 +2,11 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-  Trophy,
   Users,
   Plus,
   Search,
   CheckCircle2,
-  PhoneCall,
   Clock,
-  Sparkles,
   ArrowUpDown,
   Building2,
   ExternalLink,
@@ -17,7 +14,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { TeamsLeaderboardProps, SquadLeaderboardItem } from './types';
-import TeamPodiumCard from './TeamPodiumCard';
 import CreateTeamModal from './CreateTeamModal';
 import { Role } from '@prisma/client';
 
@@ -57,105 +53,85 @@ export default function TeamsLeaderboardView({
   const totalTalkSec = squads.reduce((acc, s) => acc + s.totalTalkTimeSeconds, 0);
   const totalMembers = squads.reduce((acc, s) => acc + s.activeMemberCount, 0);
 
-  const top3 = filteredSquads.slice(0, 3);
-
   const formatTalkTime = (sec: number) => {
     if (!sec || sec <= 0) return '0s';
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
+    const s = Math.floor(sec % 60);
+    if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`;
+    return `${s}s`;
   };
 
   const isTeamLead = currentUserRole === Role.TEAM_LEAD;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-border/80">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold tracking-widest text-amber-500 uppercase mb-1">
-            <Trophy className="w-3.5 h-3.5" />
-            <span>{isTeamLead ? 'Squad Recognition & Performance' : 'Squad Recognition & Performance League'}</span>
+          <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground mb-1">
+            {isTeamLead ? 'Squad Telemetry' : 'Organization & Squads'}
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
-            {isTeamLead ? (squads[0]?.name ? `${squads[0].name} — Squad Performance` : 'My Squad') : 'Teams Leaderboard'}
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            {isTeamLead ? (squads[0]?.name ? `${squads[0].name} Squad` : 'My Squad') : 'Squad Performance'}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
             {isTeamLead
-              ? 'Recognizing client acquisitions and telephony velocity for your assigned squad.'
-              : 'Recognizing team leads and squads gaining the most clients and driving telephony velocity.'}
+              ? 'Real-time telemetry, client acquisitions, and telephony volume for your squad.'
+              : 'Cross-squad performance metrics, client acquisitions, and telephony output.'}
           </p>
         </div>
 
         {canManageTeams && (
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-500 rounded-xl transition-all shadow-xs cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#2563EB] hover:bg-blue-600 rounded-lg transition-all shadow-xs cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             <span>Form New Squad</span>
           </button>
         )}
       </div>
 
-      {/* Aggregate League / Squad Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 rounded-2xl border border-border bg-card divide-y sm:divide-y-0 sm:divide-x divide-border shadow-2xs overflow-hidden">
+      {/* Aggregate League / Squad Metrics Ribbon */}
+      <div className="grid grid-cols-2 md:grid-cols-4 rounded-xl border border-border bg-card divide-y sm:divide-y-0 sm:divide-x divide-border shadow-2xs overflow-hidden">
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors">
-          <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5 text-blue-500" />
-            <span>{isTeamLead ? 'Squad Name' : 'Active Squads'}</span>
+          <div className="text-xs font-medium text-muted-foreground">
+            {isTeamLead ? 'Squad' : 'Active Squads'}
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono truncate">
+          <div className="text-2xl sm:text-3xl font-bold text-foreground font-mono truncate">
             {isTeamLead ? (squads[0]?.name || 'My Squad') : totalSquads}
           </div>
         </div>
 
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors">
-          <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-indigo-500" />
-            <span>{isTeamLead ? 'Squad BDAs' : 'Active BDAs'}</span>
+          <div className="text-xs font-medium text-muted-foreground">
+            {isTeamLead ? 'Squad BDAs' : 'Active BDAs'}
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono">
+          <div className="text-2xl sm:text-3xl font-bold text-foreground font-mono">
             {totalMembers}
           </div>
         </div>
 
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors">
-          <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-            <span>{isTeamLead ? 'Clients Acquired' : 'Total Clients Acquired'}</span>
+          <div className="text-xs font-medium text-muted-foreground">
+            {isTeamLead ? 'Clients Acquired' : 'Total Clients Acquired'}
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
+          <div className="text-2xl sm:text-3xl font-bold text-emerald-600 dark:text-emerald-400 font-mono">
             {totalConverted}
           </div>
         </div>
 
         <div className="p-4 sm:p-5 space-y-1 hover:bg-muted/20 transition-colors">
-          <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-amber-500" />
-            <span>{isTeamLead ? 'Squad Talk Time' : 'Collective Talk Time'}</span>
+          <div className="text-xs font-medium text-muted-foreground">
+            {isTeamLead ? 'Squad Talk Time' : 'Collective Talk Time'}
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-amber-600 dark:text-amber-400 font-mono">
+          <div className="text-2xl sm:text-3xl font-bold text-foreground font-mono">
             {formatTalkTime(totalTalkSec)}
           </div>
         </div>
       </div>
-
-      {/* Podium Cards for Top 3 (hidden for TL who only views their own squad) */}
-      {!isTeamLead && top3.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-xs font-bold text-foreground">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Squad Podium Showcase</span>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            {top3.map((squad) => (
-              <TeamPodiumCard key={squad.id} squad={squad} />
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Toolbar & Filter (only shown when multiple squads exist) */}
       {!isTeamLead && (
@@ -247,23 +223,9 @@ export default function TeamsLeaderboardView({
                       }`}
                     >
                       <td className="py-3 px-4 text-center">
-                        {squad.rank === 1 ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/15 text-amber-500 font-extrabold text-xs">
-                            🥇
-                          </span>
-                        ) : squad.rank === 2 ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-300/20 text-slate-400 font-extrabold text-xs">
-                            🥈
-                          </span>
-                        ) : squad.rank === 3 ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-800/15 text-amber-700 font-extrabold text-xs">
-                            🥉
-                          </span>
-                        ) : (
-                          <span className="font-mono text-muted-foreground font-bold">
-                            #{squad.rank}
-                          </span>
-                        )}
+                        <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-md font-mono text-[11px] font-medium bg-muted text-muted-foreground border border-border/60">
+                          #{squad.rank}
+                        </span>
                       </td>
 
                       <td className="py-3 px-4">

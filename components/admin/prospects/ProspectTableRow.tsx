@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Phone, Edit3, User, Sparkles, Trophy } from 'lucide-react';
+import { Phone, Edit3, User } from 'lucide-react';
 import { ProspectItem, PROSPECT_STATUS_META } from './types';
 
 interface ProspectTableRowProps {
@@ -36,9 +36,8 @@ export default function ProspectTableRow({
       <td className="py-2.5 px-3 whitespace-nowrap">
         <div className="flex items-center gap-1.5">
           <span className="font-bold text-foreground text-xs">{prospect.name}</span>
-          <span className="inline-flex items-center gap-0.5 text-[8.5px] font-black uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-400 px-1.5 py-0.2 rounded border border-amber-500/20">
-            <Sparkles className="w-2.5 h-2.5 text-amber-500" />
-            <span>Prospect</span>
+          <span className="inline-flex items-center text-[9px] font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20">
+            Prospect
           </span>
         </div>
         {prospect.company && (
@@ -70,7 +69,7 @@ export default function ProspectTableRow({
       <td className="py-2.5 px-3 whitespace-nowrap">
         {prospect.originalBda ? (
           <div className="inline-flex items-center gap-1 text-[11px]">
-            <span className="w-5 h-5 rounded-md bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-[10px] shrink-0">
+            <span className="w-5 h-5 rounded-md bg-muted text-muted-foreground flex items-center justify-center font-bold text-[10px] shrink-0 border border-border/50">
               <User className="w-3 h-3" />
             </span>
             <span className="font-semibold text-foreground text-xs">{prospect.originalBda.name}</span>
@@ -86,8 +85,7 @@ export default function ProspectTableRow({
         <td className="py-2.5 px-3 whitespace-nowrap">
           {prospect.assignedEmployee ? (
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded">
-                <Trophy className="w-2.5 h-2.5" />
+              <span className="inline-flex items-center text-[10px] font-medium text-foreground bg-muted border border-border px-2 py-0.5 rounded">
                 <span>TL {prospect.assignedEmployee.name}</span>
               </span>
               {prospect.team && (

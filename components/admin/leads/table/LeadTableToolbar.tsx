@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Search, Plus, Upload, Download, Filter, RotateCcw, X, FileSpreadsheet, Bot, LayoutGrid, Table as TableIcon } from 'lucide-react';
+import { Search, Plus, Upload, Download, Filter, RotateCcw, X, FileSpreadsheet, SlidersHorizontal, LayoutGrid, Table as TableIcon } from 'lucide-react';
 import { ActiveEmployee } from './types';
 import ShadcnDropdownSelect from '@/components/ui/shadcn-dropdown-select';
 
@@ -166,9 +166,9 @@ export default function LeadTableToolbar({
           <button
             type="button"
             onClick={onAutoAssignOpen}
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 rounded-xl transition-colors shadow-2xs cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs font-semibold text-foreground bg-card hover:bg-muted/60 border border-border rounded-xl transition-colors shadow-2xs cursor-pointer"
           >
-            <Bot className="w-3.5 h-3.5" />
+            <SlidersHorizontal className="w-3.5 h-3.5 text-muted-foreground" />
             <span>Auto Assign</span>
           </button>
 

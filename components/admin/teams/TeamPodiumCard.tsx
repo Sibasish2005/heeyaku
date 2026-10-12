@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Trophy, Medal, Award, Flame, PhoneCall, Users, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Clock, PhoneCall, Users, CheckCircle2, ArrowRight } from 'lucide-react';
 import { SquadLeaderboardItem } from './types';
 
 interface TeamPodiumCardProps {
@@ -11,59 +11,31 @@ interface TeamPodiumCardProps {
 
 export default function TeamPodiumCard({ squad }: TeamPodiumCardProps) {
   const isFirst = squad.rank === 1;
-  const isSecond = squad.rank === 2;
-  const isThird = squad.rank === 3;
 
   const formatTalkTime = (sec: number) => {
     if (!sec || sec <= 0) return '0s';
     const h = Math.floor(sec / 3600);
     const m = Math.floor((sec % 3600) / 60);
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
+    const s = Math.floor(sec % 60);
+    if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`;
+    return `${s}s`;
   };
 
   const getRankBadge = () => {
-    if (isFirst) {
-      return (
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-500 font-bold text-xs shadow-xs animate-pulse">
-          <Trophy className="w-3.5 h-3.5" />
-          <span>#1 Champion Squad</span>
-        </div>
-      );
-    }
-    if (isSecond) {
-      return (
-        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-400/15 border border-slate-400/30 text-slate-400 font-semibold text-xs">
-          <Medal className="w-3.5 h-3.5" />
-          <span>#2 Runner-Up</span>
-        </div>
-      );
-    }
-    if (isThird) {
-      return (
-        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-700/15 border border-amber-700/30 text-amber-700 dark:text-amber-600 font-semibold text-xs">
-          <Award className="w-3.5 h-3.5" />
-          <span>#3 Bronze</span>
-        </div>
-      );
-    }
     return (
-      <div className="text-xs font-bold text-muted-foreground font-mono">
+      <div className={`px-2 py-0.5 rounded text-[11px] font-mono font-semibold border ${
+        isFirst 
+          ? 'bg-primary/10 text-primary border-primary/20' 
+          : 'bg-muted text-muted-foreground border-border'
+      }`}>
         #{squad.rank}
       </div>
     );
   };
 
   return (
-    <div
-      className={`relative rounded-2xl border p-5 transition-all duration-200 flex flex-col justify-between overflow-hidden ${
-        isFirst
-          ? 'bg-gradient-to-b from-amber-500/10 via-card to-card border-amber-500/40 shadow-xl ring-1 ring-amber-500/20 md:-translate-y-2'
-          : isSecond
-          ? 'bg-card border-slate-300 dark:border-slate-800 shadow-md'
-          : 'bg-card border-amber-900/20 dark:border-amber-900/30 shadow-md'
-      }`}
-    >
+    <div className="relative rounded-2xl border border-border bg-card p-5 hover:border-primary/40 transition-all duration-150 flex flex-col justify-between shadow-2xs">
       {/* Top Banner */}
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
@@ -133,7 +105,7 @@ export default function TeamPodiumCard({ squad }: TeamPodiumCardProps) {
 
         <div className="space-y-0.5">
           <div className="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
-            <Flame className="w-3 h-3 text-amber-500" />
+            <Clock className="w-3 h-3 text-muted-foreground" />
             <span>Talk Time</span>
           </div>
           <div className="text-xs font-bold text-foreground font-mono">

@@ -142,7 +142,6 @@ export default async function TeamPage({ params }: PageProps) {
       by: ['connected'],
       where: {
         employee: { teamId: team.id },
-        leadId: { not: null },
       },
       _count: { id: true },
       _sum: { durationSeconds: true },
@@ -181,7 +180,6 @@ export default async function TeamPage({ params }: PageProps) {
           by: ['employeeId'],
           where: {
             employeeId: { in: bdaIds },
-            leadId: { not: null },
           },
           _sum: { durationSeconds: true },
           _count: { id: true },
