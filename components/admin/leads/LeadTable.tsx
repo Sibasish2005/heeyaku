@@ -23,6 +23,7 @@ interface LeadTableProps {
   teams?: import('./table/types').ActiveTeam[];
   initialEmployeeFilter?: string;
   currentUserRole?: string;
+  currentUserTeamId?: string;
 }
 
 export default function LeadTable({
@@ -31,6 +32,7 @@ export default function LeadTable({
   teams = [],
   initialEmployeeFilter,
   currentUserRole,
+  currentUserTeamId,
 }: LeadTableProps) {
   const [leads] = useState<LeadListItem[]>(initialLeads);
   const [searchQuery, setSearchQuery] = useState('');
@@ -246,6 +248,7 @@ export default function LeadTable({
         activeEmployees={activeEmployees}
         teams={teams}
         currentUserRole={currentUserRole}
+        currentUserTeamId={currentUserTeamId}
         onCloseCreate={() => setIsCreateOpen(false)}
         onCloseEdit={() => setEditingLead(null)}
         onCloseBulkAssign={() => setIsBulkAssignOpen(false)}

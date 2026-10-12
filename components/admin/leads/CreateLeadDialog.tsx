@@ -6,14 +6,7 @@ import { createLeadAction } from '@/app/admin/leads/actions';
 import { zodPhoneNumberSchema } from '@/lib/lead/phone';
 import CreateLeadFormFields, { CreateLeadFormData } from './dialogs/CreateLeadFormFields';
 
-import { ActiveTeam } from './table/types';
-
-interface ActiveEmployee {
-  id: string;
-  employeeCode: string;
-  name: string;
-  team: string | null;
-}
+import { ActiveEmployee, ActiveTeam } from './table/types';
 
 interface CreateLeadDialogProps {
   isOpen: boolean;
@@ -21,6 +14,7 @@ interface CreateLeadDialogProps {
   activeEmployees: ActiveEmployee[];
   teams?: ActiveTeam[];
   currentUserRole?: string;
+  currentUserTeamId?: string;
   onLeadCreated?: () => void;
 }
 
@@ -30,6 +24,7 @@ export default function CreateLeadDialog({
   activeEmployees,
   teams = [],
   currentUserRole,
+  currentUserTeamId,
   onLeadCreated,
 }: CreateLeadDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -41,9 +36,27 @@ export default function CreateLeadDialog({
     email: '',
     company: '',
     source: 'MANUAL',
-    teamId: '',
+    teamId: currentUserTeamId || '',
     assignedEmployeeId: '',
   });
+
+  // Track dialog open transition to reset with current default team
+  const [prevIsOpen, setPrevIsOpen] = React.useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setFormData({
+        name: '',
+        phoneNumber: '',
+        email: '',
+        company: '',
+        source: 'MANUAL',
+        teamId: currentUserTeamId || '',
+        assignedEmployeeId: '',
+      });
+      setError(null);
+    }
+  }
 
   if (!isOpen) return null;
 

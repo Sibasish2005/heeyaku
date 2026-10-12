@@ -68,7 +68,6 @@ export default async function EmployeesPage() {
       total,
       active,
       assigned,
-      callsTotal,
       connectedCallsTotal,
       talkTimeAgg,
       teamsRaw,
@@ -77,10 +76,12 @@ export default async function EmployeesPage() {
       prisma.employee.count({ where: employeeWhere }),
       prisma.employee.count({ where: { ...employeeWhere, isActive: true } }),
       prisma.lead.count({ where: leadWhere }),
-      prisma.callLog.count({ where: callWhere }),
       prisma.callLog.count({ where: { ...callWhere, connected: true } }),
       prisma.callLog.aggregate({
         where: callWhere,
+        _count: {
+          id: true,
+        },
         _sum: {
           durationSeconds: true,
         },
@@ -151,7 +152,7 @@ export default async function EmployeesPage() {
     totalEmployees = total;
     activeEmployees = active;
     totalAssignedLeads = assigned;
-    totalCallsCount = callsTotal;
+    totalCallsCount = talkTimeAgg._count.id;
     connectedCallsCount = connectedCallsTotal;
     totalTalkTimeSeconds = talkTimeAgg._sum.durationSeconds || 0;
     initialTeams = isTeamLead

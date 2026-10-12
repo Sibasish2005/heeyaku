@@ -96,10 +96,27 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
 
     if (admin.role === Role.CEO) {
       if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
-        return {
-          success: false,
-          error: 'As CEO, assign leads to a Squad / Team. The Team Lead will assign to individual BDAs.',
-        };
+        const employee = await prisma.employee.findUnique({
+          where: { id: assignedEmployeeId },
+          select: { id: true, isActive: true, teamId: true, role: true },
+        });
+
+        if (!employee) {
+          return { success: false, error: 'Selected employee does not exist.' };
+        }
+        if (!employee.isActive) {
+          return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
+        }
+        if (employee.role !== Role.BDA && employee.role !== Role.TEAM_LEAD) {
+          return { success: false, error: 'Leads can only be assigned to Business Development Associates (BDA) or Team Leads.' };
+        }
+
+        targetEmployeeId = employee.id;
+        targetTeamId = employee.teamId || targetTeamId;
+        assignedAt = new Date();
+        if (initialStatus === 'NEW') {
+          initialStatus = 'ASSIGNED';
+        }
       }
       if (teamId && teamId.trim() !== '') {
         const team = await prisma.team.findUnique({
@@ -109,7 +126,9 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
         if (!team) {
           return { success: false, error: 'Selected squad was not found.' };
         }
-        targetTeamId = team.id;
+        if (!targetEmployeeId) {
+          targetTeamId = team.id;
+        }
       }
     } else if (admin.role === Role.TEAM_LEAD) {
       targetTeamId = tlTeamId;
@@ -125,11 +144,12 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
         if (!employee.isActive) {
           return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
         }
-        if (employee.role !== Role.BDA || employee.teamId !== tlTeamId) {
-          return { success: false, error: 'Unauthorized: You can only assign leads to BDA members of your own squad.' };
+        if (employee.role !== Role.BDA) {
+          return { success: false, error: 'Unauthorized: You can only assign leads to BDA members.' };
         }
 
         targetEmployeeId = employee.id;
+        targetTeamId = employee.teamId || tlTeamId;
         assignedAt = new Date();
         if (initialStatus === 'NEW') {
           initialStatus = 'ASSIGNED';
@@ -236,28 +256,39 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
 
     if (admin.role === Role.CEO) {
       if (assignedEmployeeId && assignedEmployeeId.trim() !== '' && assignedEmployeeId !== existing.assignedEmployeeId) {
-        return {
-          success: false,
-          error: 'As CEO, assign leads to a Squad / Team. The Team Lead will assign to individual BDAs.',
-        };
+        const employee = await prisma.employee.findUnique({
+          where: { id: assignedEmployeeId },
+          select: { id: true, isActive: true, teamId: true, role: true },
+        });
+
+        if (!employee) {
+          return { success: false, error: 'Selected employee does not exist.' };
+        }
+        if (!employee.isActive) {
+          return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
+        }
+        if (employee.role !== Role.BDA && employee.role !== Role.TEAM_LEAD) {
+          return { success: false, error: 'Leads can only be assigned to Business Development Associates (BDA) or Team Leads.' };
+        }
+
+        targetEmployeeId = employee.id;
+        targetEmployeeTeamId = employee.teamId || targetEmployeeTeamId;
+        assignedAt = new Date();
+        if (newStatus === 'NEW') newStatus = 'ASSIGNED';
+      } else if (assignedEmployeeId === '') {
+        targetEmployeeId = null;
+        assignedAt = undefined;
+        if (newStatus === 'ASSIGNED') newStatus = 'NEW';
       }
+
       if (teamId !== undefined) {
         if (teamId && teamId.trim() !== '') {
           targetEmployeeTeamId = teamId;
-          if (teamId !== existing.teamId) {
-            targetEmployeeId = null;
-            assignedAt = undefined;
-            if (newStatus === 'ASSIGNED') newStatus = 'NEW';
-          }
-        } else {
+        } else if (!targetEmployeeId) {
           targetEmployeeTeamId = null;
-          targetEmployeeId = null;
-          assignedAt = undefined;
-          if (newStatus === 'ASSIGNED') newStatus = 'NEW';
         }
       }
     } else if (admin.role === Role.TEAM_LEAD) {
-      targetEmployeeTeamId = tlTeamId;
       if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
         const employee = await prisma.employee.findUnique({
           where: { id: assignedEmployeeId },
@@ -270,18 +301,19 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
         if (!employee.isActive) {
           return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
         }
-        if (employee.role !== Role.BDA || employee.teamId !== tlTeamId) {
-          return { success: false, error: 'Unauthorized: Cannot assign leads to employees outside your squad.' };
+        if (employee.role !== Role.BDA) {
+          return { success: false, error: 'Unauthorized: You can only assign leads to BDA members.' };
         }
 
         targetEmployeeId = employee.id;
+        targetEmployeeTeamId = employee.teamId || tlTeamId;
         if (existing.assignedEmployeeId !== targetEmployeeId) {
           assignedAt = new Date();
         }
         if (newStatus === 'NEW') {
           newStatus = 'ASSIGNED';
         }
-      } else {
+      } else if (assignedEmployeeId === '') {
         targetEmployeeId = null;
         assignedAt = undefined;
         if (newStatus === 'ASSIGNED') {

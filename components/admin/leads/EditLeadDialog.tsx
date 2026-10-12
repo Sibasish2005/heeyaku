@@ -7,14 +7,7 @@ import { LeadStatus } from '@prisma/client';
 import { zodPhoneNumberSchema } from '@/lib/lead/phone';
 import EditLeadFormFields, { EditLeadFormData } from './dialogs/EditLeadFormFields';
 
-import { ActiveTeam } from './table/types';
-
-interface ActiveEmployee {
-  id: string;
-  employeeCode: string;
-  name: string;
-  team: string | null;
-}
+import { ActiveEmployee, ActiveTeam } from './table/types';
 
 export interface LeadDetailItem {
   id: string;

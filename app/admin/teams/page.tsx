@@ -51,26 +51,18 @@ export default async function TeamsPage() {
 
   const teamIds = teams.map((t) => t.id);
 
-  // Group queries for team conversions and call logs
-  const [convertedCounts, pipelineCounts, callStats, connectedCounts] = await Promise.all([
+  // Group queries for team conversions, call logs, and roster mapping
+  const [teamStatusCounts, callStats, allEmployees] = await Promise.all([
     prisma.lead.groupBy({
-      by: ['teamId'],
+      by: ['teamId', 'status'],
       where: {
         teamId: { in: teamIds },
-        status: 'CONVERTED',
-      },
-      _count: { id: true },
-    }),
-    prisma.lead.groupBy({
-      by: ['teamId'],
-      where: {
-        teamId: { in: teamIds },
-        status: { in: ['ASSIGNED', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP'] },
+        status: { in: ['CONVERTED', 'ASSIGNED', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP'] },
       },
       _count: { id: true },
     }),
     prisma.callLog.groupBy({
-      by: ['employeeId'],
+      by: ['employeeId', 'connected'],
       where: {
         employee: { teamId: { in: teamIds } },
         leadId: { not: null },
@@ -78,53 +70,41 @@ export default async function TeamsPage() {
       _sum: { durationSeconds: true },
       _count: { id: true },
     }),
-    prisma.callLog.groupBy({
-      by: ['employeeId'],
-      where: {
-        employee: { teamId: { in: teamIds } },
-        leadId: { not: null },
-        connected: true,
-      },
-      _count: { id: true },
+    prisma.employee.findMany({
+      where: { teamId: { in: teamIds } },
+      select: { id: true, teamId: true },
     }),
   ]);
 
   // Map employee calls to teams
   const employeeTeamMap = new Map<string, string>();
-  const allEmployees = await prisma.employee.findMany({
-    where: { teamId: { in: teamIds } },
-    select: { id: true, teamId: true },
-  });
   allEmployees.forEach((e) => {
     if (e.teamId) employeeTeamMap.set(e.id, e.teamId);
   });
 
   const teamTalkTimeMap = new Map<string, number>();
   const teamTotalCallsMap = new Map<string, number>();
+  const teamConnectedCallsMap = new Map<string, number>();
   callStats.forEach((c) => {
     const tId = employeeTeamMap.get(c.employeeId);
     if (tId) {
       teamTalkTimeMap.set(tId, (teamTalkTimeMap.get(tId) || 0) + (c._sum.durationSeconds || 0));
       teamTotalCallsMap.set(tId, (teamTotalCallsMap.get(tId) || 0) + (c._count.id || 0));
-    }
-  });
-
-  const teamConnectedCallsMap = new Map<string, number>();
-  connectedCounts.forEach((c) => {
-    const tId = employeeTeamMap.get(c.employeeId);
-    if (tId) {
-      teamConnectedCallsMap.set(tId, (teamConnectedCallsMap.get(tId) || 0) + (c._count.id || 0));
+      if (c.connected) {
+        teamConnectedCallsMap.set(tId, (teamConnectedCallsMap.get(tId) || 0) + (c._count.id || 0));
+      }
     }
   });
 
   const convertedMap = new Map<string, number>();
-  convertedCounts.forEach((c) => {
-    if (c.teamId) convertedMap.set(c.teamId, c._count.id);
-  });
-
   const pipelineMap = new Map<string, number>();
-  pipelineCounts.forEach((c) => {
-    if (c.teamId) pipelineMap.set(c.teamId, c._count.id);
+  teamStatusCounts.forEach((s) => {
+    if (!s.teamId) return;
+    if (s.status === 'CONVERTED') {
+      convertedMap.set(s.teamId, (convertedMap.get(s.teamId) || 0) + s._count.id);
+    } else {
+      pipelineMap.set(s.teamId, (pipelineMap.get(s.teamId) || 0) + s._count.id);
+    }
   });
 
   const rawSquads: Omit<SquadLeaderboardItem, 'rank'>[] = teams.map((team) => {

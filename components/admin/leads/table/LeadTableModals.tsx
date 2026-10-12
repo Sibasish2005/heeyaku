@@ -19,6 +19,7 @@ interface LeadTableModalsProps {
   activeEmployees: ActiveEmployee[];
   teams?: ActiveTeam[];
   currentUserRole?: string;
+  currentUserTeamId?: string;
   onCloseCreate: () => void;
   onCloseEdit: () => void;
   onCloseBulkAssign: () => void;
@@ -38,6 +39,7 @@ export default function LeadTableModals({
   activeEmployees,
   teams = [],
   currentUserRole,
+  currentUserTeamId,
   onCloseCreate,
   onCloseEdit,
   onCloseBulkAssign,
@@ -52,6 +54,7 @@ export default function LeadTableModals({
         activeEmployees={activeEmployees}
         teams={teams}
         currentUserRole={currentUserRole}
+        currentUserTeamId={currentUserTeamId}
         onClose={onCloseCreate}
         onLeadCreated={() => window.location.reload()}
       />
@@ -72,6 +75,7 @@ export default function LeadTableModals({
         activeEmployees={activeEmployees}
         teams={teams}
         currentUserRole={currentUserRole}
+        currentUserTeamId={currentUserTeamId}
         onClose={onCloseBulkAssign}
         onAssigned={onAssigned}
       />

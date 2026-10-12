@@ -99,10 +99,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
       fetchedLeads,
       fetchedEmployees,
       fetchedTeams,
-      totalCount,
-      newCount,
-      activePipelineCount,
-      convertedCount,
+      statusGroups,
     ] = await Promise.all([
       prisma.lead.findMany({
         where: leadWhere,
@@ -138,7 +135,6 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         where: {
           isActive: true,
           role: isTeamLead ? Role.BDA : { in: [Role.BDA, Role.TEAM_LEAD] },
-          ...(targetTeamId ? { teamId: targetTeamId } : {}),
         },
         orderBy: { name: 'asc' },
         select: {
@@ -151,7 +147,6 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         },
       }),
       prisma.team.findMany({
-        where: isTeamLead ? { id: targetTeamId || '__UNASSIGNED_SQUAD__' } : {},
         select: {
           id: true,
           name: true,
@@ -172,23 +167,29 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         },
         orderBy: { name: 'asc' },
       }),
-      prisma.lead.count({ where: countWhere }),
-      prisma.lead.count({ where: { ...countWhere, status: 'NEW' } }),
-      prisma.lead.count({
-        where: {
-          ...countWhere,
-          status: { in: ['ASSIGNED', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP'] },
-        },
+      prisma.lead.groupBy({
+        by: ['status'],
+        where: countWhere,
+        _count: { _all: true },
       }),
-      prisma.lead.count({ where: { ...countWhere, status: 'CONVERTED' } }),
     ]);
     leads = fetchedLeads;
     activeEmployees = fetchedEmployees;
     teams = fetchedTeams;
-    totalLeads = totalCount;
-    newLeads = newCount;
-    activePipeline = activePipelineCount;
-    convertedLeads = convertedCount;
+
+    for (const group of statusGroups) {
+      const count = group._count._all;
+      totalLeads += count;
+      if (group.status === 'NEW') {
+        newLeads += count;
+      }
+      if (['ASSIGNED', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP'].includes(group.status)) {
+        activePipeline += count;
+      }
+      if (group.status === 'CONVERTED') {
+        convertedLeads += count;
+      }
+    }
   } catch (error) {
     console.error('Error loading leads in LeadsPage:', error);
   }
@@ -243,6 +244,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         teams={teams}
         initialEmployeeFilter={employeeId}
         currentUserRole={admin.role}
+        currentUserTeamId={targetTeamId && targetTeamId !== 'UNASSIGNED_SQUAD' ? targetTeamId : undefined}
       />
     </main>
   );

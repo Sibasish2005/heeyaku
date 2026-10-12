@@ -19,14 +19,7 @@ import ImportDropzone from './import/ImportDropzone';
 import ImportColumnMapper from './import/ImportColumnMapper';
 import ImportPreviewTabs from './import/ImportPreviewTabs';
 import ImportCompleteCard from './import/ImportCompleteCard';
-import { ActiveTeam } from './table/types';
-
-interface ActiveEmployee {
-  id: string;
-  employeeCode: string;
-  name: string;
-  team: string | null;
-}
+import { ActiveEmployee, ActiveTeam } from './table/types';
 
 interface ImportLeadsDialogProps {
   isOpen: boolean;
@@ -199,8 +192,8 @@ export default function ImportLeadsDialog({
       setError(null);
       const res = await executeImportAction({
         leads: previewResult.validRows,
-        teamId: isCeo ? (selectedTeamId || undefined) : undefined,
-        assignedEmployeeId: !isCeo ? (assignedEmployeeId || undefined) : undefined,
+        teamId: selectedTeamId || undefined,
+        assignedEmployeeId: assignedEmployeeId || undefined,
       });
       if (!res.success || !res.data) throw new Error(res.error || 'Import failed.');
       setImportSummary({ count: res.data.insertedCount, assignedEmployee: res.data.assignedTargetName });

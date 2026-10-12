@@ -114,50 +114,63 @@ export default function CreateLeadFormFields({
         </div>
       </div>
 
-      <div className="space-y-1 sm:col-span-2">
-        {isCeo ? (
-          <>
-            <label className="text-xs font-bold text-foreground">Assign to Squad / Team</label>
-            <div className="relative">
-              <Shield className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
-              <ShadcnDropdownSelect
-                value={formData.teamId || ''}
-                onValueChange={(val) => onChange({ ...formData, teamId: val, assignedEmployeeId: '' })}
-                options={[
-                  { value: '', label: 'Leave Unassigned (General Pool)' },
-                  ...teams.map((t) => ({
-                    value: t.id,
-                    label: `Squad ${t.name}${t.teamLead ? ` • TL: ${t.teamLead.name}` : ''}`,
+      <div className="space-y-3 sm:col-span-2">
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-foreground">Step 1: Assign to Squad / Team</label>
+          <div className="relative">
+            <Shield className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
+            <ShadcnDropdownSelect
+              value={formData.teamId || ''}
+              onValueChange={(val) => {
+                const matchingEmp = activeEmployees.find((e) => e.id === formData.assignedEmployeeId);
+                const shouldClear = matchingEmp && matchingEmp.teamId !== val;
+                onChange({
+                  ...formData,
+                  teamId: val,
+                  assignedEmployeeId: shouldClear ? '' : formData.assignedEmployeeId,
+                });
+              }}
+              options={[
+                { value: '', label: 'Leave Unassigned (General Pool)' },
+                ...teams.map((t) => ({
+                  value: t.id,
+                  label: `Squad ${t.name}${t.teamLead ? ` • TL: ${t.teamLead.name}` : ''}`,
+                })),
+              ]}
+              placeholder="Select Squad or leave unassigned..."
+              triggerClassName="pl-8"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-foreground">Step 2: Assign to Squad BDA (Optional)</label>
+          <div className="relative">
+            <UserCheck className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
+            <ShadcnDropdownSelect
+              value={formData.assignedEmployeeId || ''}
+              onValueChange={(val) => {
+                const emp = activeEmployees.find((e) => e.id === val);
+                onChange({
+                  ...formData,
+                  assignedEmployeeId: val,
+                  teamId: emp?.teamId || formData.teamId || '',
+                });
+              }}
+              options={[
+                { value: '', label: 'Leave in Squad Pool (Unassigned)' },
+                ...activeEmployees
+                  .filter((emp) => emp.role === 'BDA' && (!formData.teamId || emp.teamId === formData.teamId))
+                  .map((emp) => ({
+                    value: emp.id,
+                    label: `${emp.name} (${emp.employeeCode}) [BDA]${emp.team ? ` • Squad ${emp.team}` : ''}`,
                   })),
-                ]}
-                placeholder="Select Squad or leave unassigned..."
-                triggerClassName="pl-8"
-              />
-            </div>
-          </>
-        ) : (
-          <>
-            <label className="text-xs font-bold text-foreground">Assign to Squad BDA</label>
-            <div className="relative">
-              <UserCheck className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10" />
-              <ShadcnDropdownSelect
-                value={formData.assignedEmployeeId}
-                onValueChange={(val) => onChange({ ...formData, assignedEmployeeId: val })}
-                options={[
-                  { value: '', label: 'Leave in Squad Pool (Unassigned)' },
-                  ...activeEmployees
-                    .filter((emp) => emp.role === 'BDA')
-                    .map((emp) => ({
-                      value: emp.id,
-                      label: `${emp.name} (${emp.employeeCode}) [BDA]`,
-                    })),
-                ]}
-                placeholder="Select Squad BDA or leave in pool..."
-                triggerClassName="pl-8"
-              />
-            </div>
-          </>
-        )}
+              ]}
+              placeholder={formData.teamId ? 'Select BDA in this squad or leave in pool...' : 'Select BDA or leave in pool...'}
+              triggerClassName="pl-8"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

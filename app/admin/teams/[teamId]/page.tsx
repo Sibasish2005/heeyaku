@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { cache } from 'react';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
@@ -17,24 +17,9 @@ interface PageProps {
 
 export const dynamic = 'force-dynamic';
 
-export async function generateMetadata({ params }: PageProps) {
-  const { teamId } = await params;
-  const team = await prisma.team.findUnique({
-    where: { id: teamId },
-    select: { name: true },
-  });
-  if (!team) return { title: 'Squad Not Found | HEEYAKU' };
-  return {
-    title: `${team.name} — Squad Details & Roster | HEEYAKU`,
-    description: `Manage squad information, assigned team lead, and sales associates for ${team.name}.`,
-  };
-}
-
-export default async function TeamPage({ params }: PageProps) {
-  const admin = await assertAdminAccess();
-  const { teamId } = await params;
-
-  const team = await prisma.team.findUnique({
+// ⚡ React cache: Deduplicates team fetch between generateMetadata and TeamPage in the same request
+const getTeamWithMembers = cache(async (teamId: string) => {
+  return prisma.team.findUnique({
     where: { id: teamId },
     include: {
       teamLead: {
@@ -47,8 +32,73 @@ export default async function TeamPage({ params }: PageProps) {
           isActive: true,
         },
       },
+      members: {
+        where: {
+          role: Role.BDA,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          employeeCode: true,
+          email: true,
+          phoneNumber: true,
+          isActive: true,
+        },
+        orderBy: { name: 'asc' },
+      },
     },
   });
+});
+
+// ⚡ 30s In-memory cache for organization-wide squad rankings to prevent scanning all leads on every squad page load
+interface CachedSquadRankings {
+  conversions: Array<{ teamId: string | null; _count: { id: number } }>;
+  totalTeams: number;
+  expiresAt: number;
+}
+let squadRankingsCache: CachedSquadRankings | null = null;
+const SQUAD_RANK_CACHE_TTL_MS = 30 * 1000;
+
+async function getCachedSquadRankings() {
+  const now = Date.now();
+  if (squadRankingsCache && squadRankingsCache.expiresAt > now) {
+    return squadRankingsCache;
+  }
+  const [conversions, totalTeams] = await Promise.all([
+    prisma.lead.groupBy({
+      by: ['teamId'],
+      where: {
+        teamId: { not: null },
+        status: 'CONVERTED',
+      },
+      _count: { id: true },
+    }),
+    prisma.team.count(),
+  ]);
+  squadRankingsCache = {
+    conversions,
+    totalTeams,
+    expiresAt: now + SQUAD_RANK_CACHE_TTL_MS,
+  };
+  return squadRankingsCache;
+}
+
+export async function generateMetadata({ params }: PageProps) {
+  const { teamId } = await params;
+  const team = await getTeamWithMembers(teamId);
+  if (!team) return { title: 'Squad Not Found | HEEYAKU' };
+  return {
+    title: `${team.name} — Squad Details & Roster | HEEYAKU`,
+    description: `Manage squad information, assigned team lead, and sales associates for ${team.name}.`,
+  };
+}
+
+export default async function TeamPage({ params }: PageProps) {
+  const admin = await assertAdminAccess();
+  const { teamId } = await params;
+
+  const team = await getTeamWithMembers(teamId);
 
   if (!team) {
     notFound();
@@ -68,62 +118,104 @@ export default async function TeamPage({ params }: PageProps) {
     }
   }
 
-  // 1. Fetch active BDAs for this squad
-  const bdaEmployees = await prisma.employee.findMany({
-    where: {
-      teamId: team.id,
-      role: Role.BDA,
-      isActive: true,
-    },
-    select: {
-      id: true,
-      name: true,
-      employeeCode: true,
-      email: true,
-      phoneNumber: true,
-      isActive: true,
-    },
-    orderBy: { name: 'asc' },
-  });
-
+  // BDAs are already fetched with team in a single query above
+  const bdaEmployees = team.members;
   const bdaIds = bdaEmployees.map((b) => b.id);
 
-  // 2. Fetch stats for each BDA
-  const [bdaTotalLeads, bdaConvertedLeads, bdaCallStats] = await Promise.all([
+  // ⚡ Execute all remaining squad & BDA metrics in ONE single parallel roundtrip
+  const [
+    squadLeadStatusGroup,
+    squadCallGroup,
+    recentLeadsData,
+    squadRankings,
+    bdaStatusStats,
+    bdaCallStats,
+  ] = await Promise.all([
+    // 1. Squad lead status breakdown (computes total, converted, pipeline in 1 query)
     prisma.lead.groupBy({
-      by: ['assignedEmployeeId'],
-      where: {
-        assignedEmployeeId: { in: bdaIds },
-      },
+      by: ['status'],
+      where: { teamId: team.id },
       _count: { id: true },
     }),
-    prisma.lead.groupBy({
-      by: ['assignedEmployeeId'],
-      where: {
-        assignedEmployeeId: { in: bdaIds },
-        status: 'CONVERTED',
-      },
-      _count: { id: true },
-    }),
+    // 2. Squad calls & talk time (groups by connected status to get total, connected, and duration in 1 query)
     prisma.callLog.groupBy({
-      by: ['employeeId'],
+      by: ['connected'],
       where: {
-        employeeId: { in: bdaIds },
+        employee: { teamId: team.id },
         leadId: { not: null },
       },
-      _sum: { durationSeconds: true },
       _count: { id: true },
+      _sum: { durationSeconds: true },
     }),
+    // 3. Recent 10 leads for this squad
+    prisma.lead.findMany({
+      where: { teamId: team.id },
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        phoneNumber: true,
+        status: true,
+        createdAt: true,
+        assignedEmployee: {
+          select: { name: true },
+        },
+      },
+    }),
+    // 4. Cached squad ranking
+    getCachedSquadRankings(),
+    // 5. BDA lead status counts (only if squad has active BDAs)
+    bdaIds.length > 0
+      ? prisma.lead.groupBy({
+          by: ['assignedEmployeeId', 'status'],
+          where: {
+            assignedEmployeeId: { in: bdaIds },
+          },
+          _count: { id: true },
+        })
+      : Promise.resolve([]),
+    // 6. BDA call & talk time stats (only if squad has active BDAs)
+    bdaIds.length > 0
+      ? prisma.callLog.groupBy({
+          by: ['employeeId'],
+          where: {
+            employeeId: { in: bdaIds },
+            leadId: { not: null },
+          },
+          _sum: { durationSeconds: true },
+          _count: { id: true },
+        })
+      : Promise.resolve([]),
   ]);
 
-  const bdaTotalLeadsMap = new Map<string, number>();
-  bdaTotalLeads.forEach((l) => {
-    if (l.assignedEmployeeId) bdaTotalLeadsMap.set(l.assignedEmployeeId, l._count.id);
+  // Aggregate squad calls & connected count from the grouped call stats
+  let totalCalls = 0;
+  let connectedCallsCount = 0;
+  let totalTalkTimeSeconds = 0;
+  squadCallGroup.forEach((c) => {
+    const count = c._count.id || 0;
+    const duration = c._sum.durationSeconds || 0;
+    totalCalls += count;
+    totalTalkTimeSeconds += duration;
+    if (c.connected) {
+      connectedCallsCount += count;
+    }
   });
 
+  // Map individual BDA stats
+  const bdaTotalLeadsMap = new Map<string, number>();
   const bdaConvertedMap = new Map<string, number>();
-  bdaConvertedLeads.forEach((l) => {
-    if (l.assignedEmployeeId) bdaConvertedMap.set(l.assignedEmployeeId, l._count.id);
+  bdaStatusStats.forEach((s) => {
+    if (s.assignedEmployeeId) {
+      bdaTotalLeadsMap.set(
+        s.assignedEmployeeId,
+        (bdaTotalLeadsMap.get(s.assignedEmployeeId) || 0) + s._count.id
+      );
+      if (s.status === 'CONVERTED') {
+        bdaConvertedMap.set(s.assignedEmployeeId, s._count.id);
+      }
+    }
   });
 
   const bdaCallsMap = new Map<string, number>();
@@ -146,72 +238,27 @@ export default async function TeamPage({ params }: PageProps) {
     totalTalkTimeSeconds: bdaTalkTimeMap.get(b.id) || 0,
   }));
 
-  // 3. Squad Aggregate Leads & Call Stats
-  const [totalLeads, convertedLeads, pipelineLeads, allSquadCalls] = await Promise.all([
-    prisma.lead.count({
-      where: { teamId: team.id },
-    }),
-    prisma.lead.count({
-      where: { teamId: team.id, status: 'CONVERTED' },
-    }),
-    prisma.lead.count({
-      where: {
-        teamId: team.id,
-        status: { in: ['ASSIGNED', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP'] },
-      },
-    }),
-    prisma.callLog.aggregate({
-      where: {
-        employee: { teamId: team.id },
-        leadId: { not: null },
-      },
-      _count: { id: true },
-      _sum: { durationSeconds: true },
-    }),
-  ]);
-
-  const connectedCallsCount = await prisma.callLog.count({
-    where: {
-      employee: { teamId: team.id },
-      leadId: { not: null },
-      connected: true,
-    },
+  // Squad Aggregate Leads
+  let totalLeads = 0;
+  let convertedLeads = 0;
+  let pipelineLeads = 0;
+  squadLeadStatusGroup.forEach((g) => {
+    totalLeads += g._count.id;
+    if (g.status === 'CONVERTED') {
+      convertedLeads += g._count.id;
+    }
+    if (['ASSIGNED', 'CONTACTED', 'INTERESTED', 'FOLLOW_UP'].includes(g.status)) {
+      pipelineLeads += g._count.id;
+    }
   });
 
-  // 4. Calculate Squad Rank
-  const allTeamsConversions = await prisma.lead.groupBy({
-    by: ['teamId'],
-    where: {
-      teamId: { not: null },
-      status: 'CONVERTED',
-    },
-    _count: { id: true },
-  });
-
-  const allTeamsCount = await prisma.team.count();
-  const sortedByConversions = allTeamsConversions
+  // Calculate Squad Rank using cached org conversions
+  const sortedByConversions = squadRankings.conversions
     .map((c) => ({ teamId: c.teamId, count: c._count.id }))
     .sort((a, b) => b.count - a.count);
 
   const rankIdx = sortedByConversions.findIndex((c) => c.teamId === team.id);
-  const rank = rankIdx !== -1 ? rankIdx + 1 : allTeamsCount;
-
-  // 5. Recent Leads assigned to this squad
-  const recentLeadsData = await prisma.lead.findMany({
-    where: { teamId: team.id },
-    take: 10,
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      name: true,
-      phoneNumber: true,
-      status: true,
-      createdAt: true,
-      assignedEmployee: {
-        select: { name: true },
-      },
-    },
-  });
+  const rank = rankIdx !== -1 ? rankIdx + 1 : squadRankings.totalTeams;
 
   const recentLeads: SquadRecentLead[] = recentLeadsData.map((l) => ({
     id: l.id,
@@ -241,11 +288,11 @@ export default async function TeamPage({ params }: PageProps) {
           convertedLeads,
           pipelineLeads,
           conversionRate,
-          totalCalls: allSquadCalls._count.id || 0,
+          totalCalls,
           connectedCalls: connectedCallsCount,
-          totalTalkTimeSeconds: allSquadCalls._sum.durationSeconds || 0,
+          totalTalkTimeSeconds,
           rank,
-          totalSquads: allTeamsCount,
+          totalSquads: squadRankings.totalTeams,
         }}
         recentLeads={recentLeads}
         canManage={userCanManage}

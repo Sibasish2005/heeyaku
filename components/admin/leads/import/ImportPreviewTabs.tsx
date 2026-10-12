@@ -1,17 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Shield, CheckCircle2, AlertTriangle, AlertCircle, ArrowLeft, ArrowRight, UserCheck, Loader2 } from 'lucide-react';
 import { ImportPreviewResult } from '@/app/admin/leads/import-actions';
 import ShadcnDropdownSelect from '@/components/ui/shadcn-dropdown-select';
-import { ActiveTeam } from '../table/types';
-
-interface ActiveEmployee {
-  id: string;
-  employeeCode: string;
-  name: string;
-  team: string | null;
-}
+import { ActiveTeam, ActiveEmployee } from '../table/types';
 
 interface ImportPreviewTabsProps {
   previewResult: ImportPreviewResult;
@@ -42,6 +35,16 @@ export default function ImportPreviewTabs({
 }: ImportPreviewTabsProps) {
   const isCeo = currentUserRole === 'CEO';
   const [previewTab, setPreviewTab] = useState<'VALID' | 'DUPLICATES' | 'INVALID'>('VALID');
+
+  const filteredEmployees = useMemo(() => {
+    return activeEmployees.filter((emp) => {
+      if (emp.role && emp.role !== 'BDA') return false;
+      if (selectedTeamId && emp.teamId) {
+        return emp.teamId === selectedTeamId;
+      }
+      return true;
+    });
+  }, [activeEmployees, selectedTeamId]);
 
   return (
     <div className="p-6 space-y-5 overflow-y-auto">
@@ -161,48 +164,58 @@ export default function ImportPreviewTabs({
 
       {/* Staff / Squad Assignment Selector */}
       {previewResult.validRows.length > 0 && (
-        <div className="p-3.5 bg-muted/30 rounded-xl border border-border/80 space-y-1.5">
-          {isCeo ? (
-            <>
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-[#2563EB]" />
-                <span>Optional: Assign imported leads to a Squad / Team</span>
-              </label>
-              <ShadcnDropdownSelect
-                value={selectedTeamId}
-                onValueChange={(val) => onSelectedTeamIdChange?.(val)}
-                options={[
-                  { value: '', label: 'Leave Unassigned (Add to General Pool)' },
-                  ...teams.map((team) => ({
-                    value: team.id,
-                    label: `Squad ${team.name}${team.teamLead ? ` • TL: ${team.teamLead.name}` : ''}`,
-                  })),
-                ]}
-                placeholder="Select Squad or leave in general pool..."
-                triggerClassName="bg-card"
-              />
-            </>
-          ) : activeEmployees.length > 0 ? (
-            <>
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <UserCheck className="w-3.5 h-3.5 text-[#2563EB]" />
-                <span>Optional: Assign imported leads to a Squad BDA</span>
-              </label>
-              <ShadcnDropdownSelect
-                value={assignedEmployeeId}
-                onValueChange={onAssignedEmployeeChange}
-                options={[
-                  { value: '', label: 'Leave in Squad Pool (Unassigned)' },
-                  ...activeEmployees.map((emp) => ({
-                    value: emp.id,
-                    label: `${emp.name} (${emp.employeeCode})`,
-                  })),
-                ]}
-                placeholder="Select Squad BDA or leave unassigned..."
-                triggerClassName="bg-card"
-              />
-            </>
-          ) : null}
+        <div className="p-3.5 bg-muted/30 rounded-xl border border-border/80 space-y-3">
+          <div>
+            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-1.5">
+              <Shield className="w-3.5 h-3.5 text-[#2563EB]" />
+              <span>Step 1: Select Squad / Team (Optional)</span>
+            </label>
+            <ShadcnDropdownSelect
+              value={selectedTeamId}
+              onValueChange={(val) => {
+                onSelectedTeamIdChange?.(val);
+                if (assignedEmployeeId) {
+                  const emp = activeEmployees.find((e) => e.id === assignedEmployeeId);
+                  if (emp && emp.teamId && val && emp.teamId !== val) {
+                    onAssignedEmployeeChange('');
+                  }
+                }
+              }}
+              options={[
+                { value: '', label: isCeo ? 'General Pool (No Squad)' : 'All Squads' },
+                ...teams.map((team) => ({
+                  value: team.id,
+                  label: `Squad ${team.name}${team.teamLead ? ` • TL: ${team.teamLead.name}` : ''}`,
+                })),
+              ]}
+              placeholder="Select Squad..."
+              triggerClassName="bg-card"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5 mb-1.5">
+              <UserCheck className="w-3.5 h-3.5 text-[#2563EB]" />
+              <span>Step 2: Assign to BDA (Optional)</span>
+            </label>
+            <ShadcnDropdownSelect
+              value={assignedEmployeeId}
+              onValueChange={onAssignedEmployeeChange}
+              options={[
+                { value: '', label: selectedTeamId ? 'Leave in Squad Pool (Unassigned BDA)' : 'Leave Unassigned' },
+                ...filteredEmployees.map((emp) => ({
+                  value: emp.id,
+                  label: `${emp.name} (${emp.employeeCode})${!selectedTeamId && emp.team ? ` • ${emp.team}` : ''}`,
+                })),
+              ]}
+              placeholder={
+                selectedTeamId
+                  ? 'Select BDA from this squad or leave in pool...'
+                  : 'Select BDA or leave unassigned...'
+              }
+              triggerClassName="bg-card"
+            />
+          </div>
         </div>
       )}
 

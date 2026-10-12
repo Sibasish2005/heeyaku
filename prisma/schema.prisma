@@ -124,6 +124,10 @@ model Lead {
   @@index([assignedEmployeeId, updatedAt])
   @@index([assignedAt])
   @@index([assignedEmployeeId, assignedAt])
+  @@index([status, updatedAt])
+  @@index([isProspect, updatedAt])
+  @@index([originalBdaId, updatedAt])
+  @@index([teamId, isProspect])
   @@map("leads")
 }
 
@@ -173,6 +177,9 @@ model CallLog {
   @@index([employeeId, leadId, connected])
   @@index([leadId, employeeId])
   @@index([leadId, connected])
+  @@index([leadId, connected, startedAt])
+  @@index([connected, startedAt])
+  @@index([employeeId, connected, startedAt])
   @@index([phoneNumber, connected])
   @@map("call_logs")
 }

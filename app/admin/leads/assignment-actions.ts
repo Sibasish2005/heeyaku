@@ -97,28 +97,20 @@ export async function assignLeadsAction(input: unknown): Promise<ActionResponse<
       };
     }
 
-    // Role check: CEO assigns leads to a Squad/Team, not directly to individual BDAs
-    if (user.role === Role.CEO) {
-      return {
-        success: false,
-        error: 'As CEO, leads must be assigned to a Squad / Team. The Team Lead will distribute squad leads to individual BDAs.',
-      };
-    }
-
-    // Squad isolation and reassignment rules for Team Leads
+    // Role check for Team Leads: Can assign leads to any BDA in any squad
     if (user.role === Role.TEAM_LEAD) {
       const tlTeamId = user.ledTeamId || user.teamId;
-      if (!tlTeamId || employee.teamId !== tlTeamId || employee.role !== Role.BDA) {
-        return { success: false, error: 'Unauthorized: You can only assign leads to BDA members of your own squad.' };
+      if (employee.role !== Role.BDA) {
+        return { success: false, error: 'Unauthorized: Team Leads can only assign leads to Business Development Associates (BDA).' };
       }
 
-      // Check leads belong to TL squad OR are assigned directly to this Team Lead
+      // Check leads belong to TL squad OR are assigned directly to this Team Lead OR escalated
       const eligibleLeadsCount = await prisma.lead.count({
         where: {
           id: { in: leadIds },
           OR: [
-            { teamId: tlTeamId },
-            ...(user.employeeId ? [{ assignedEmployeeId: user.employeeId }] : []),
+            ...(tlTeamId ? [{ teamId: tlTeamId }] : []),
+            ...(user.employeeId ? [{ assignedEmployeeId: user.employeeId }, { originalBdaId: user.employeeId }] : []),
           ],
         },
       });
@@ -129,6 +121,7 @@ export async function assignLeadsAction(input: unknown): Promise<ActionResponse<
     }
 
     const assignedAt = new Date();
+    // When assigning to an employee, assign the lead to the employee's squad
     const targetTeamId = employee.teamId || (user.role === Role.TEAM_LEAD ? (user.ledTeamId || user.teamId) : undefined);
 
     // Execute atomic transaction
