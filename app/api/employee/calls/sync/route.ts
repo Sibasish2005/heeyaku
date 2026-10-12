@@ -5,6 +5,7 @@ import { resolveEmployeeIdentity } from '@/lib/employee/resolve';
 import { toLast10Digits } from '@/lib/lead/phone';
 import { CallType, LeadStatus, Prisma } from '@prisma/client';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
+import { revalidatePath } from 'next/cache';
 
 const OUTCOME_TO_LEAD_STATUS: Record<string, LeadStatus> = {
   contacted: 'CONTACTED',
@@ -193,8 +194,42 @@ export async function POST(req: NextRequest) {
     // 2. Pre-fetch employee's assigned leads ONLY
     const employeeLeads = await prisma.lead.findMany({
       where: { assignedEmployeeId: { in: resolved.allIds } },
-      select: { id: true, phoneNumber: true, status: true, notes: true },
+      select: {
+        id: true,
+        phoneNumber: true,
+        status: true,
+        notes: true,
+        teamId: true,
+        assignedEmployeeId: true,
+        isProspect: true,
+        promotedToProspectAt: true,
+        originalBdaId: true,
+      },
     });
+
+    // Collect unique team IDs to resolve squad Team Leads for auto-reassigning prospects
+    const teamIdsToFetch = new Set<string>();
+    if (resolved.employee?.teamId) teamIdsToFetch.add(resolved.employee.teamId);
+    for (const lead of employeeLeads) {
+      if (lead.teamId) teamIdsToFetch.add(lead.teamId);
+    }
+
+    const teamLeadMap = new Map<string, { id: string; name: string; employeeCode: string }>();
+    if (teamIdsToFetch.size > 0) {
+      const teams = await prisma.team.findMany({
+        where: { id: { in: Array.from(teamIdsToFetch) } },
+        include: {
+          teamLead: {
+            select: { id: true, name: true, employeeCode: true, isActive: true },
+          },
+        },
+      });
+      for (const t of teams) {
+        if (t.teamLead && t.teamLead.isActive) {
+          teamLeadMap.set(t.id, t.teamLead);
+        }
+      }
+    }
 
     const leadMap = new Map<string, typeof employeeLeads[0]>();
     const leadIdMap = new Map<string, typeof employeeLeads[0]>();
@@ -440,18 +475,65 @@ export async function POST(req: NextRequest) {
             updatedLeadNotes = updatedLeadNotes ? `${updatedLeadNotes}\n${noteEntry}` : noteEntry;
           }
 
+          // --- Lead to Prospect Promotion & Team Lead Auto-Assignment ---
+          const PROSPECT_TRIGGER_STATUSES = new Set<LeadStatus>([
+            'INTERESTED',
+            'CALL_BACK',
+            'FOLLOW_UP',
+          ]);
+
+          let targetEmployeeId = matchedLead.assignedEmployeeId;
+          let isPromotedToProspect = matchedLead.isProspect;
+          let promotedToProspectAt = matchedLead.promotedToProspectAt;
+          let originalBdaId = matchedLead.originalBdaId;
+
+          if (PROSPECT_TRIGGER_STATUSES.has(targetStatus)) {
+            isPromotedToProspect = true;
+            if (!promotedToProspectAt) {
+              promotedToProspectAt = new Date();
+            }
+            if (!originalBdaId) {
+              originalBdaId = employeeId;
+            }
+
+            // Find squad Team Lead to auto-reassign
+            const leadTeamId = matchedLead.teamId || resolved.employee?.teamId;
+            const squadTL = leadTeamId ? teamLeadMap.get(leadTeamId) : null;
+
+            if (squadTL && targetEmployeeId !== squadTL.id) {
+              targetEmployeeId = squadTL.id;
+              const timeStr = new Date().toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                day: '2-digit',
+                month: 'short',
+              });
+              const systemNote = `[${timeStr}]: ⚡ Promoted to Prospect. Reassigned to Team Lead ${squadTL.name} (${squadTL.employeeCode}) for closing.`;
+              updatedLeadNotes = updatedLeadNotes ? `${updatedLeadNotes}\n${systemNote}` : systemNote;
+            }
+          }
+
           dbOperations.push(
             prisma.lead.update({
               where: { id: matchedLead.id },
               data: {
                 status: targetStatus,
                 notes: updatedLeadNotes || undefined,
+                isProspect: isPromotedToProspect,
+                promotedToProspectAt,
+                originalBdaId,
+                assignedEmployeeId: targetEmployeeId,
+                ...(targetEmployeeId !== matchedLead.assignedEmployeeId ? { assignedAt: new Date() } : {}),
                 updatedAt: new Date(),
               },
             })
           );
           matchedLead.status = targetStatus;
           matchedLead.notes = updatedLeadNotes;
+          matchedLead.isProspect = isPromotedToProspect;
+          matchedLead.promotedToProspectAt = promotedToProspectAt;
+          matchedLead.originalBdaId = originalBdaId;
+          matchedLead.assignedEmployeeId = targetEmployeeId;
         }
       }
     }
@@ -461,6 +543,13 @@ export async function POST(req: NextRequest) {
     }
 
     invalidateDashboardMetricsCache();
+    try {
+      revalidatePath('/admin/leads');
+      revalidatePath('/admin/prospects');
+      revalidatePath('/admin/dashboard');
+    } catch {
+      // ignore in tests or standalone contexts
+    }
 
     return NextResponse.json({
       success: true,
