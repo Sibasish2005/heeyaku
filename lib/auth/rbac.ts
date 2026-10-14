@@ -323,18 +323,25 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
     });
 
     if (!employee) {
-      // If this user is an authorized Super Admin without an employee profile, allow access to Super Admin portal
-      if (isSuper) {
-        const superUser: AuthenticatedUser = {
-          userId,
-          email: primaryEmail,
-          name,
-          role: Role.CEO,
-          isSuperAdmin: true,
-        };
-        return superUser;
-      }
-      return null;
+      // Return authenticated profile for unlinked / first-time users (e.g. going through onboarding or super-admin)
+      const unlinkedUser: AuthenticatedUser = {
+        userId,
+        email: primaryEmail,
+        name,
+        role: Role.CEO,
+        companyId: null,
+        companyName: null,
+        companySlug: null,
+        companyStatus: null,
+        isSuperAdmin: isSuper,
+      };
+
+      sessionCache.set(cacheKey, {
+        user: unlinkedUser,
+        expiresAt: Date.now() + SESSION_TTL_MS,
+      });
+
+      return unlinkedUser;
     }
 
     // Keep clerkUserId synchronized

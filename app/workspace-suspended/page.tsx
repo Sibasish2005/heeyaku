@@ -18,6 +18,11 @@ export default async function WorkspaceSuspendedPage() {
 
   const user = await getAuthenticatedUser();
 
+  // If Super Admin, route directly to the Super Admin governance portal
+  if (user?.isSuperAdmin) {
+    redirect('/super-admin');
+  }
+
   // If user company is active, send them back to dashboard
   if (user?.companyStatus === 'ACTIVE') {
     redirect('/admin/dashboard');

@@ -13,17 +13,14 @@ export default async function VerificationPendingPage() {
   }
 
   const user = await getAuthenticatedUser();
-  if (!user) {
-    redirect('/sign-in');
-  }
 
   // If Super Admin, route directly to the Super Admin governance portal
-  if (user.isSuperAdmin) {
+  if (user?.isSuperAdmin) {
     redirect('/super-admin');
   }
 
   // If user is already active, direct them immediately to the dashboard
-  if (user.companyStatus === 'ACTIVE') {
+  if (user?.companyStatus === 'ACTIVE') {
     redirect('/admin/dashboard');
   }
 

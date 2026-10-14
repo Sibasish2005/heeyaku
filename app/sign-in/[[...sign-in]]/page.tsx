@@ -60,8 +60,17 @@ export default async function SignInPage(props: {
   // Server-side redirect for standard GET page requests if already authenticated on server
   if (userId && !isServerAction) {
     const user = await getAuthenticatedUser();
-    if (user?.isSuperAdmin && (!searchParams?.redirect_url || targetUrl === '/admin/dashboard')) {
+    if (user?.isSuperAdmin) {
       redirect('/super-admin');
+    }
+    if (user?.companyStatus === 'PENDING_VERIFICATION') {
+      redirect('/verification-pending');
+    }
+    if (user?.companyStatus === 'SUSPENDED_BY_ADMIN') {
+      redirect('/workspace-suspended');
+    }
+    if (!user?.companyId) {
+      redirect('/onboarding');
     }
     redirect(targetUrl);
   }

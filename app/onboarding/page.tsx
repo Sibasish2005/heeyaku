@@ -12,17 +12,14 @@ export default async function OnboardingPage() {
   }
 
   const user = await getAuthenticatedUser();
-  if (!user) {
-    redirect('/sign-in');
-  }
 
   // If Super Admin, route directly to the Super Admin governance portal
-  if (user.isSuperAdmin) {
+  if (user?.isSuperAdmin) {
     redirect('/super-admin');
   }
 
   // If already linked to an active company, send to dashboard
-  if (user.companyStatus === 'ACTIVE') {
+  if (user?.companyStatus === 'ACTIVE') {
     redirect('/admin/dashboard');
   }
 
