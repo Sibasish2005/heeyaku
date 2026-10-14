@@ -184,12 +184,9 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
 
     if (!clerkUser && process.env.CLERK_SECRET_KEY) {
       try {
-        const { createClerkClient } = await import('@clerk/backend');
-        const clerk = createClerkClient({
-          secretKey: process.env.CLERK_SECRET_KEY,
-          publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-        });
-        const u = await clerk.users.getUser(userId);
+        const { clerkClient } = await import('@clerk/nextjs/server');
+        const client = await clerkClient();
+        const u = await client.users.getUser(userId);
         if (u) {
           clerkUser = {
             id: u.id,
@@ -204,7 +201,28 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
           } as unknown as typeof clerkUser;
         }
       } catch (backendErr) {
-        console.warn('Backend Clerk client getUser fallback also failed:', backendErr);
+        console.warn('clerkClient getUser fallback failed, trying direct REST fetch:', backendErr);
+        try {
+          const res = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+            headers: { Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}` },
+          });
+          if (res.ok) {
+            const u = await res.json();
+            clerkUser = {
+              id: u.id,
+              firstName: u.first_name,
+              lastName: u.last_name,
+              username: u.username,
+              primaryEmailAddressId: u.primary_email_address_id,
+              emailAddresses: u.email_addresses?.map((e: any) => ({
+                id: e.id,
+                emailAddress: e.email_address,
+              })) || [],
+            } as unknown as typeof clerkUser;
+          }
+        } catch (directErr) {
+          console.warn('Direct Clerk REST getUser fallback also failed:', directErr);
+        }
       }
     }
 
