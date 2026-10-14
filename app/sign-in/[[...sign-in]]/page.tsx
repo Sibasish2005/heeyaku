@@ -1,10 +1,9 @@
-import { SignIn, Show, SignOutButton } from "@clerk/nextjs";
+import { SignIn } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import HeeyakuLogo from "@/components/landingpage/shared/HeeyakuLogo";
-import { LogOut, ArrowRight } from "lucide-react";
 
 /**
  * Validates and sanitizes destination redirect URL against Open Redirect (CWE-601).
@@ -79,45 +78,15 @@ export default async function SignInPage(props: {
         </Link>
       </div>
 
-      {/* When user is already signed in on client */}
-      <Show when="signed-in">
-        <div className="w-full max-w-[420px] bg-card border border-border/60 rounded-2xl p-6 text-center shadow-lg space-y-4">
-          <h2 className="text-base font-bold text-foreground">Active Session Detected</h2>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            You are already signed in. You can proceed to the dashboard or sign out to use a different account.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-2.5 pt-2 justify-center">
-            <Link
-              href={targetUrl}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground text-xs font-semibold rounded-xl hover:opacity-90 transition-opacity"
-            >
-              <span>Go to Dashboard</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-            <SignOutButton redirectUrl="/sign-in">
-              <button
-                type="button"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-muted text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Sign Out</span>
-              </button>
-            </SignOutButton>
-          </div>
-        </div>
-      </Show>
-
-      {/* When user is signed out */}
-      <Show when="signed-out">
-        <div className="w-full max-w-[420px] flex justify-center">
-          <SignIn
-            path="/sign-in"
-            routing="path"
-            signUpUrl="/sign-up"
-            fallbackRedirectUrl={targetUrl}
-          />
-        </div>
-      </Show>
+      {/* Clerk Dedicated Auth Box */}
+      <div className="w-full max-w-[420px] flex justify-center">
+        <SignIn
+          path="/sign-in"
+          routing="path"
+          signUpUrl="/sign-up"
+          fallbackRedirectUrl={targetUrl}
+        />
+      </div>
     </main>
   );
 }
