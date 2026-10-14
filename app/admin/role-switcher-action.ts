@@ -2,8 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
-import { invalidateUserSessionCache } from '@/lib/auth/rbac';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { invalidateUserSessionCache, getAuthenticatedUser } from '@/lib/auth/rbac';
 
 /**
  * Allows verified CEOs to test and simulate different role perspectives
@@ -11,21 +10,8 @@ import { auth, currentUser } from '@clerk/nextjs/server';
  */
 export async function switchSimulatedRoleAction(targetRole: string | null) {
   try {
-    const { userId } = await auth();
-    if (!userId) return { success: false, error: 'Unauthorized: User not authenticated.' };
-
-    const clerkUser = await currentUser();
-    const primaryEmail =
-      clerkUser?.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)?.emailAddress ||
-      clerkUser?.emailAddresses[0]?.emailAddress;
-
-    const rawAdminEmails = process.env.ADMIN_EMAIL || '';
-    const allowedCeoEmails = rawAdminEmails
-      .split(',')
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-
-    if (!primaryEmail || !allowedCeoEmails.includes(primaryEmail.toLowerCase().trim())) {
+    const user = await getAuthenticatedUser();
+    if (!user || !user.isRealCeo) {
       return { success: false, error: 'Unauthorized: Only authorized CEOs can simulate other role perspectives.' };
     }
 

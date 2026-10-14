@@ -71,6 +71,7 @@ export async function resolveEmployeeIdentity(
 
   let employee = await prisma.employee.findUnique({
     where: { id: payload.employeeId },
+    include: { company: true },
   });
 
   if (!employee && (payload.employeeCode || payload.email)) {
@@ -81,11 +82,17 @@ export async function resolveEmployeeIdentity(
           ...(payload.email ? [{ email: payload.email }] : []),
         ],
       },
+      include: { company: true },
     });
   }
 
   // Fail closed: Employee must exist in the database and have active status
   if (!employee || !employee.isActive) {
+    return null;
+  }
+
+  // 1-Click Master Kill-Switch: Fail closed if company is suspended by Super Admin
+  if (employee.company && employee.company.status === 'SUSPENDED_BY_ADMIN') {
     return null;
   }
 

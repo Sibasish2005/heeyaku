@@ -49,7 +49,8 @@ export class EmployeeService {
    */
   static async createEmployee(
     input: CreateEmployeeInput,
-    callerRole: Role
+    callerRole: Role,
+    callerCompanyId?: string | null
   ): Promise<EmployeeCreationResult> {
     const { name, email, phoneNumber, role, teamId, teamLeadId, team, notes } = input;
     const normalizedEmail = email.toLowerCase().trim();
@@ -111,6 +112,7 @@ export class EmployeeService {
         email: normalizedEmail,
         phoneNumber: phoneNumber.trim(),
         role: employeeRole,
+        companyId: callerCompanyId || null,
         clerkUserId,
         teamId: resolvedTeamId,
         team: resolvedTeamName,

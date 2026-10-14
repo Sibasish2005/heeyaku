@@ -180,6 +180,7 @@ export async function POST(req: NextRequest) {
         recordsToInsert.push(newRecord);
         existingMap.set(last10, {
           ...newRecord,
+          companyId: null,
           teamId: null,
           status: 'NEW',
           createdAt: new Date(),

@@ -8,6 +8,7 @@ import HeeyakuLogo from '@/components/landingpage/shared/HeeyakuLogo';
 import ThemeToggler from '@/components/ThemeToggler';
 import { useClerk } from '@clerk/nextjs';
 import { Role } from '@prisma/client';
+import { Sparkles, Clock, AlertTriangle, ShieldAlert } from 'lucide-react';
 
 export interface AdminSidebarProps {
   adminEmail: string;
@@ -16,6 +17,9 @@ export interface AdminSidebarProps {
   teamName?: string | null;
   mobileOpen: boolean;
   onCloseMobile: () => void;
+  isSuperAdmin?: boolean;
+  trialDaysRemaining?: number | null;
+  isTrialExpired?: boolean;
 }
 
 export default function AdminSidebar({
@@ -25,36 +29,46 @@ export default function AdminSidebar({
   teamName = null,
   mobileOpen,
   onCloseMobile,
+  isSuperAdmin = false,
+  trialDaysRemaining = null,
+  isTrialExpired = false,
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const { signOut } = useClerk();
 
   // Dynamic role-based navigation
   const navItems = React.useMemo(() => {
+    let items = [];
     if (role === Role.HR) {
-      return [
+      items = [
         { label: 'Staff', href: '/admin/employees', icon: UserCheck },
         { label: 'Teams', href: '/admin/teams', icon: Building2 },
       ];
-    }
-    if (role === Role.TEAM_LEAD) {
-      return [
+    } else if (role === Role.TEAM_LEAD) {
+      items = [
         { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
         { label: 'Prospects', href: '/admin/prospects', icon: Target },
         { label: 'Leads', href: '/admin/leads', icon: Users },
         { label: 'My Team', href: '/admin/teams', icon: Building2 },
         { label: 'Staff', href: '/admin/employees', icon: UserCheck },
       ];
+    } else {
+      // CEO has universal omni-privilege access
+      items = [
+        { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
+        { label: 'Prospects', href: '/admin/prospects', icon: Target },
+        { label: 'Leads', href: '/admin/leads', icon: Users },
+        { label: 'Teams', href: '/admin/teams', icon: Building2 },
+        { label: 'Staff', href: '/admin/employees', icon: UserCheck },
+      ];
     }
-    // CEO has universal omni-privilege access
-    return [
-      { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
-      { label: 'Prospects', href: '/admin/prospects', icon: Target },
-      { label: 'Leads', href: '/admin/leads', icon: Users },
-      { label: 'Teams', href: '/admin/teams', icon: Building2 },
-      { label: 'Staff', href: '/admin/employees', icon: UserCheck },
-    ];
-  }, [role]);
+
+    if (isSuperAdmin) {
+      items.push({ label: 'Super Admin', href: '/super-admin', icon: ShieldAlert });
+    }
+
+    return items;
+  }, [role, isSuperAdmin]);
 
   return (
     <>
@@ -95,6 +109,34 @@ export default function AdminSidebar({
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Trial Countdown Pill */}
+          {trialDaysRemaining !== null && !isSuperAdmin && (
+            <div className={`p-2.5 rounded-xl border text-xs flex items-center gap-2 ${
+              isTrialExpired
+                ? 'bg-red-500/10 border-red-500/20 text-red-500 dark:text-red-400'
+                : trialDaysRemaining <= 5
+                ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
+                : 'bg-blue-500/10 border-blue-500/20 text-blue-600 dark:text-blue-400'
+            }`}>
+              {isTrialExpired ? (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  <span className="font-semibold text-[11px] truncate">Trial Concluded</span>
+                </>
+              ) : trialDaysRemaining <= 5 ? (
+                <>
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
+                  <span className="font-semibold text-[11px] truncate">Trial: {trialDaysRemaining}d left</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span className="font-semibold text-[11px] truncate">30d Trial ({trialDaysRemaining}d left)</span>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="pt-2 space-y-5">
             {/* Website Section */}

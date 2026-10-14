@@ -3,48 +3,31 @@ import { clerkMiddleware, createRouteMatcher, clerkFrontendApiProxy } from "@cle
 const isProtectedRoute = createRouteMatcher([
   "/admin(.*)",
   "/api/admin(.*)",
+  "/super-admin(.*)",
+  "/onboarding(.*)",
+  "/verification-pending(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-  // 1. Handle Clerk Frontend API reverse proxy
+  // 1. Handle Clerk Frontend API reverse proxy (production custom domain only)
   if (req.nextUrl.pathname.startsWith("/__clerk")) {
-    const headers = new Headers(req.headers);
-    const host = headers.get("x-forwarded-host") || headers.get("host") || "";
-    if (/^localhost(:\d+)?$/i.test(host) || /^127\.0\.0\.1(:\d+)?$/.test(host)) {
-      headers.set("x-forwarded-host", "heeyaku.vercel.app");
-      headers.set("x-forwarded-proto", "https");
-    }
-    const hasBody = req.method !== "GET" && req.method !== "HEAD" && req.body;
-    const proxiedRequest = new Request(req.url, {
-      method: req.method,
-      headers,
-      body: hasBody ? req.body : undefined,
-      // @ts-ignore
-      duplex: hasBody ? "half" : undefined,
-    });
-    const response = await clerkFrontendApiProxy(proxiedRequest);
-    const location = response.headers.get("location");
-    if (location && location.includes("https://heeyaku.vercel.app/__clerk")) {
-      const rewritten = location.replace("https://heeyaku.vercel.app/__clerk", `${req.nextUrl.origin}/__clerk`);
-      const newHeaders = new Headers(response.headers);
-      newHeaders.set("location", rewritten);
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: newHeaders,
+    if (process.env.NODE_ENV === "production" && process.env.NEXT_PUBLIC_CLERK_PROXY_URL) {
+      const headers = new Headers(req.headers);
+      const hasBody = req.method !== "GET" && req.method !== "HEAD" && req.body;
+      const proxiedRequest = new Request(req.url, {
+        method: req.method,
+        headers,
+        body: hasBody ? req.body : undefined,
+        // @ts-ignore
+        duplex: hasBody ? "half" : undefined,
       });
+      const response = await clerkFrontendApiProxy(proxiedRequest);
+      return response;
     }
-    return response;
   }
 
-  // 2. React Server Actions: Do not intercept with auth.protect() redirect in middleware
-  // Authentication & RBAC are enforced securely inside the server action via assertAuthenticatedUser()
-  if (req.headers.has("next-action")) {
-    return;
-  }
-
-  // 3. Enforce authentication for protected admin pages
-  if (isProtectedRoute(req)) {
+  // 2. Enforce authentication for protected admin pages (page navigations only; Server Actions enforce RBAC internally)
+  if (isProtectedRoute(req) && !req.headers.has("next-action")) {
     await auth.protect();
   }
 });

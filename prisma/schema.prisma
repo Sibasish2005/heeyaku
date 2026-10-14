@@ -8,6 +8,13 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum CompanyStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  REJECTED
+  SUSPENDED_BY_ADMIN
+}
+
 enum Role {
   CEO
   TEAM_LEAD
@@ -31,11 +38,50 @@ enum LeadStatus {
   OTHER
 }
 
+enum CallType {
+  OUTGOING
+  INCOMING
+  MISSED
+  REJECTED
+}
+
+model Company {
+  id              String        @id @default(cuid())
+  name            String
+  slug            String        @unique
+  phoneNumber     String?
+  industry        String?
+  status          CompanyStatus @default(PENDING_VERIFICATION)
+  maxBdas         Int           @default(5)
+  requestedBdas   Int           @default(5)
+  trialEndsAt     DateTime?
+  verifiedAt      DateTime?
+  verifiedBy      String?
+  rejectionReason String?
+  suspendedAt     DateTime?
+  suspendReason   String?
+
+  employees       Employee[]
+  teams           Team[]
+  leads           Lead[]
+  callLogs        CallLog[]
+  syncMeta        SyncMeta[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([status])
+  @@index([slug])
+  @@map("companies")
+}
+
 model Team {
   id          String     @id @default(cuid())
   name        String     @unique
   description String?
   colorTag    String?    @default("#2563EB")
+  companyId   String?
+  company     Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   teamLeadId  String?    @unique
   teamLead    Employee?  @relation("TeamLeadRelation", fields: [teamLeadId], references: [id], onDelete: SetNull)
   members     Employee[] @relation("TeamMembers")
@@ -43,6 +89,7 @@ model Team {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
+  @@index([companyId])
   @@map("teams")
 }
 
@@ -54,6 +101,8 @@ model Employee {
   phoneNumber  String
   role         Role      @default(BDA)
   clerkUserId  String?   @unique
+  companyId    String?
+  company      Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   team         String?   @default("General")
   teamId       String?
   teamGroup    Team?     @relation("TeamMembers", fields: [teamId], references: [id], onDelete: SetNull)
@@ -74,6 +123,8 @@ model Employee {
   @@index([teamId])
   @@index([clerkUserId])
   @@index([isActive])
+  @@index([companyId])
+  @@index([companyId, role])
   @@index([isActive, role, teamId])
   @@map("employees")
 }
@@ -89,6 +140,8 @@ model Lead {
   source             String      @default("MANUAL")
   status             LeadStatus  @default(NEW)
   notes              String?
+  companyId          String?
+  companyRel         Company?    @relation(fields: [companyId], references: [id], onDelete: Cascade)
   teamId             String?
   team               Team?       @relation("TeamLeads", fields: [teamId], references: [id], onDelete: SetNull)
   assignedEmployeeId String?
@@ -112,6 +165,8 @@ model Lead {
   @@index([status])
   @@index([isProspect])
   @@index([originalBdaId])
+  @@index([companyId])
+  @@index([companyId, status])
   @@index([teamId])
   @@index([teamId, status])
   @@index([teamId, assignedEmployeeId])
@@ -137,16 +192,12 @@ model SyncMeta {
   lastRowCount  Int      @default(0)
   lastSyncedAt  DateTime @default(now())
   sheetHash     String?  // Hash of the last synced content for change detection
+  companyId     String?
+  company       Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   updatedAt     DateTime @updatedAt
 
+  @@index([companyId])
   @@map("sync_meta")
-}
-
-enum CallType {
-  OUTGOING
-  INCOMING
-  MISSED
-  REJECTED
 }
 
 model CallLog {
@@ -155,6 +206,8 @@ model CallLog {
   employee        Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   leadId          String?
   lead            Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  companyId       String?
+  company         Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   phoneNumber     String
   contactName     String?
   callType        CallType  @default(OUTGOING)
@@ -169,6 +222,8 @@ model CallLog {
 
   @@index([employeeId])
   @@index([leadId])
+  @@index([companyId])
+  @@index([companyId, startedAt])
   @@index([phoneNumber])
   @@index([startedAt])
   @@index([employeeId, startedAt])
@@ -183,4 +238,3 @@ model CallLog {
   @@index([phoneNumber, connected])
   @@map("call_logs")
 }
-

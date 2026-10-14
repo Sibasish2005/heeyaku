@@ -13,6 +13,7 @@ import CreateEmployeeFormFields, {
   EmployeeFormData,
   OtpVerificationState,
 } from './dialogs/CreateEmployeeFormFields';
+import { toast } from 'sonner';
 
 interface CreateEmployeeDialogProps {
   isOpen: boolean;
@@ -89,7 +90,9 @@ export default function CreateEmployeeDialog({
   const handleSendOtp = async () => {
     const cleanEmail = formData.email.trim().toLowerCase();
     if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      setError('Please provide a valid email address before requesting an OTP.');
+      const err = 'Please provide a valid email address before requesting an OTP.';
+      setError(err);
+      toast.error(err);
       return;
     }
 
@@ -104,11 +107,13 @@ export default function CreateEmployeeDialog({
       });
 
       if (!res.success || !res.data) {
+        const err = res.error || 'Failed to dispatch verification email.';
         setOtpState((prev) => ({
           ...prev,
           sending: false,
-          error: res.error || 'Failed to dispatch verification email.',
+          error: err,
         }));
+        toast.error(err);
         return;
       }
 
@@ -123,30 +128,37 @@ export default function CreateEmployeeDialog({
         error: null,
         resendCountdown: 45,
       }));
+      toast.success('Clerk verification code dispatched to email!');
     } catch {
+      const err = 'An unexpected error occurred while sending OTP.';
       setOtpState((prev) => ({
         ...prev,
         sending: false,
-        error: 'An unexpected error occurred while sending OTP.',
+        error: err,
       }));
+      toast.error(err);
     }
   };
 
   const handleVerifyOtp = async (codeToVerify?: string) => {
     const code = (codeToVerify || otpState.code).trim();
     if (!code || code.length !== 6) {
+      const err = 'Please enter the complete 6-digit verification code.';
       setOtpState((prev) => ({
         ...prev,
-        error: 'Please enter the complete 6-digit verification code.',
+        error: err,
       }));
+      toast.error(err);
       return;
     }
 
     if (!otpState.emailAddressId || !otpState.verificationId) {
+      const err = 'Please send an OTP first before verifying.';
       setOtpState((prev) => ({
         ...prev,
-        error: 'Please send an OTP first before verifying.',
+        error: err,
       }));
+      toast.error(err);
       return;
     }
 
@@ -160,11 +172,13 @@ export default function CreateEmployeeDialog({
       });
 
       if (!res.success) {
+        const err = res.error || 'Invalid OTP code. Please check employee email.';
         setOtpState((prev) => ({
           ...prev,
           verifying: false,
-          error: res.error || 'Invalid OTP code. Please check employee email.',
+          error: err,
         }));
+        toast.error(err);
         return;
       }
 
@@ -176,12 +190,15 @@ export default function CreateEmployeeDialog({
         error: null,
       }));
       setError(null);
+      toast.success('Email successfully verified by Clerk!');
     } catch {
+      const err = 'Verification request failed. Please try again.';
       setOtpState((prev) => ({
         ...prev,
         verifying: false,
-        error: 'Verification request failed. Please try again.',
+        error: err,
       }));
+      toast.error(err);
     }
   };
 

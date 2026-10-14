@@ -39,30 +39,34 @@ const nextConfig: NextConfig = {
             value: 'camera=(), microphone=(), geolocation=()',
           },
           {
-            key: 'Strict-Transport-Security',
-            value: 'max-age=63072000; includeSubDomains; preload',
-          },
-          {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
           },
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://clerk.com https://*.clerk.com https://*.clerk.services https://heeyaku.vercel.app https://*.vercel.app https://challenges.cloudflare.com",
-              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "img-src 'self' data: blob: https://images.unsplash.com https://img.clerk.com",
-              "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.clerk.accounts.dev https://clerk.com https://*.clerk.com https://*.clerk.services https://heeyaku.vercel.app https://*.vercel.app https://*.supabase.co https://*.supabase.com wss://*.supabase.co",
-              "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com https://*.vercel.app",
-              "worker-src 'self' blob:",
-              "object-src 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-              "frame-ancestors 'none'",
-            ].join('; '),
-          },
+          ...(process.env.NODE_ENV === 'production'
+            ? [
+                {
+                  key: 'Strict-Transport-Security',
+                  value: 'max-age=63072000; includeSubDomains; preload',
+                },
+                {
+                  key: 'Content-Security-Policy',
+                  value: [
+                    "default-src 'self'",
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://clerk.com https://*.clerk.com https://*.clerk.services https://*.clerk.dev https://clerk.dev https://heeyaku.vercel.app https://*.vercel.app https://challenges.cloudflare.com",
+                    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.clerk.accounts.dev https://*.clerk.com",
+                    "img-src 'self' data: blob: https://images.unsplash.com https://img.clerk.com https://*.clerk.com https://*.clerk.accounts.dev",
+                    "font-src 'self' data: https://fonts.gstatic.com",
+                    "connect-src 'self' https://*.clerk.accounts.dev https://clerk.com https://*.clerk.com https://*.clerk.services https://*.clerk.dev https://clerk.dev https://clerk-telemetry.com https://heeyaku.vercel.app https://*.vercel.app",
+                    "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://*.clerk.dev https://clerk.dev https://challenges.cloudflare.com https://*.vercel.app",
+                    "worker-src 'self' blob:",
+                    "object-src 'none'",
+                    "base-uri 'self'",
+                    "form-action 'self'",
+                    "frame-ancestors 'none'",
+                  ].join('; '),
+                },
+              ]
+            : []),
         ],
       },
       {

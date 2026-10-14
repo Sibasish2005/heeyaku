@@ -18,7 +18,7 @@ export default async function ProspectsPage() {
 
   // HR is strictly blocked from viewing prospects
   if (admin.role !== Role.CEO && admin.role !== Role.TEAM_LEAD) {
-    redirect('/admin/dashboard');
+    redirect(admin.role === Role.HR ? '/admin/employees' : '/admin/dashboard');
   }
 
   const isTeamLead = admin.role === Role.TEAM_LEAD;

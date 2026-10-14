@@ -154,7 +154,32 @@ export async function createEmployeeAction(input: unknown): Promise<ActionRespon
       };
     }
 
-    const result = await EmployeeService.createEmployee(validated.data, user.role);
+    // Enforce Caller Seat Limit for BDAs
+    if (validated.data.role === 'BDA' && user.companyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: user.companyId },
+        select: { maxBdas: true, name: true },
+      });
+
+      if (company) {
+        const activeBdaCount = await prisma.employee.count({
+          where: {
+            companyId: user.companyId,
+            role: 'BDA',
+            isActive: true,
+          },
+        });
+
+        if (activeBdaCount >= company.maxBdas) {
+          return {
+            success: false,
+            error: `Caller seat limit reached (${activeBdaCount} / ${company.maxBdas} BDAs). Contact platform administrator to increase caller seats.`,
+          };
+        }
+      }
+    }
+
+    const result = await EmployeeService.createEmployee(validated.data, user.role, user.companyId);
 
     invalidateDashboardMetricsCache();
     clearEmployeeChunkCache();

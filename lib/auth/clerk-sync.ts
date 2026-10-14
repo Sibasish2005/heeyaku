@@ -1,4 +1,13 @@
-import { clerkClient } from '@clerk/nextjs/server';
+import { createClerkClient } from '@clerk/backend';
+
+function getClerkBackendClient() {
+  const secretKey = process.env.CLERK_SECRET_KEY;
+  if (!secretKey) throw new Error('CLERK_SECRET_KEY environment variable is missing.');
+  return createClerkClient({
+    secretKey,
+    publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+  });
+}
 
 export interface ClerkCreateUserInput {
   email: string;
@@ -16,6 +25,7 @@ export interface PrepareOtpResult {
   clerkUserId: string;
   emailAddressId: string;
   verificationId: string;
+  alreadyVerified?: boolean;
 }
 
 export interface AttemptOtpResult {
@@ -59,7 +69,7 @@ export class ClerkSyncService {
     const firstName = nameParts[0] || 'Staff';
     const lastName = nameParts.slice(1).join(' ') || undefined;
 
-    const clerk = await clerkClient();
+    const clerk = getClerkBackendClient();
 
     // 1. Ensure email is on allowlist so Clerk permits sign-in/up
     try {
@@ -120,6 +130,17 @@ export class ClerkSyncService {
     const prepData = await prepRes.json();
     if (!prepRes.ok) {
       const errMsg = extractClerkErrorMessage(prepData);
+      if (
+        errMsg?.toLowerCase().includes('already verified') ||
+        prepData.errors?.[0]?.code === 'form_identifier_already_verified'
+      ) {
+        return {
+          clerkUserId,
+          emailAddressId,
+          verificationId: 'already_verified',
+          alreadyVerified: true,
+        };
+      }
       throw new Error(errMsg || 'Failed to send OTP verification email via Clerk');
     }
 
@@ -127,6 +148,7 @@ export class ClerkSyncService {
       clerkUserId,
       emailAddressId,
       verificationId: prepData.id,
+      alreadyVerified: false,
     };
   }
 
@@ -152,14 +174,14 @@ export class ClerkSyncService {
 
     const verifyData = await verifyRes.json();
     if (!verifyRes.ok) {
-      const errMsg = extractClerkErrorMessage(verifyData);
+      const errMsg = extractClerkErrorMessage(verifyData, 'Verification code failed');
       return {
         verified: false,
-        error: errMsg || 'Verification code failed',
+        error: errMsg,
       };
     }
 
-    if (verifyData.status === 'verified') {
+    if (verifyData.status === 'verified' || verifyData.verification?.status === 'verified') {
       return {
         verified: true,
       };
@@ -167,7 +189,7 @@ export class ClerkSyncService {
 
     return {
       verified: false,
-      attempts: verifyData.attempts,
+      attempts: verifyData.attempts || verifyData.verification?.attempts,
       error: 'Incorrect verification code. Please check staff email and try again.',
     };
   }
@@ -191,7 +213,7 @@ export class ClerkSyncService {
     const firstName = nameParts[0] || 'Staff';
     const lastName = nameParts.slice(1).join(' ') || undefined;
 
-    const clerk = await clerkClient();
+    const clerk = getClerkBackendClient();
 
     // 1. If Clerk has allowlist restrictions enabled, ensure email is on allowlist
     try {
@@ -231,7 +253,7 @@ export class ClerkSyncService {
 
       return newUser.id;
     } catch (error: unknown) {
-      const clerkMsg = extractClerkErrorMessage(error);
+      const clerkMsg = extractClerkErrorMessage(error, 'Failed to create employee in Clerk');
       throw new Error(`Failed to create employee in Clerk: ${clerkMsg}`);
     }
   }
@@ -260,7 +282,7 @@ export class ClerkSyncService {
     const normalizedEmail = email.toLowerCase().trim();
 
     try {
-      const clerk = await clerkClient();
+      const clerk = getClerkBackendClient();
 
       // 1. If clerkUserId is present, update user directly
       if (clerkUserId) {
@@ -306,7 +328,7 @@ export class ClerkSyncService {
 
       return null;
     } catch (error: unknown) {
-      const clerkMsg = extractClerkErrorMessage(error);
+      const clerkMsg = extractClerkErrorMessage(error, 'Password update rejected.');
       throw new Error(clerkMsg);
     }
   }
@@ -322,7 +344,7 @@ export class ClerkSyncService {
   static async updatePassword(clerkUserId: string, newPassword: string): Promise<boolean> {
     if (!clerkUserId) return false;
     try {
-      const clerk = await clerkClient();
+      const clerk = getClerkBackendClient();
       await clerk.users.updateUser(clerkUserId, {
         password: newPassword,
         signOutOfOtherSessions: true,
@@ -349,7 +371,7 @@ export class ClerkSyncService {
     const lastName = nameParts.slice(1).join(' ') || undefined;
 
     try {
-      const clerk = await clerkClient();
+      const clerk = getClerkBackendClient();
       await clerk.users.updateUser(clerkUserId, {
         firstName,
         lastName,
@@ -371,7 +393,7 @@ export class ClerkSyncService {
   static async deleteUser(clerkUserId: string, email?: string): Promise<boolean> {
     if (!clerkUserId) return false;
     try {
-      const clerk = await clerkClient();
+      const clerk = getClerkBackendClient();
       await clerk.users.deleteUser(clerkUserId);
       if (email) {
         try {
@@ -393,16 +415,25 @@ export class ClerkSyncService {
 /**
  * Extracts human-friendly validation error message from Clerk API errors.
  */
-function extractClerkErrorMessage(error: unknown): string {
+function extractClerkErrorMessage(error: unknown, fallback: string = 'Operation rejected.'): string {
   if (error && typeof error === 'object') {
-    const clerkErr = error as { errors?: Array<{ message?: string; longMessage?: string }>; message?: string };
+    const clerkErr = error as {
+      errors?: Array<{ message?: string; long_message?: string; longMessage?: string }>;
+      message?: string;
+    };
     if (Array.isArray(clerkErr.errors) && clerkErr.errors.length > 0) {
-      return clerkErr.errors[0].longMessage || clerkErr.errors[0].message || clerkErr.message || 'Password update rejected.';
+      return (
+        clerkErr.errors[0].long_message ||
+        clerkErr.errors[0].longMessage ||
+        clerkErr.errors[0].message ||
+        clerkErr.message ||
+        fallback
+      );
     }
     if (clerkErr.message) {
       return clerkErr.message;
     }
   }
-  return 'Password update rejected.';
+  return fallback;
 }
 

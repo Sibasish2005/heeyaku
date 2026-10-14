@@ -2,7 +2,7 @@ import { cache } from 'react';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-import { Role } from '@prisma/client';
+import { Role, CompanyStatus } from '@prisma/client';
 
 export interface AuthenticatedUser {
   userId: string;
@@ -16,6 +16,14 @@ export interface AuthenticatedUser {
   ledTeamName?: string | null;
   isRealCeo?: boolean;
   simulatedRole?: Role | null;
+  companyId?: string | null;
+  companyName?: string | null;
+  companySlug?: string | null;
+  companyStatus?: CompanyStatus | null;
+  isSuperAdmin?: boolean;
+  isImpersonating?: boolean;
+  isTrialExpired?: boolean;
+  trialDaysRemaining?: number | null;
 }
 
 export class AuthorizationError extends Error {
@@ -37,6 +45,21 @@ const sessionCache = new Map<string, CachedSession>();
 const SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
+ * Validates whether an email address belongs to an App-Level Super Admin
+ * specified in environment variable SUPER_ADMIN_EMAILS.
+ */
+export function isSuperAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  const rawSuperEmails = process.env.SUPER_ADMIN_EMAILS || '';
+  const allowed = rawSuperEmails
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  const normalized = email.toLowerCase().trim();
+  return allowed.includes(normalized);
+}
+
+/**
  * Resolves the currently authenticated user from Clerk session and PostgreSQL DB.
  * Checks for Root CEO status in ADMIN_EMAIL environment variable, checks for
  * CEO developer role simulation cookie ('heeyaku_simulated_role'), matches employee record,
@@ -51,7 +74,8 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
 
     const cookieStore = await cookies();
     const simulatedRoleValue = cookieStore.get('heeyaku_simulated_role')?.value;
-    const cacheKey = `${userId}:${simulatedRoleValue || 'DEFAULT'}`;
+    const impersonateCompanyId = cookieStore.get('heeyaku_impersonate_company_id')?.value;
+    const cacheKey = `${userId}:${simulatedRoleValue || 'DEFAULT'}:${impersonateCompanyId || 'NONE'}`;
 
     if (sessionCache.size > 1000) {
       const now = Date.now();
@@ -65,25 +89,16 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       return cached.user;
     }
 
-    const rawAdminEmails = process.env.ADMIN_EMAIL || '';
-    const allowedCeoEmails = Array.from(
-      new Set(
-        rawAdminEmails
-          .split(',')
-          .map((e) => e.trim().toLowerCase())
-          .filter(Boolean)
-      )
-    );
-
     // Fast-path 1: Direct PostgreSQL lookup by clerkUserId (avoids 20s Clerk API network latency)
     const dbEmployee = await prisma.employee.findFirst({
       where: { clerkUserId: userId, isActive: true },
-      include: { teamGroup: true, ledTeam: true },
+      include: { teamGroup: true, ledTeam: true, company: true },
     });
 
     if (dbEmployee) {
       const normalizedEmail = dbEmployee.email.toLowerCase().trim();
       const isConfiguredCeo = isAllowedCeoEmail(normalizedEmail) || dbEmployee.role === Role.CEO;
+      const isSuper = isSuperAdminEmail(normalizedEmail);
       
       let effectiveRole = dbEmployee.role;
 
@@ -95,12 +110,38 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       if (isConfiguredCeo && simulatedRoleValue && ['HR', 'TEAM_LEAD', 'BDA'].includes(simulatedRoleValue)) {
         effectiveRole = simulatedRoleValue as Role;
         if (effectiveRole === Role.TEAM_LEAD) {
-          const firstTeam = await prisma.team.findFirst({ orderBy: { name: 'asc' } });
+          const firstTeam = await prisma.team.findFirst({
+            where: dbEmployee.companyId ? { companyId: dbEmployee.companyId } : {},
+            orderBy: { name: 'asc' },
+          });
           effectiveTeamId = firstTeam?.id || null;
           effectiveTeamName = firstTeam?.name || null;
           effectiveLedTeamId = firstTeam?.id || null;
           effectiveLedTeamName = firstTeam?.name || null;
         }
+      }
+
+      // Resolve company details & trial expiration
+      let effectiveCompany = dbEmployee.company;
+      let isImpersonating = false;
+
+      // Super Admin Ghost Mode: allow impersonating a company
+      if (isSuper && impersonateCompanyId) {
+        const targetCompany = await prisma.company.findUnique({
+          where: { id: impersonateCompanyId },
+        });
+        if (targetCompany) {
+          effectiveCompany = targetCompany;
+          isImpersonating = true;
+        }
+      }
+
+      let trialDaysRemaining: number | null = null;
+      let isTrialExpired = false;
+      if (effectiveCompany?.trialEndsAt) {
+        const diffMs = new Date(effectiveCompany.trialEndsAt).getTime() - Date.now();
+        trialDaysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        isTrialExpired = diffMs <= 0;
       }
 
       const authUser: AuthenticatedUser = {
@@ -115,6 +156,14 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
         teamName: effectiveTeamName,
         ledTeamId: effectiveLedTeamId,
         ledTeamName: effectiveLedTeamName,
+        companyId: effectiveCompany?.id || null,
+        companyName: effectiveCompany?.name || null,
+        companySlug: effectiveCompany?.slug || null,
+        companyStatus: effectiveCompany?.status || null,
+        isSuperAdmin: isSuper,
+        isImpersonating,
+        isTrialExpired,
+        trialDaysRemaining,
       };
 
       sessionCache.set(cacheKey, {
@@ -133,6 +182,32 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       console.warn('currentUser() fetch timed out or failed, falling back:', err);
     }
 
+    if (!clerkUser && process.env.CLERK_SECRET_KEY) {
+      try {
+        const { createClerkClient } = await import('@clerk/backend');
+        const clerk = createClerkClient({
+          secretKey: process.env.CLERK_SECRET_KEY,
+          publishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+        });
+        const u = await clerk.users.getUser(userId);
+        if (u) {
+          clerkUser = {
+            id: u.id,
+            firstName: u.firstName,
+            lastName: u.lastName,
+            username: u.username,
+            primaryEmailAddressId: u.primaryEmailAddressId,
+            emailAddresses: u.emailAddresses.map((e) => ({
+              id: e.id,
+              emailAddress: e.emailAddress,
+            })),
+          } as unknown as typeof clerkUser;
+        }
+      } catch (backendErr) {
+        console.warn('Backend Clerk client getUser fallback also failed:', backendErr);
+      }
+    }
+
     if (!clerkUser) {
       return null;
     }
@@ -146,6 +221,7 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
     }
 
     const normalizedEmail = primaryEmail.toLowerCase().trim();
+    const isSuper = isSuperAdminEmail(normalizedEmail);
     const name =
       [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') ||
       clerkUser.username ||
@@ -169,12 +245,34 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       // Link clerkUserId in database if matching employee record exists
       const existingEmployee = await prisma.employee.findFirst({
         where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
+        include: { company: true },
       });
       if (existingEmployee && existingEmployee.clerkUserId !== userId) {
         await prisma.employee.update({
           where: { id: existingEmployee.id },
           data: { clerkUserId: userId },
         });
+      }
+
+      let effectiveCompany = existingEmployee?.company;
+      let isImpersonating = false;
+
+      if (isSuper && impersonateCompanyId) {
+        const targetCompany = await prisma.company.findUnique({
+          where: { id: impersonateCompanyId },
+        });
+        if (targetCompany) {
+          effectiveCompany = targetCompany;
+          isImpersonating = true;
+        }
+      }
+
+      let trialDaysRemaining: number | null = null;
+      let isTrialExpired = false;
+      if (effectiveCompany?.trialEndsAt) {
+        const diffMs = new Date(effectiveCompany.trialEndsAt).getTime() - Date.now();
+        trialDaysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        isTrialExpired = diffMs <= 0;
       }
 
       const authUser: AuthenticatedUser = {
@@ -189,6 +287,14 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
         teamName: effectiveTeamName,
         ledTeamId: effectiveTeamId,
         ledTeamName: effectiveTeamName,
+        companyId: effectiveCompany?.id || null,
+        companyName: effectiveCompany?.name || null,
+        companySlug: effectiveCompany?.slug || null,
+        companyStatus: effectiveCompany?.status || null,
+        isSuperAdmin: isSuper,
+        isImpersonating,
+        isTrialExpired,
+        trialDaysRemaining,
       };
 
       sessionCache.set(cacheKey, {
@@ -211,10 +317,22 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       include: {
         teamGroup: true,
         ledTeam: true,
+        company: true,
       },
     });
 
     if (!employee) {
+      // If this user is an authorized Super Admin without an employee profile, allow access to Super Admin portal
+      if (isSuper) {
+        const superUser: AuthenticatedUser = {
+          userId,
+          email: primaryEmail,
+          name,
+          role: Role.CEO,
+          isSuperAdmin: true,
+        };
+        return superUser;
+      }
       return null;
     }
 
@@ -228,6 +346,14 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
 
     const effectiveRole = employee.role;
 
+    let trialDaysRemaining: number | null = null;
+    let isTrialExpired = false;
+    if (employee.company?.trialEndsAt) {
+      const diffMs = new Date(employee.company.trialEndsAt).getTime() - Date.now();
+      trialDaysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+      isTrialExpired = diffMs <= 0;
+    }
+
     const authUser: AuthenticatedUser = {
       userId,
       email: primaryEmail,
@@ -238,6 +364,13 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       teamName: employee.teamGroup?.name || null,
       ledTeamId: employee.ledTeam?.id || null,
       ledTeamName: employee.ledTeam?.name || null,
+      companyId: employee.company?.id || null,
+      companyName: employee.company?.name || null,
+      companySlug: employee.company?.slug || null,
+      companyStatus: employee.company?.status || null,
+      isSuperAdmin: isSuper,
+      isTrialExpired,
+      trialDaysRemaining,
     };
 
     sessionCache.set(cacheKey, {
@@ -255,79 +388,79 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
 /**
  * Asserts user access to protected routes and actions.
  * Throws an `AuthorizationError` if unauthenticated or missing valid session.
+ * Enforces company suspension kill-switch fail-closed.
  *
  * @returns {Promise<AuthenticatedUser>} The verified authenticated user
- * @throws {AuthorizationError} When the caller is not logged in or lacks permissions (HTTP 403)
+ * @throws {AuthorizationError} When the caller is not logged in or workspace is suspended (HTTP 403)
  */
 export const assertAuthenticatedUser = cache(async (): Promise<AuthenticatedUser> => {
   const user = await getAuthenticatedUser();
   if (!user) {
     throw new AuthorizationError('Access denied. Please log in with an authorized account.', 403);
   }
+
+  // 1-Click Master Kill-Switch: Block non-super-admin access if company is suspended
+  if (user.companyStatus === CompanyStatus.SUSPENDED_BY_ADMIN && !user.isSuperAdmin) {
+    throw new AuthorizationError('This workspace has been suspended by the platform administrator.', 403);
+  }
+
+  return user;
+});
+
+/**
+ * Asserts user access to platform Super Admin routes and actions.
+ * Throws an `AuthorizationError` if not in SUPER_ADMIN_EMAILS.
+ */
+export const assertSuperAdmin = cache(async (): Promise<AuthenticatedUser> => {
+  const user = await getAuthenticatedUser();
+  if (!user || !user.isSuperAdmin) {
+    throw new AuthorizationError('Access denied. Super Admin privileges required.', 403);
+  }
   return user;
 });
 
 /**
  * Checks whether the role has permission to onboard, edit, or configure employee staff.
- * @param role - Actor role ('CEO' | 'HR' | 'TEAM_LEAD' | 'BDA')
- * @returns {boolean} True if CEO or HR
  */
 export const canManageEmployees = (role: Role): boolean => role === Role.CEO || role === Role.HR;
 
 /**
  * Checks whether the role has permission to permanently delete staff accounts.
- * @param role - Actor role
- * @returns {boolean} True if CEO or HR
  */
 export const canDeleteEmployee = (role: Role): boolean => role === Role.CEO || role === Role.HR;
 
 /**
  * Checks whether the role has permission to create, edit, or delete leads.
- * @param role - Actor role
- * @returns {boolean} True if CEO or TEAM_LEAD
  */
 export const canManageLeads = (role: Role): boolean => role === Role.CEO || role === Role.TEAM_LEAD;
 
 /**
  * Checks whether the role has permission to assign or unassign leads to staff.
- * @param role - Actor role
- * @returns {boolean} True if CEO or TEAM_LEAD
  */
 export const canAssignLeads = (role: Role): boolean => role === Role.CEO || role === Role.TEAM_LEAD;
 
 /**
  * Checks whether the role has permission to export lead data to CSV/XLSX.
- * @param role - Actor role
- * @returns {boolean} True if CEO or TEAM_LEAD
  */
 export const canExportLeads = (role: Role): boolean => role === Role.CEO || role === Role.TEAM_LEAD;
 
 /**
  * Checks whether the role has permission to view executive-level reports and financial telemetry.
- * @param role - Actor role
- * @returns {boolean} True only for CEO
  */
 export const canViewExecutive = (role: Role): boolean => role === Role.CEO;
 
 /**
  * Checks whether the role has permission to view squad performance and leaderboard boards.
- * @param role - Actor role
- * @returns {boolean} True if CEO or TEAM_LEAD
  */
 export const canViewTeamsBoard = (role: Role): boolean => role === Role.CEO || role === Role.TEAM_LEAD;
 
 /**
  * Checks whether the role has permission to create, dissolve, or reconfigure squads.
- * @param role - Actor role
- * @returns {boolean} True if CEO or HR
  */
 export const canManageTeams = (role: Role): boolean => role === Role.CEO || role === Role.HR;
 
 /**
  * Validates whether an email address belongs to an immutable Root CEO specified in .env ADMIN_EMAIL.
- *
- * @param email - Candidate email string to test
- * @returns {boolean} True if the email is present in the ADMIN_EMAIL list
  */
 export function isAllowedCeoEmail(email?: string | null): boolean {
   if (!email) return false;
@@ -337,15 +470,11 @@ export function isAllowedCeoEmail(email?: string | null): boolean {
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
   const normalized = email.toLowerCase().trim();
-
-  // Direct exact email match only to prevent unintended domain privilege escalation
   return allowed.includes(normalized);
 }
 
 /**
  * Invalidates the in-memory user session cache when roles, permissions, or assignments mutate.
- *
- * @param userId - Optional specific Clerk user ID to clear. If omitted, clears all cached sessions.
  */
 export function invalidateUserSessionCache(userId?: string): void {
   if (userId) {

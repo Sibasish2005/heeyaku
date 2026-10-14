@@ -150,25 +150,33 @@ export default function CreateEmployeeFormFields({
         {/* OTP Action State */}
         {!otpState.verified ? (
           !otpState.sent ? (
-            <div className="flex items-center justify-end pt-1">
-              <button
-                type="button"
-                onClick={onSendOtp}
-                disabled={!formData.email || otpState.sending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors cursor-pointer shadow-xs"
-              >
-                {otpState.sending ? (
-                  <>
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>Sending Clerk OTP...</span>
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-3 h-3" />
-                    <span>Send Verification OTP via Clerk</span>
-                  </>
-                )}
-              </button>
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={onSendOtp}
+                  disabled={!formData.email || otpState.sending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors cursor-pointer shadow-xs"
+                >
+                  {otpState.sending ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <span>Sending Clerk OTP...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3 h-3" />
+                      <span>Send Verification OTP via Clerk</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              {otpState.error && (
+                <div className="p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-[11px] font-semibold text-destructive flex items-center gap-1.5 animate-in fade-in duration-200">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>{otpState.error}</span>
+                </div>
+              )}
             </div>
           ) : (
             <div className="mt-2 p-3.5 rounded-xl border border-[#2563EB]/30 bg-[#2563EB]/5 space-y-3 animate-in fade-in duration-200">
