@@ -28,6 +28,12 @@ export default async function AdminLayout({
     redirect('/onboarding');
   }
 
+  // If Super Admin has no linked tenant company and is not currently impersonating,
+  // route directly to the platform Super Admin governance portal
+  if (admin.isSuperAdmin && !admin.companyId && !admin.isImpersonating) {
+    redirect('/super-admin');
+  }
+
   // 1-Click Master Kill-Switch: Block non-super-admin access if company is suspended
   if (admin.companyStatus === 'SUSPENDED_BY_ADMIN' && !admin.isSuperAdmin) {
     redirect('/workspace-suspended');

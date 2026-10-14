@@ -50,10 +50,10 @@ const SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
  */
 export function isSuperAdminEmail(email?: string | null): boolean {
   if (!email) return false;
-  const rawSuperEmails = process.env.SUPER_ADMIN_EMAILS || '';
+  const rawSuperEmails = process.env.SUPER_ADMIN_EMAILS || process.env.ADMIN_EMAIL || '';
   const allowed = rawSuperEmails
     .split(',')
-    .map((e) => e.trim().toLowerCase())
+    .map((e) => e.trim().replace(/^["']|["']$/g, '').toLowerCase())
     .filter(Boolean);
   const normalized = email.toLowerCase().trim();
   return allowed.includes(normalized);
@@ -221,7 +221,8 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
     }
 
     const normalizedEmail = primaryEmail.toLowerCase().trim();
-    const isSuper = isSuperAdminEmail(normalizedEmail);
+    const allUserEmails = clerkUser.emailAddresses?.map((e) => e.emailAddress.toLowerCase().trim()) || [normalizedEmail];
+    const isSuper = allUserEmails.some((e) => isSuperAdminEmail(e));
     const name =
       [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') ||
       clerkUser.username ||

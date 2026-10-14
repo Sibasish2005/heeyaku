@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import HeeyakuLogo from "@/components/landingpage/shared/HeeyakuLogo";
+import { getAuthenticatedUser } from "@/lib/auth/rbac";
 
 /**
  * Validates and sanitizes destination redirect URL against Open Redirect (CWE-601).
@@ -58,6 +59,10 @@ export default async function SignInPage(props: {
 
   // Server-side redirect for standard GET page requests if already authenticated on server
   if (userId && !isServerAction) {
+    const user = await getAuthenticatedUser();
+    if (user?.isSuperAdmin && (!searchParams?.redirect_url || targetUrl === '/admin/dashboard')) {
+      redirect('/super-admin');
+    }
     redirect(targetUrl);
   }
 
