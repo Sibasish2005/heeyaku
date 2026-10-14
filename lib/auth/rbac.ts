@@ -50,7 +50,7 @@ const SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
  */
 export function isSuperAdminEmail(email?: string | null): boolean {
   if (!email) return false;
-  const rawSuperEmails = process.env.SUPER_ADMIN_EMAILS || process.env.ADMIN_EMAIL || '';
+  const rawSuperEmails = process.env.SUPER_ADMIN_EMAILS || '';
   const allowed = rawSuperEmails
     .split(',')
     .map((e) => e.trim().replace(/^["']|["']$/g, '').toLowerCase())
@@ -493,7 +493,7 @@ export function isAllowedCeoEmail(email?: string | null): boolean {
   const rawAdminEmails = process.env.ADMIN_EMAIL || '';
   const allowed = rawAdminEmails
     .split(',')
-    .map((e) => e.trim().toLowerCase())
+    .map((e) => e.trim().replace(/^["']|["']$/g, '').toLowerCase())
     .filter(Boolean);
   const normalized = email.toLowerCase().trim();
   return allowed.includes(normalized);

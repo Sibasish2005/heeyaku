@@ -18,14 +18,14 @@ async function runMultiTenantEdgeCasesAudit() {
     }
   }
 
-  // Edge Case 1: Super Admin email sanitizer & variations
+  // Edge Case 1: Super Admin vs Tenant Admin role separation
   console.log('======================================================================');
-  console.log('🛡️ 1. Super Admin Email Invariance & Case/Whitespace Normalization');
+  console.log('🛡️ 1. Super Admin vs Tenant Admin Role Separation');
   console.log('======================================================================');
-  assert(isSuperAdminEmail('sibasishchakraborti@gmail.com'), 'Lowercase standard email recognized');
-  assert(isSuperAdminEmail('subhra1234c@gmail.com'), 'Secondary admin email recognized');
-  assert(isSuperAdminEmail(' SIBASISHchakraborti@GMAIL.COM '), 'Uppercase with surrounding spaces recognized');
-  assert(isSuperAdminEmail('sibasiishchakraborti@gmail.com'), 'Double-i spelling variant recognized');
+  assert(isSuperAdminEmail('sibasishchakraborti@gmail.com'), 'sibasishchakraborti is recognized as Super Admin');
+  assert(isSuperAdminEmail(' SIBASISHchakraborti@GMAIL.COM '), 'Case and whitespace normalized for Super Admin');
+  assert(!isSuperAdminEmail('sibasishchakraborty000@gmail.com'), 'sibasishchakraborty000 is NOT a Super Admin');
+  assert(!isSuperAdminEmail('subhra1234c@gmail.com'), 'subhra1234c is NOT a Super Admin');
   assert(!isSuperAdminEmail('hacker@evil.com'), 'Unauthorized email rejected');
   assert(!isSuperAdminEmail(null), 'Null email rejected safely without throwing');
   assert(!isSuperAdminEmail(''), 'Empty email rejected safely');
