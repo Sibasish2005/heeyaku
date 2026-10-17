@@ -28,9 +28,9 @@ export default async function AdminLayout({
     redirect('/onboarding');
   }
 
-  // If Super Admin has no linked tenant company and is not currently impersonating,
-  // route directly to the platform Super Admin governance portal
-  if (admin.isSuperAdmin && !admin.companyId && !admin.isImpersonating) {
+  // Platform Super Admins always default to the /super-admin governance portal.
+  // They only access tenant /admin routes when actively impersonating a workspace in Ghost Mode.
+  if (admin.isSuperAdmin && !admin.isImpersonating) {
     redirect('/super-admin');
   }
 

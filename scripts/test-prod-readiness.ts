@@ -220,6 +220,29 @@ async function runProductionReadinessAudit() {
     });
     assert(updatedLead.status === LeadStatus.CONTACTED, 'Disposition allowed to advance to CONTACTED after verified talk time');
 
+    // Automatic Prospect Promotion & TL Reassignment
+    const promotedLead = await prisma.lead.update({
+      where: { id: testLead.id },
+      data: {
+        status: LeadStatus.INTERESTED,
+        isProspect: true,
+        promotedToProspectAt: new Date(),
+        originalBdaId: bdaEmp.id,
+        assignedEmployeeId: tlEmp.id,
+        notes: `[System]: Promoted to Prospect. Reassigned to Team Lead ${tlEmp.name}.`,
+      },
+    });
+    assert(promotedLead.isProspect === true, 'Lead flagged as isProspect = true upon INTERESTED outcome');
+    assert(promotedLead.assignedEmployeeId === tlEmp.id, 'Lead successfully transferred to squad Team Lead');
+    assert(promotedLead.originalBdaId === bdaEmp.id, 'Original BDA credit preserved via originalBdaId');
+
+    // TL conversion of prospect
+    const convertedLead = await prisma.lead.update({
+      where: { id: testLead.id },
+      data: { status: LeadStatus.CONVERTED },
+    });
+    assert(convertedLead.status === LeadStatus.CONVERTED, 'Team Lead successfully converted the prospect');
+
     // -------------------------------------------------------------------------
     // SECTION 5: Leads Export Engine (Excel & CSV Generation)
     // -------------------------------------------------------------------------

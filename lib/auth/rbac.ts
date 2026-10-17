@@ -98,7 +98,20 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
     if (dbEmployee) {
       const normalizedEmail = dbEmployee.email.toLowerCase().trim();
       const isConfiguredCeo = isAllowedCeoEmail(normalizedEmail) || dbEmployee.role === Role.CEO;
-      const isSuper = isSuperAdminEmail(normalizedEmail);
+      let isSuper = isSuperAdminEmail(normalizedEmail);
+      if (!isSuper && process.env.SUPER_ADMIN_EMAILS) {
+        try {
+          const { clerkClient } = await import('@clerk/nextjs/server');
+          const client = await clerkClient();
+          const u = await client.users.getUser(userId);
+          const clerkEmails = u?.emailAddresses?.map((e) => e.emailAddress.toLowerCase().trim()) || [];
+          if (clerkEmails.some((e) => isSuperAdminEmail(e))) {
+            isSuper = true;
+          }
+        } catch {
+          // Non-blocking fallback
+        }
+      }
       
       let effectiveRole = dbEmployee.role;
 
