@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyDeviceChallengeToken, signDeviceChallengeToken } from '@/lib/auth/employee-token';
-import { initiateClerkDeviceOtp } from '@/lib/auth/clerk-device-otp';
+import { ClerkSyncService } from '@/lib/auth/clerk-sync';
+import { maskEmail } from '@/lib/auth/clerk-device-otp';
+import { prisma } from '@/lib/prisma';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 
 export async function OPTIONS() {
@@ -49,32 +51,45 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const otpResult = await initiateClerkDeviceOtp(challenge.email);
-    if (!otpResult.success || !otpResult.clerkSignInId) {
+    const employee = await prisma.employee.findUnique({
+      where: { id: challenge.employeeId },
+      select: { id: true, name: true, email: true },
+    });
+
+    if (!employee) {
       return NextResponse.json(
-        { success: false, error: otpResult.error || 'Failed to dispatch new Clerk code.' },
-        { status: 500 }
+        { success: false, error: 'Employee account not found.' },
+        { status: 404 }
       );
     }
 
-    const newTempToken = signDeviceChallengeToken({
-      employeeId: challenge.employeeId,
-      email: challenge.email,
-      deviceId: challenge.deviceId,
-      clerkSignInId: otpResult.clerkSignInId,
+    const prep = await ClerkSyncService.prepareEmailOtpVerification({
+      email: employee.email,
+      name: employee.name,
     });
+
+    const newTempToken = signDeviceChallengeToken({
+      employeeId: employee.id,
+      email: employee.email,
+      deviceId: challenge.deviceId,
+      emailAddressId: prep.emailAddressId,
+      verificationId: prep.verificationId,
+    });
+
+    const masked = maskEmail(employee.email);
 
     return NextResponse.json({
       success: true,
       tempToken: newTempToken,
-      maskedEmail: otpResult.maskedEmail,
-      message: `A new 6-digit code has been sent via Clerk to ${otpResult.maskedEmail}.`,
+      maskedEmail: masked,
+      message: `A new 6-digit Clerk verification code has been sent to ${masked}.`,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Resend device OTP error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to resend verification code.' },
+      { success: false, error: error?.message || 'Failed to resend verification code via Clerk.' },
       { status: 500 }
     );
   }
 }
+

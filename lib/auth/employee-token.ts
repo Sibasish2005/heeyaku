@@ -158,7 +158,9 @@ export interface DeviceChallengePayload {
   employeeId: string;
   email: string;
   deviceId: string;
-  clerkSignInId: string;
+  emailAddressId: string;
+  verificationId: string;
+  clerkSignInId?: string;
   type: 'device_challenge';
   exp: number;
 }

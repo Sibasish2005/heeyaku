@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { signEmployeeToken, signDeviceChallengeToken } from '@/lib/auth/employee-token';
-import { initiateClerkDeviceOtp } from '@/lib/auth/clerk-device-otp';
+import { ClerkSyncService } from '@/lib/auth/clerk-sync';
+import { maskEmail } from '@/lib/auth/clerk-device-otp';
 import { checkRateLimit, resetRateLimit } from '@/lib/security/rate-limit';
 
 export async function OPTIONS() {
@@ -184,36 +185,39 @@ export async function POST(req: NextRequest) {
 
       // If this device has not been verified yet, trigger Clerk OTP challenge!
       if (!trustedDevice) {
-        const otpResult = await initiateClerkDeviceOtp(
-          employee.email,
-          employee.name,
-          deviceName ? String(deviceName).trim() : undefined
-        );
+        try {
+          const prep = await ClerkSyncService.prepareEmailOtpVerification({
+            email: employee.email,
+            name: employee.name,
+          });
 
-        if (!otpResult.success || !otpResult.clerkSignInId) {
+          const tempToken = signDeviceChallengeToken({
+            employeeId: employee.id,
+            email: employee.email,
+            deviceId: cleanDeviceId,
+            emailAddressId: prep.emailAddressId,
+            verificationId: prep.verificationId,
+          });
+
+          const masked = maskEmail(employee.email);
+
+          return NextResponse.json({
+            success: true,
+            requiresOtp: true,
+            maskedEmail: masked,
+            tempToken,
+            message: `First-time device login detected. A 6-digit Clerk verification code has been sent to ${masked}.`,
+          });
+        } catch (clerkErr: any) {
+          console.error('[EmployeeLogin] Clerk OTP dispatch failed:', clerkErr?.message || clerkErr);
           return NextResponse.json(
             {
               success: false,
-              error: otpResult.error || 'Failed to dispatch device verification code via Clerk. Please try again.',
+              error: clerkErr?.message || 'Failed to dispatch device verification code via Clerk. Please try again.',
             },
             { status: 500 }
           );
         }
-
-        const tempToken = signDeviceChallengeToken({
-          employeeId: employee.id,
-          email: employee.email,
-          deviceId: cleanDeviceId,
-          clerkSignInId: otpResult.clerkSignInId,
-        });
-
-        return NextResponse.json({
-          success: true,
-          requiresOtp: true,
-          maskedEmail: otpResult.maskedEmail,
-          tempToken,
-          message: `First-time device login detected. A 6-digit Clerk verification code has been sent to ${otpResult.maskedEmail}.`,
-        });
       }
 
       // Device is already trusted - update lastUsedAt

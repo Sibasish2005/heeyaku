@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyDeviceChallengeToken, signEmployeeToken } from '@/lib/auth/employee-token';
-import { verifyClerkDeviceOtp } from '@/lib/auth/clerk-device-otp';
+import { ClerkSyncService } from '@/lib/auth/clerk-sync';
 import { checkRateLimit, resetRateLimit } from '@/lib/security/rate-limit';
 
 export async function OPTIONS() {
@@ -64,10 +64,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 2: Verify the 6-digit code with Clerk
-    const verification = await verifyClerkDeviceOtp(challenge.clerkSignInId, String(code));
+    const verification = await ClerkSyncService.attemptEmailOtpVerification({
+      emailAddressId: challenge.emailAddressId,
+      verificationId: challenge.verificationId,
+      code: String(code).trim(),
+    });
+
     if (!verification.verified) {
       return NextResponse.json(
-        { success: false, error: verification.error || 'Invalid verification code. Please check your email and try again.' },
+        {
+          success: false,
+          error: verification.error || 'Invalid or expired verification code. Please check your email and try again.',
+        },
         { status: 400 }
       );
     }
