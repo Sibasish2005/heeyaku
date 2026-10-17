@@ -142,6 +142,30 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/super admin',
+        destination: '/super-admin',
+        permanent: false,
+      },
+      {
+        source: '/super%20admin',
+        destination: '/super-admin',
+        permanent: false,
+      },
+      {
+        source: '/superadmin',
+        destination: '/super-admin',
+        permanent: false,
+      },
+      {
+        source: '/super_admin',
+        destination: '/super-admin',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

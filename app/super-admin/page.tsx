@@ -1,11 +1,17 @@
 import { assertSuperAdmin } from '@/lib/auth/rbac';
 import { getSuperAdminDashboardDataAction } from './actions';
 import SuperAdminClientDashboard from '@/components/super-admin/SuperAdminClientDashboard';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function SuperAdminPage() {
+  const { userId } = await auth();
+  if (!userId) {
+    redirect('/sign-in?redirect_url=/super-admin');
+  }
+
   let superAdminUser;
   try {
     superAdminUser = await assertSuperAdmin();
