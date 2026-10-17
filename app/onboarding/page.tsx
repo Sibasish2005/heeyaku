@@ -2,6 +2,7 @@ import { getAuthenticatedUser, isSuperAdminEmail } from '@/lib/auth/rbac';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import OnboardingFormClient from './OnboardingFormClient';
+import ThemeToggler from '@/components/ThemeToggler';
 
 export const dynamic = 'force-dynamic';
 
@@ -70,7 +71,10 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 sm:p-6 text-slate-100 selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen bg-background text-foreground flex flex-col justify-center items-center p-4 sm:p-6 selection:bg-[#2563EB] selection:text-white relative">
+      <div className="absolute top-4 right-4 z-10">
+        <ThemeToggler />
+      </div>
       <OnboardingFormClient
         defaultEmail={defaultEmail}
         defaultName={defaultName}

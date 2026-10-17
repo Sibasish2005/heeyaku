@@ -16,8 +16,7 @@ import {
   Mail,
   Send,
   Lock,
-  KeyRound,
-  RotateCw
+  KeyRound
 } from 'lucide-react';
 import HeeyakuLogo from '@/components/landingpage/shared/HeeyakuLogo';
 import { 
@@ -175,7 +174,7 @@ export default function OnboardingFormClient({
           sending: false,
           error: res.error || 'Failed to send verification code. Please try again.',
         }));
-        toast.error(res.error || 'Failed to send Clerk OTP');
+        toast.error(res.error || 'Failed to send verification code');
         return;
       }
 
@@ -208,7 +207,7 @@ export default function OnboardingFormClient({
       setOtpState((prev) => ({
         ...prev,
         sending: false,
-        error: err?.message || 'Error communicating with Clerk verification service.',
+        error: err?.message || 'Error communicating with verification service.',
       }));
     }
   };
@@ -239,7 +238,7 @@ export default function OnboardingFormClient({
           verifying: false,
           error: res.error || 'Invalid or expired code. Please check your email.',
         }));
-        toast.error(res.error || 'Invalid OTP code');
+        toast.error(res.error || 'Invalid code');
         return;
       }
 
@@ -250,7 +249,7 @@ export default function OnboardingFormClient({
         verifiedEmail: email.trim().toLowerCase(),
         error: null,
       }));
-      toast.success('Email successfully authenticated via Clerk!');
+      toast.success('Email successfully authenticated!');
     } catch (err: any) {
       setOtpState((prev) => ({
         ...prev,
@@ -283,7 +282,7 @@ export default function OnboardingFormClient({
     }
 
     if (!otpState.verified) {
-      setError('Please verify your email via Clerk OTP before submitting.');
+      setError('Please verify your email via OTP before submitting.');
       toast.error('Email verification required');
       return;
     }
@@ -323,410 +322,400 @@ export default function OnboardingFormClient({
 
   if (isSuper) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-2" />
-        <p className="text-sm font-semibold text-slate-200">Super Admin Account Detected</p>
-        <p className="text-xs text-slate-400 mt-1">Routing directly to platform governance portal...</p>
+      <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+        <Loader2 className="w-8 h-8 animate-spin text-[#2563EB] mb-2" />
+        <p className="text-sm font-semibold text-foreground">Super Admin Account Detected</p>
+        <p className="text-xs text-muted-foreground mt-1">Routing to platform governance portal...</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-xl">
-      {/* Background radial glow */}
-      <div className="relative">
-        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="w-full max-w-xl animate-in fade-in duration-200">
+      <div className="bg-card text-card-foreground border border-border rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
+        {/* Header branding */}
+        <div className="flex flex-col items-center text-center space-y-3 pb-2 border-b border-border/80">
+          <div className="flex items-center gap-2">
+            <HeeyakuLogo size={36} color="currentColor" dotColor="#2563EB" withText textColor="currentColor" />
+          </div>
 
-        <div className="relative bg-slate-900/80 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-          {/* Header branding */}
-          <div className="flex flex-col items-center text-center space-y-3">
-            <div className="flex items-center gap-2">
-              <HeeyakuLogo size={32} color="#FFFFFF" dotColor="#3B82F6" withText textColor="#FFFFFF" />
+          <div className="space-y-1 pt-1">
+            <div className="text-[11px] font-bold uppercase tracking-widest text-[#2563EB] dark:text-blue-400">
+              Workspace Onboarding
             </div>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+              Register Organization
+            </h1>
+            <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+              Configure your team workspace, authenticate corporate email, and request caller licenses.
+            </p>
+          </div>
+        </div>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>30-Day Pro Trial Included</span>
-            </div>
+        {/* Form-level Error Alert */}
+        {error && (
+          <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-destructive" />
+            <div className="flex-1 font-medium leading-relaxed">{error}</div>
+          </div>
+        )}
 
-            <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                Set Up Your Organization
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-md">
-                Configure your team workspace, verify your corporate email via Clerk, and request caller seats.
-              </p>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Company Name */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-foreground">
+              Company Name <span className="text-destructive">*</span>
+            </label>
+            <div className="relative">
+              <Building2 className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                required
+                value={companyName}
+                onChange={(e) => handleCompanyNameChange(e.target.value)}
+                placeholder="e.g. Apex EdTech Private Limited"
+                className="w-full pl-9 pr-3 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground font-medium"
+              />
             </div>
           </div>
 
-          {/* Form-level Error Alert */}
-          {error && (
-            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
-              <div className="flex-1 font-medium leading-relaxed">{error}</div>
+          {/* Slug */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-foreground">
+                Workspace URL Slug <span className="text-destructive">*</span>
+              </label>
+              <span className="text-[10px] text-muted-foreground font-mono">Auto-generated</span>
             </div>
-          )}
+            <div className="flex items-center rounded-xl bg-muted/40 border border-border overflow-hidden focus-within:border-[#2563EB] focus-within:bg-background transition-colors">
+              <span className="px-3 py-2 text-xs text-muted-foreground font-mono select-none bg-muted/60 border-r border-border">
+                heeyaku.com/
+              </span>
+              <input
+                type="text"
+                required
+                value={slug}
+                onChange={(e) => handleSlugChange(e.target.value)}
+                placeholder="apex-edtech"
+                className="flex-1 px-3 py-2 bg-transparent text-xs text-[#2563EB] dark:text-blue-400 font-mono font-bold focus:outline-none"
+              />
+            </div>
+          </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Company Name */}
+          {/* Phone & Industry Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
-                Company Name <span className="text-red-400">*</span>
+              <label className="block text-xs font-bold text-foreground">
+                Official Phone <span className="text-destructive">*</span>
               </label>
               <div className="relative">
-                <Building2 className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Phone className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
-                  type="text"
+                  type="tel"
                   required
-                  value={companyName}
-                  onChange={(e) => handleCompanyNameChange(e.target.value)}
-                  placeholder="e.g. Apex EdTech Private Limited"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="+91 98765 43210"
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground font-medium"
                 />
               </div>
             </div>
 
-            {/* Slug */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Workspace URL Slug <span className="text-red-400">*</span>
-                </label>
-                <span className="text-[10px] text-slate-500">Auto-generated</span>
-              </div>
-              <div className="flex items-center rounded-xl bg-slate-950/60 border border-slate-800 overflow-hidden focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-colors">
-                <span className="px-3 py-2.5 text-xs text-slate-500 font-mono select-none bg-slate-900/60 border-r border-slate-800">
-                  heeyaku.com/
-                </span>
-                <input
-                  type="text"
-                  required
-                  value={slug}
-                  onChange={(e) => handleSlugChange(e.target.value)}
-                  placeholder="apex-edtech"
-                  className="flex-1 px-3 py-2.5 bg-transparent text-sm text-blue-400 font-mono focus:outline-none"
-                />
+              <label className="block text-xs font-bold text-foreground">
+                Industry Sector
+              </label>
+              <div className="relative">
+                <Briefcase className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <select
+                  value={industry}
+                  onChange={(e) => setIndustry(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors font-medium cursor-pointer"
+                >
+                  {INDUSTRIES.map((ind) => (
+                    <option key={ind} value={ind} className="bg-card text-card-foreground">
+                      {ind}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
+          </div>
 
-            {/* Phone & Industry Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Official Phone <span className="text-red-400">*</span>
+          {/* BDA Seat Selection */}
+          <div className="space-y-2 pt-3 border-t border-border/80">
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-xs font-bold text-foreground">
+                  Caller Licenses (BDAs)
                 </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <p className="text-[11px] text-muted-foreground">
+                  Active outbound telephony seats requested. CEO & HR accounts are free.
+                </p>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[#2563EB] dark:text-blue-400 font-mono font-bold text-xs">
+                {effectiveBdas} Seats
+              </span>
+            </div>
+
+            <div className="grid grid-cols-4 gap-2 pt-1">
+              {PRESET_BDA_OPTIONS.map((num) => {
+                const isSelected = !isCustomBdaMode && requestedBdas === num;
+                return (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => {
+                      setIsCustomBdaMode(false);
+                      setRequestedBdas(num);
+                    }}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#2563EB] text-white border-[#2563EB] shadow-2xs'
+                        : 'bg-muted/40 text-muted-foreground border-border hover:text-foreground hover:bg-muted/60'
+                    }`}
+                  >
+                    {num} BDAs
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Custom seats toggle */}
+            <div className="pt-1 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={() => setIsCustomBdaMode(!isCustomBdaMode)}
+                className="text-[#2563EB] dark:text-blue-400 hover:underline font-semibold cursor-pointer text-xs"
+              >
+                {isCustomBdaMode ? 'Pick from presets' : 'Need custom seat count (up to 500)?'}
+              </button>
+
+              {isCustomBdaMode && (
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground text-xs">Custom:</span>
                   <input
-                    type="tel"
-                    required
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors"
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={customBdas}
+                    onChange={(e) => setCustomBdas(e.target.value)}
+                    placeholder="e.g. 75"
+                    className="w-20 px-2.5 py-1 rounded-lg bg-muted/40 border border-border text-xs text-foreground text-center focus:border-[#2563EB] outline-hidden font-bold"
                   />
                 </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-slate-300">
-                  Industry / Sector
-                </label>
-                <div className="relative">
-                  <Briefcase className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <select
-                    value={industry}
-                    onChange={(e) => setIndustry(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/60 border border-slate-800 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors cursor-pointer"
-                  >
-                    {INDUSTRIES.map((ind) => (
-                      <option key={ind} value={ind} className="bg-slate-900 text-white">
-                        {ind}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              )}
             </div>
+          </div>
 
-            {/* BDA Seat Selection */}
-            <div className="space-y-2 pt-2 border-t border-slate-800/60">
-              <div className="flex items-center justify-between">
+          {/* Email Authentication */}
+          <div className="space-y-3 pt-3 border-t border-border/80">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-lg bg-blue-500/10 text-[#2563EB] dark:text-blue-400 flex items-center justify-center">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300">
-                    Requested Caller Seats (BDAs)
+                  <label className="block text-xs font-bold text-foreground">
+                    Corporate Email Authentication <span className="text-destructive">*</span>
                   </label>
-                  <p className="text-[11px] text-slate-500">
-                    Number of active outbound telephony callers needed. CEO & HR accounts are free.
+                  <p className="text-[11px] text-muted-foreground">
+                    Verified before workspace provisioning.
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold text-xs">
-                  <Users className="w-3.5 h-3.5" />
-                  <span>{effectiveBdas} Seats</span>
-                </div>
               </div>
 
-              <div className="grid grid-cols-4 gap-2 pt-1">
-                {PRESET_BDA_OPTIONS.map((num) => {
-                  const isSelected = !isCustomBdaMode && requestedBdas === num;
-                  return (
-                    <button
-                      key={num}
-                      type="button"
-                      onClick={() => {
-                        setIsCustomBdaMode(false);
-                        setRequestedBdas(num);
-                      }}
-                      className={`py-2 px-3 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                        isSelected
-                          ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-600/30'
-                          : 'bg-slate-950/40 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
-                      }`}
-                    >
-                      {num} BDAs
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Custom seats toggle */}
-              <div className="pt-1 flex items-center justify-between text-xs">
-                <button
-                  type="button"
-                  onClick={() => setIsCustomBdaMode(!isCustomBdaMode)}
-                  className="text-blue-400 hover:text-blue-300 underline font-medium cursor-pointer"
-                >
-                  {isCustomBdaMode ? 'Pick from presets' : 'Need custom seat count (up to 500)?'}
-                </button>
-
-                {isCustomBdaMode && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400 text-xs">Custom:</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={500}
-                      value={customBdas}
-                      onChange={(e) => setCustomBdas(e.target.value)}
-                      placeholder="e.g. 75"
-                      className="w-20 px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-700 text-xs text-white text-center focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                )}
-              </div>
+              {otpState.verified && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-bold">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Verified</span>
+                </span>
+              )}
             </div>
 
-            {/* ============================================================== */}
-            {/* CLERK EMAIL AUTHENTICATION BEFORE SUBMIT BUTTON                */}
-            {/* ============================================================== */}
-            <div className="space-y-3 pt-3 border-t border-slate-800/80">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-200">
-                      CEO Identity & Email Authentication <span className="text-red-400">*</span>
-                    </label>
-                    <p className="text-[11px] text-slate-400">
-                      Verified via Clerk real-time OTP before organization provisioning.
-                    </p>
-                  </div>
-                </div>
+            {/* Email Address Field */}
+            <div className="relative">
+              <Mail className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="email"
+                required
+                value={email}
+                disabled={otpState.verified}
+                onChange={(e) => handleEmailChange(e.target.value)}
+                placeholder="ceo@yourcompany.com"
+                className={`w-full pl-9 pr-3 py-2 rounded-xl border text-xs font-medium transition-colors ${
+                  otpState.verified
+                    ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-mono'
+                    : 'bg-muted/40 focus:bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-[#2563EB] outline-hidden'
+                }`}
+              />
+            </div>
 
-                {otpState.verified && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Verified via Clerk</span>
+            {/* OTP Action or Status Area */}
+            {!otpState.verified ? (
+              !otpState.sent ? (
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-muted-foreground">
+                    Requires 6-digit confirmation code.
                   </span>
-                )}
-              </div>
-
-              {/* Email Address Field */}
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  disabled={otpState.verified}
-                  onChange={(e) => handleEmailChange(e.target.value)}
-                  placeholder="ceo@yourcompany.com"
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm transition-colors ${
-                    otpState.verified
-                      ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-300'
-                      : 'bg-slate-950/60 border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                  }`}
-                />
-              </div>
-
-              {/* OTP Action or Status Area */}
-              {!otpState.verified ? (
-                !otpState.sent ? (
-                  <div className="flex items-center justify-between pt-1">
-                    <span className="text-[11px] text-slate-400">
-                      Requires 6-digit email confirmation code.
-                    </span>
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={!email || otpState.sending}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-[#2563EB] hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-2xs cursor-pointer"
+                  >
+                    {otpState.sending ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Sending Code...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Send Code</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-muted/40 border border-border space-y-3">
+                  <div className="flex items-start justify-between text-xs">
+                    <div>
+                      <span className="font-bold text-foreground flex items-center gap-1.5">
+                        <KeyRound className="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400" />
+                        <span>Verification Code Sent</span>
+                      </span>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Enter 6-digit code sent to <strong className="text-foreground">{email}</strong>
+                      </p>
+                    </div>
                     <button
                       type="button"
                       onClick={handleSendOtp}
-                      disabled={!email || otpState.sending}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-600/20 cursor-pointer"
+                      disabled={otpState.sending || otpState.resendCountdown > 0}
+                      className="text-[11px] font-semibold text-[#2563EB] dark:text-blue-400 hover:underline disabled:opacity-40 cursor-pointer"
                     >
-                      {otpState.sending ? (
+                      {otpState.resendCountdown > 0 ? `Resend (${otpState.resendCountdown}s)` : 'Resend'}
+                    </button>
+                  </div>
+
+                  {otpState.error && (
+                    <div className="p-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{otpState.error}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="123456"
+                      value={otpState.code}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        setOtpState((prev) => ({ ...prev, code: digits, error: null }));
+                        if (digits.length === 6) {
+                          handleVerifyOtp(digits);
+                        }
+                      }}
+                      className="w-32 px-3 py-1.5 text-center text-sm font-mono font-bold tracking-widest bg-background border border-border text-foreground rounded-xl focus:border-[#2563EB] outline-hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleVerifyOtp()}
+                      disabled={otpState.verifying || otpState.code.length !== 6}
+                      className="flex-1 py-1.5 px-3 rounded-xl bg-[#2563EB] hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                    >
+                      {otpState.verifying ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Sending Clerk OTP...</span>
+                          <span>Verifying...</span>
                         </>
                       ) : (
                         <>
-                          <Send className="w-3.5 h-3.5" />
-                          <span>Send Verification OTP via Clerk</span>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>Verify</span>
                         </>
                       )}
                     </button>
                   </div>
-                ) : (
-                  <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20 space-y-3 animate-in fade-in duration-200">
-                    <div className="flex items-start justify-between text-xs">
-                      <div>
-                        <span className="font-bold text-white flex items-center gap-1.5">
-                          <KeyRound className="w-3.5 h-3.5 text-blue-400" />
-                          <span>Clerk Verification Code Sent</span>
-                        </span>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          Enter 6-digit code sent to <strong className="text-slate-200">{email}</strong>
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleSendOtp}
-                        disabled={otpState.sending || otpState.resendCountdown > 0}
-                        className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 disabled:opacity-40 disabled:hover:text-blue-400 cursor-pointer"
-                      >
-                        {otpState.resendCountdown > 0 ? `Resend (${otpState.resendCountdown}s)` : 'Resend Code'}
-                      </button>
-                    </div>
-
-                    {otpState.error && (
-                      <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-300 text-xs flex items-center gap-2">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-400" />
-                        <span>{otpState.error}</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        maxLength={6}
-                        placeholder="123456"
-                        value={otpState.code}
-                        onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
-                          setOtpState((prev) => ({ ...prev, code: digits, error: null }));
-                          if (digits.length === 6) {
-                            handleVerifyOtp(digits);
-                          }
-                        }}
-                        className="w-36 px-3 py-2 text-center text-sm font-mono font-bold tracking-widest bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-blue-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleVerifyOtp()}
-                        disabled={otpState.verifying || otpState.code.length !== 6}
-                        className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        {otpState.verifying ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>Verifying...</span>
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            <span>Verify Code</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )
-              ) : (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>Clerk Verified CEO: {otpState.verifiedEmail}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleEmailChange(email)}
-                    className="text-[11px] text-slate-400 hover:text-white underline cursor-pointer"
-                  >
-                    Change Email
-                  </button>
                 </div>
+              )
+            ) : (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>Authenticated: {otpState.verifiedEmail}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleEmailChange(email)}
+                  className="text-[11px] text-muted-foreground hover:text-foreground underline cursor-pointer"
+                >
+                  Change
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Submit Button */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={isPending || !otpState.verified}
+              className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer active:scale-[0.99] ${
+                otpState.verified
+                  ? 'bg-[#2563EB] hover:bg-blue-500 text-white'
+                  : 'bg-muted text-muted-foreground border border-border opacity-70 cursor-not-allowed shadow-none'
+              }`}
+            >
+              {isPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Registering Organization...</span>
+                </>
+              ) : !otpState.verified ? (
+                <>
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Verify Email Above to Submit</span>
+                </>
+              ) : (
+                <>
+                  <span>Submit Workspace Registration</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </>
               )}
-            </div>
+            </button>
 
-            {/* Submit Button */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={isPending || !otpState.verified}
-                className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer active:scale-[0.99] ${
-                  otpState.verified
-                    ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/25'
-                    : 'bg-slate-800 text-slate-400 border border-slate-700/80 opacity-70 cursor-not-allowed shadow-none'
-                }`}
-              >
-                {isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Registering Organization...</span>
-                  </>
-                ) : !otpState.verified ? (
-                  <>
-                    <Lock className="w-4 h-4" />
-                    <span>Verify Email Above to Unlock Submission</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Submit for Platform Verification</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
+            {!otpState.verified && (
+              <p className="text-center text-[10px] text-muted-foreground mt-2">
+                🔒 Official email authentication required before workspace registration.
+              </p>
+            )}
+          </div>
 
-              {!otpState.verified && (
-                <p className="text-center text-[11px] text-slate-500 mt-2">
-                  🔒 Clerk mail authentication required before workspace provisioning.
-                </p>
-              )}
+          {/* Benefits footer */}
+          <div className="pt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground border-t border-border/80">
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400 shrink-0" />
+              <span>30-Day Pro Trial Included</span>
             </div>
-
-            {/* Benefits footer */}
-            <div className="pt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-400 border-t border-slate-800/60">
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                <span>30 Days Full Access</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                <span>Real-Time Call Sync</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                <span>Zero Credit Card Required</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                <span>Fast 2-4h Approval</span>
-              </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400 shrink-0" />
+              <span>Real-Time Call Sync</span>
             </div>
-          </form>
-        </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400 shrink-0" />
+              <span>Zero Credit Card Needed</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400 shrink-0" />
+              <span>Fast 2-4h Approval</span>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   );
