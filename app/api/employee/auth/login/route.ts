@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
       },
       include: {
         teamGroup: true,
+        company: true,
       },
     });
 
@@ -116,6 +117,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: 'Invalid Employee ID or password.' },
         { status: 401 }
+      );
+    }
+
+    // 1-Click Master Kill-Switch: Block login if company is suspended
+    if (employee.company && employee.company.status === 'SUSPENDED_BY_ADMIN') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Your organization workspace has been suspended by the platform administrator. Access is temporarily restricted.',
+        },
+        { status: 403 }
       );
     }
 
