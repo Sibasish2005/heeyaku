@@ -10,7 +10,6 @@ import {
   updateCompanySeatsAction,
   extendCompanyTrialAction,
   impersonateCompanyAction,
-  clearImpersonationAction,
   deleteCompanyAction,
 } from '@/app/super-admin/actions';
 import {
@@ -26,16 +25,12 @@ import {
   Phone,
   Mail,
   Calendar,
-  Sparkles,
-  LogOut,
   X,
   AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { useClerk } from '@clerk/nextjs';
-import HeeyakuLogo from '@/components/landingpage/shared/HeeyakuLogo';
-import ThemeToggler from '@/components/ThemeToggler';
+import SuperAdminShell from './SuperAdminShell';
 
 interface Props {
   initialStats: SuperAdminDashboardStats;
@@ -53,7 +48,6 @@ export default function SuperAdminClientDashboard({
   superAdminEmail,
 }: Props) {
   const router = useRouter();
-  const { signOut } = useClerk();
   const [isPending, startTransition] = useTransition();
 
   const [stats, setStats] = useState(initialStats);
@@ -203,14 +197,6 @@ export default function SuperAdminClientDashboard({
     });
   };
 
-  const handleExitGhostMode = async () => {
-    startTransition(async () => {
-      await clearImpersonationAction();
-      toast.info('Exited Ghost Mode.');
-      window.location.reload();
-    });
-  };
-
   // Delete Company
   const handleDeleteCompany = async () => {
     if (!deleteModalCompany) return;
@@ -237,39 +223,17 @@ export default function SuperAdminClientDashboard({
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-[#2563EB] selection:text-white">
-      {/* Ghost Mode Active Banner */}
-      {impersonatingCompanyId && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 sm:px-8 py-3 flex items-center justify-between text-amber-800 dark:text-amber-300">
-          <div className="flex items-center gap-3">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-amber-500 animate-ping" />
-            <span className="font-semibold text-xs sm:text-sm">
-              Currently in Ghost Mode (Viewing tenant workspace as CEO)
-            </span>
-          </div>
-          <button
-            onClick={handleExitGhostMode}
-            className="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition cursor-pointer active:scale-95 shadow-2xs"
-          >
-            Exit Ghost Mode
-          </button>
-        </div>
-      )}
-
-      {/* Main Container */}
-      <main className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-8 space-y-8 flex-1">
+    <SuperAdminShell
+      superAdminEmail={superAdminEmail}
+      impersonatingCompanyId={impersonatingCompanyId}
+      pendingCount={pendingCompanies.length}
+    >
+      <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-8 py-8 space-y-8 font-sans selection:bg-[#2563EB] selection:text-white">
         {/* Top Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between pb-6 border-b border-border/80 gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-4 border-b border-border/80">
           <div>
-            <div className="flex items-center gap-3 mb-3">
-              <HeeyakuLogo size={28} color="currentColor" dotColor="#2563EB" withText textColor="currentColor" />
-              <span className="px-2.5 py-0.5 rounded-full bg-[#2563EB]/10 border border-[#2563EB]/25 text-[#2563EB] dark:text-blue-400 text-[11px] font-bold font-mono tracking-wide uppercase">
-                Platform Governance
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-medium">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Live Systems
-              </span>
+            <div className="text-xs font-bold tracking-widest text-[#2563EB] dark:text-blue-400 uppercase mb-1">
+              Platform Governance & Operations
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
               Tenant Directory & Workspace Control Center
@@ -279,35 +243,18 @@ export default function SuperAdminClientDashboard({
             </p>
           </div>
 
-          <div className="flex items-center gap-3 self-start md:self-end">
-            <div className="text-right hidden sm:block">
-              <div className="text-[11px] font-medium text-muted-foreground">Authenticated Owner</div>
-              <div className="text-xs font-mono font-bold text-foreground">{superAdminEmail}</div>
-            </div>
-
-            <ThemeToggler />
-
+          <div className="flex items-center gap-2.5 self-start sm:self-end">
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full font-semibold">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live Systems
+            </span>
             <a
               href="/admin/dashboard"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border bg-card text-foreground hover:bg-muted/60 transition text-xs font-semibold shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-xl border border-border bg-card text-foreground hover:bg-muted/60 transition text-xs font-semibold shadow-2xs"
             >
               <Building2 className="w-3.5 h-3.5 text-[#2563EB]" />
               <span>Primary Workspace</span>
             </a>
-
-            <button
-              type="button"
-              onClick={() => {
-                document.cookie = 'heeyaku_dev_session=; path=/; max-age=0;';
-                document.cookie = 'heeyaku_impersonate_company_id=; path=/; max-age=0;';
-                signOut({ redirectUrl: '/sign-in' });
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-500/20 transition text-xs font-semibold cursor-pointer active:scale-95 shadow-2xs"
-              title="Sign out of Heeyaku Super Admin"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Log Out</span>
-            </button>
           </div>
         </div>
 
@@ -582,7 +529,7 @@ export default function SuperAdminClientDashboard({
             </table>
           </div>
         </div>
-      </main>
+      </div>
 
       {/* MANAGE SLIDE-OVER DRAWER */}
       {selectedCompany && (
@@ -847,6 +794,6 @@ export default function SuperAdminClientDashboard({
           </div>
         </div>
       )}
-    </div>
+    </SuperAdminShell>
   );
 }
