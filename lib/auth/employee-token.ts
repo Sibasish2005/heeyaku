@@ -134,3 +134,22 @@ export function verifyEmployeeToken(token: string): EmployeeTokenPayload | null 
     return null;
   }
 }
+
+/**
+ * Safely extracts the employee bearer token from an incoming NextRequest.
+ * Supports standard 'Authorization: Bearer <token>', as well as proxy-safe
+ * fallback headers 'x-employee-token', 'x-authorization', and 'employee-token'
+ * in case intermediate reverse proxies, CDNs, or custom domains strip the standard Authorization header.
+ *
+ * @param req - The incoming request containing headers
+ * @returns {string} Clean token string or empty string if not found
+ */
+export function extractEmployeeToken(req: { headers: { get: (name: string) => string | null } }): string {
+  const token =
+    req.headers.get('authorization') ||
+    req.headers.get('x-employee-token') ||
+    req.headers.get('x-authorization') ||
+    req.headers.get('employee-token') ||
+    '';
+  return token.replace(/^Bearer\s+/i, '').trim();
+}

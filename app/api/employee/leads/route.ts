@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyEmployeeToken } from '@/lib/auth/employee-token';
+import { verifyEmployeeToken, extractEmployeeToken } from '@/lib/auth/employee-token';
 import { resolveEmployeeIdentity } from '@/lib/employee/resolve';
 
 export const dynamic = 'force-dynamic';
@@ -11,7 +11,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-employee-token, x-authorization, X-Requested-With, Accept, Origin',
       'Access-Control-Max-Age': '86400',
     },
   });
@@ -19,8 +19,7 @@ export async function OPTIONS() {
 
 export async function GET(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization') || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    const token = extractEmployeeToken(req);
 
     if (!token) {
       return NextResponse.json(
