@@ -112,10 +112,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const isMatch = await bcrypt.compare(password, employee.passwordHash);
+    let isMatch = false;
+
+    // Step 1: Verify credentials with Clerk Backend API if clerkUserId is linked
+    if (employee.clerkUserId && process.env.CLERK_SECRET_KEY) {
+      try {
+        const { clerkClient } = await import('@clerk/nextjs/server');
+        const client = await clerkClient();
+        const verification = await client.users.verifyPassword({
+          userId: employee.clerkUserId,
+          password: String(password),
+        });
+        if (verification?.verified) {
+          isMatch = true;
+        }
+      } catch (clerkErr) {
+        // Fall back to bcrypt if Clerk throws on network/sync edge cases
+      }
+    }
+
+    // Step 2: Fall back to local database bcrypt hash
+    if (!isMatch) {
+      isMatch = await bcrypt.compare(password, employee.passwordHash);
+    }
+
     if (!isMatch || !employee.isActive) {
       return NextResponse.json(
-        { success: false, error: 'Invalid Employee ID or password.' },
+        { success: false, error: 'Invalid Employee ID/Email or password.' },
         { status: 401 }
       );
     }
