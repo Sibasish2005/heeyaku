@@ -73,6 +73,26 @@ export class EmployeeService {
       throw new Error('An employee with this email address already exists.');
     }
 
+    // Enforce Caller Seat Limit for BDAs at service layer
+    if (role === 'BDA' && callerCompanyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: callerCompanyId },
+        select: { maxBdas: true, name: true },
+      });
+      if (company) {
+        const activeBdaCount = await prisma.employee.count({
+          where: {
+            companyId: callerCompanyId,
+            role: 'BDA',
+            isActive: true,
+          },
+        });
+        if (activeBdaCount >= company.maxBdas) {
+          throw new Error(`Caller seat limit reached (${activeBdaCount} / ${company.maxBdas} BDAs). Contact platform administrator to increase caller seats.`);
+        }
+      }
+    }
+
     // Resolve target teamId if assigned to a Team Lead
     let resolvedTeamId = teamId || null;
     let resolvedTeamName = team?.trim() || 'General';
@@ -98,12 +118,17 @@ export class EmployeeService {
     const employeeRole = role as Role;
 
     // Provision account in Clerk backend so employee can log in immediately
-    const clerkUserId = await ClerkSyncService.provisionUser({
-      email: normalizedEmail,
-      password: assignedPassword,
-      name,
-      employeeCode,
-    });
+    let clerkUserId: string | null = null;
+    try {
+      clerkUserId = await ClerkSyncService.provisionUser({
+        email: normalizedEmail,
+        password: assignedPassword,
+        name,
+        employeeCode,
+      });
+    } catch (clerkErr) {
+      console.warn(`[EmployeeService] Clerk provisioning notice for ${normalizedEmail}:`, clerkErr);
+    }
 
     const employee = await prisma.employee.create({
       data: {
@@ -174,7 +199,7 @@ export class EmployeeService {
 
     const target = await prisma.employee.findUnique({
       where: { id },
-      select: { id: true, role: true, email: true, clerkUserId: true },
+      select: { id: true, role: true, email: true, clerkUserId: true, companyId: true },
     });
 
     if (!target) {
@@ -191,6 +216,26 @@ export class EmployeeService {
 
     if (callerRole === Role.HR && role === 'HR' && target.role !== Role.HR) {
       throw new Error('Unauthorized: Only the CEO can promote employees to HR administrator.');
+    }
+
+    // Caller seat limit check when changing role to BDA
+    if (role === 'BDA' && target.role !== Role.BDA && target.companyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: target.companyId },
+        select: { maxBdas: true },
+      });
+      if (company) {
+        const activeBdaCount = await prisma.employee.count({
+          where: {
+            companyId: target.companyId,
+            role: Role.BDA,
+            isActive: true,
+          },
+        });
+        if (activeBdaCount >= company.maxBdas) {
+          throw new Error(`Cannot change role to BDA: Caller seat limit reached (${activeBdaCount} / ${company.maxBdas} BDAs).`);
+        }
+      }
     }
 
     if (isAllowedCeoEmail(normalizedEmail)) {
@@ -413,7 +458,7 @@ export class EmployeeService {
   ): Promise<boolean> {
     const target = await prisma.employee.findUnique({
       where: { id: employeeId },
-      select: { id: true, role: true, email: true, isActive: true },
+      select: { id: true, role: true, email: true, isActive: true, companyId: true },
     });
 
     if (!target) {
@@ -426,6 +471,26 @@ export class EmployeeService {
 
     if (callerRole === Role.HR && target.role === Role.HR) {
       throw new Error('Unauthorized: HR cannot deactivate other HR administrators.');
+    }
+
+    // If reactivating a deactivated BDA, verify caller seat capacity
+    if (!target.isActive && target.role === Role.BDA && target.companyId) {
+      const company = await prisma.company.findUnique({
+        where: { id: target.companyId },
+        select: { maxBdas: true },
+      });
+      if (company) {
+        const activeBdaCount = await prisma.employee.count({
+          where: {
+            companyId: target.companyId,
+            role: Role.BDA,
+            isActive: true,
+          },
+        });
+        if (activeBdaCount >= company.maxBdas) {
+          throw new Error(`Cannot reactivate BDA: Caller seat limit reached (${activeBdaCount} / ${company.maxBdas} BDAs). Contact administrator to increase caller seats.`);
+        }
+      }
     }
 
     const updated = await prisma.employee.update({
