@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { useClerk } from '@clerk/nextjs';
 
 interface Props {
   initialStats: SuperAdminDashboardStats;
@@ -53,6 +54,7 @@ export default function SuperAdminClientDashboard({
   superAdminEmail,
 }: Props) {
   const router = useRouter();
+  const { signOut } = useClerk();
   const [isPending, startTransition] = useTransition();
 
   const [stats, setStats] = useState(initialStats);
@@ -280,11 +282,24 @@ export default function SuperAdminClientDashboard({
           </div>
           <a
             href="/admin/dashboard"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 hover:bg-slate-800 hover:text-white transition text-xs font-semibold"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 hover:bg-slate-800 hover:text-white transition text-xs font-semibold"
           >
             <Building2 className="w-4 h-4 text-indigo-400" />
-            Primary Workspace
+            <span>Primary Workspace</span>
           </a>
+          <button
+            type="button"
+            onClick={() => {
+              document.cookie = 'heeyaku_dev_session=; path=/; max-age=0;';
+              document.cookie = 'heeyaku_impersonate_company_id=; path=/; max-age=0;';
+              signOut({ redirectUrl: '/sign-in' });
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-500/10 border border-red-500/25 text-red-400 hover:bg-red-500/20 hover:text-red-300 transition text-xs font-semibold cursor-pointer active:scale-95"
+            title="Sign out of Heeyaku Super Admin"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Log Out</span>
+          </button>
         </div>
       </div>
 
