@@ -153,3 +153,70 @@ export function extractEmployeeToken(req: { headers: { get: (name: string) => st
     '';
   return token.replace(/^Bearer\s+/i, '').trim();
 }
+
+export interface DeviceChallengePayload {
+  employeeId: string;
+  email: string;
+  deviceId: string;
+  clerkSignInId: string;
+  type: 'device_challenge';
+  exp: number;
+}
+
+export function signDeviceChallengeToken(
+  data: Omit<DeviceChallengePayload, 'type' | 'exp'>,
+  expiresInMinutes = 15
+): string {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const exp = Math.floor(Date.now() / 1000) + expiresInMinutes * 60;
+  const payload: DeviceChallengePayload = { ...data, type: 'device_challenge', exp };
+
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(payload));
+
+  const secret = getJwtSecret();
+  const signature = crypto
+    .createHmac('sha256', secret)
+    .update(`${encodedHeader}.${encodedPayload}`)
+    .digest('base64')
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  return `${encodedHeader}.${encodedPayload}.${signature}`;
+}
+
+export function verifyDeviceChallengeToken(token: string): DeviceChallengePayload | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+
+    const [encodedHeader, encodedPayload, signature] = parts;
+    const secret = getJwtSecret();
+
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(`${encodedHeader}.${encodedPayload}`)
+      .digest('base64')
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_');
+
+    const sigBuf = Buffer.from(signature, 'utf8');
+    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+
+    if (sigBuf.length !== expectedBuf.length || !crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+      return null;
+    }
+
+    const payload: DeviceChallengePayload = JSON.parse(base64UrlDecode(encodedPayload));
+    if (payload.type !== 'device_challenge') return null;
+
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) return null;
+
+    return payload;
+  } catch {
+    return null;
+  }
+}

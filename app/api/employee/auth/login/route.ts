@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { signEmployeeToken } from '@/lib/auth/employee-token';
+import { signEmployeeToken, signDeviceChallengeToken } from '@/lib/auth/employee-token';
+import { initiateClerkDeviceOtp } from '@/lib/auth/clerk-device-otp';
 import { checkRateLimit, resetRateLimit } from '@/lib/security/rate-limit';
 
 export async function OPTIONS() {
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { identifier, password } = body;
+    const { identifier, password, deviceId, deviceName } = body;
 
     if (!identifier || !password) {
       return NextResponse.json(
@@ -168,6 +169,62 @@ export async function POST(req: NextRequest) {
     // Reset rate limiter on successful authentication
     resetRateLimit(rateLimitKey);
     resetRateLimit(accountRateLimitKey);
+
+    // Device Verification Gate: If deviceId is provided, enforce Clerk OTP on first login from that device
+    if (deviceId) {
+      const cleanDeviceId = String(deviceId).trim();
+      const trustedDevice = await prisma.employeeDevice.findUnique({
+        where: {
+          employeeId_deviceId: {
+            employeeId: employee.id,
+            deviceId: cleanDeviceId,
+          },
+        },
+      });
+
+      // If this device has not been verified yet, trigger Clerk OTP challenge!
+      if (!trustedDevice) {
+        const otpResult = await initiateClerkDeviceOtp(
+          employee.email,
+          employee.name,
+          deviceName ? String(deviceName).trim() : undefined
+        );
+
+        if (!otpResult.success || !otpResult.clerkSignInId) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: otpResult.error || 'Failed to dispatch device verification code via Clerk. Please try again.',
+            },
+            { status: 500 }
+          );
+        }
+
+        const tempToken = signDeviceChallengeToken({
+          employeeId: employee.id,
+          email: employee.email,
+          deviceId: cleanDeviceId,
+          clerkSignInId: otpResult.clerkSignInId,
+        });
+
+        return NextResponse.json({
+          success: true,
+          requiresOtp: true,
+          maskedEmail: otpResult.maskedEmail,
+          tempToken,
+          message: `First-time device login detected. A 6-digit Clerk verification code has been sent to ${otpResult.maskedEmail}.`,
+        });
+      }
+
+      // Device is already trusted - update lastUsedAt
+      await prisma.employeeDevice.update({
+        where: { id: trustedDevice.id },
+        data: {
+          lastUsedAt: new Date(),
+          ...(deviceName ? { deviceName: String(deviceName).trim() } : {}),
+        },
+      });
+    }
 
     const token = signEmployeeToken({
       employeeId: employee.id,

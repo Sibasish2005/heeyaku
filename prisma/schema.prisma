@@ -117,6 +117,7 @@ model Employee {
   leads              Lead[]    @relation("AssignedEmployeeLeads")
   generatedProspects Lead[]    @relation("OriginalBdaProspects")
   callLogs           CallLog[]
+  trustedDevices     EmployeeDevice[]
 
   @@index([employeeCode])
   @@index([email])
@@ -238,4 +239,22 @@ model CallLog {
   @@index([employeeId, connected, startedAt])
   @@index([phoneNumber, connected])
   @@map("call_logs")
+}
+
+model EmployeeDevice {
+  id          String    @id @default(cuid())
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  deviceId    String
+  deviceName  String?
+  ipAddress   String?
+  userAgent   String?
+  verifiedAt  DateTime  @default(now())
+  lastUsedAt  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@unique([employeeId, deviceId])
+  @@index([employeeId])
+  @@index([deviceId])
+  @@map("employee_devices")
 }
