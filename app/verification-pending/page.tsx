@@ -1,6 +1,6 @@
-import { getAuthenticatedUser } from '@/lib/auth/rbac';
+import { getAuthenticatedUser, isSuperAdminEmail } from '@/lib/auth/rbac';
 import { prisma } from '@/lib/prisma';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import VerificationPendingClient from './VerificationPendingClient';
 
@@ -12,10 +12,21 @@ export default async function VerificationPendingPage() {
     redirect('/sign-in');
   }
 
+  // Pre-flight safeguard: Intercept Super Admin before any tenant/onboarding redirect
+  try {
+    const clerkUser = await currentUser();
+    const clerkEmails = clerkUser?.emailAddresses?.map((e) => e.emailAddress.toLowerCase().trim()) || [];
+    if (clerkEmails.some((e) => isSuperAdminEmail(e))) {
+      redirect('/super-admin');
+    }
+  } catch (err: any) {
+    if (err?.digest?.includes('NEXT_REDIRECT')) throw err;
+  }
+
   const user = await getAuthenticatedUser();
 
   // If Super Admin, route directly to the Super Admin governance portal
-  if (user?.isSuperAdmin) {
+  if (user?.isSuperAdmin || isSuperAdminEmail(user?.email)) {
     redirect('/super-admin');
   }
 

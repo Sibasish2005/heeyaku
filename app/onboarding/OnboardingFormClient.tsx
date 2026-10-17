@@ -26,6 +26,7 @@ import {
   verifyOnboardingOtpAction 
 } from './actions';
 import { toast } from 'sonner';
+import { isSuperAdminEmail } from '@/lib/auth/super-admin';
 
 interface OnboardingFormClientProps {
   defaultEmail: string;
@@ -52,6 +53,14 @@ export default function OnboardingFormClient({
 }: OnboardingFormClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  const isSuper = isSuperAdminEmail(defaultEmail);
+
+  useEffect(() => {
+    if (isSuper) {
+      window.location.replace('/super-admin');
+    }
+  }, [isSuper]);
 
   const [companyName, setCompanyName] = useState('');
   const [slug, setSlug] = useState('');
@@ -125,6 +134,10 @@ export default function OnboardingFormClient({
 
   const handleEmailChange = (newEmail: string) => {
     setEmail(newEmail);
+    if (isSuperAdminEmail(newEmail)) {
+      window.location.replace('/super-admin');
+      return;
+    }
     if (otpState.verified || otpState.sent) {
       setOtpState((prev) => ({
         ...prev,
@@ -139,6 +152,11 @@ export default function OnboardingFormClient({
 
   const handleSendOtp = async () => {
     const cleanEmail = email.trim().toLowerCase();
+    if (isSuperAdminEmail(cleanEmail)) {
+      toast.info('Super Admin account detected. Redirecting to governance portal...');
+      window.location.replace('/super-admin');
+      return;
+    }
     if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       setOtpState((prev) => ({ ...prev, error: 'Please enter a valid official email address.' }));
       return;
@@ -302,6 +320,16 @@ export default function OnboardingFormClient({
       }
     });
   };
+
+  if (isSuper) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-2" />
+        <p className="text-sm font-semibold text-slate-200">Super Admin Account Detected</p>
+        <p className="text-xs text-slate-400 mt-1">Routing directly to platform governance portal...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-xl">

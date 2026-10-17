@@ -1,10 +1,10 @@
 import { SignIn } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import Link from "next/link";
 import HeeyakuLogo from "@/components/landingpage/shared/HeeyakuLogo";
-import { getAuthenticatedUser } from "@/lib/auth/rbac";
+import { getAuthenticatedUser, isSuperAdminEmail } from "@/lib/auth/rbac";
 
 /**
  * Validates and sanitizes destination redirect URL against Open Redirect (CWE-601).
@@ -59,8 +59,19 @@ export default async function SignInPage(props: {
 
   // Server-side redirect for standard GET page requests if already authenticated on server
   if (userId && !isServerAction) {
+    // Pre-flight safeguard: Intercept Super Admin before any tenant/onboarding redirect
+    try {
+      const clerkUser = await currentUser();
+      const clerkEmails = clerkUser?.emailAddresses?.map((e) => e.emailAddress.toLowerCase().trim()) || [];
+      if (clerkEmails.some((e) => isSuperAdminEmail(e))) {
+        redirect('/super-admin');
+      }
+    } catch (err: any) {
+      if (err?.digest?.includes('NEXT_REDIRECT')) throw err;
+    }
+
     const user = await getAuthenticatedUser();
-    if (user?.isSuperAdmin) {
+    if (user?.isSuperAdmin || isSuperAdminEmail(user?.email)) {
       redirect('/super-admin');
     }
     if (user?.companyStatus === 'PENDING_VERIFICATION') {

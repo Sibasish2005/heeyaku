@@ -1,7 +1,9 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
-import { auth } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { getAuthenticatedAdmin } from '@/lib/auth/admin';
+import { isSuperAdminEmail } from '@/lib/auth/rbac';
 import AdminShell from '@/components/admin/AdminShell';
 import { Smartphone } from 'lucide-react';
 import { Role } from '@prisma/client';
@@ -21,17 +23,32 @@ export default async function AdminLayout({
     redirect('/sign-in');
   }
 
-  const admin = await getAuthenticatedAdmin();
-
-  // If user has no workspace or employee record yet, send them to onboarding
-  if (!admin) {
-    redirect('/onboarding');
+  // Pre-flight safeguard: Intercept Super Admin before any tenant/onboarding redirect
+  try {
+    const clerkUser = await currentUser();
+    const clerkEmails = clerkUser?.emailAddresses?.map((e) => e.emailAddress.toLowerCase().trim()) || [];
+    if (clerkEmails.some((e) => isSuperAdminEmail(e))) {
+      const cookieStore = await cookies();
+      const isImpersonating = !!cookieStore.get('heeyaku_impersonate_company_id')?.value;
+      if (!isImpersonating) {
+        redirect('/super-admin');
+      }
+    }
+  } catch (err: any) {
+    if (err?.digest?.includes('NEXT_REDIRECT')) throw err;
   }
+
+  const admin = await getAuthenticatedAdmin();
 
   // Platform Super Admins always default to the /super-admin governance portal.
   // They only access tenant /admin routes when actively impersonating a workspace in Ghost Mode.
-  if (admin.isSuperAdmin && !admin.isImpersonating) {
+  if (admin?.isSuperAdmin && !admin.isImpersonating) {
     redirect('/super-admin');
+  }
+
+  // If user has no workspace or employee record yet, send them to onboarding (non-super-admins only)
+  if (!admin) {
+    redirect('/onboarding');
   }
 
   // 1-Click Master Kill-Switch: Block non-super-admin access if company is suspended

@@ -11,6 +11,17 @@ export default async function OnboardingPage() {
     redirect('/sign-in');
   }
 
+  // 0. ABSOLUTE PRE-FLIGHT CHECK: Super Admin must NEVER see onboarding under any circumstances
+  try {
+    const clerkUser = await currentUser();
+    const clerkEmails = clerkUser?.emailAddresses?.map((e) => e.emailAddress.toLowerCase().trim()) || [];
+    if (clerkEmails.some((email) => isSuperAdminEmail(email))) {
+      redirect('/super-admin');
+    }
+  } catch (err: any) {
+    if (err?.digest?.includes('NEXT_REDIRECT')) throw err;
+  }
+
   const user = await getAuthenticatedUser();
 
   // If Super Admin, route directly to the Super Admin governance portal

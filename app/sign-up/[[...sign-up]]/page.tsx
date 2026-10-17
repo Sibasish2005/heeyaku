@@ -1,5 +1,5 @@
 import { SignUp } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import HeeyakuLogo from "@/components/landingpage/shared/HeeyakuLogo";
@@ -8,6 +8,16 @@ import { getAuthenticatedUser, isSuperAdminEmail } from "@/lib/auth/rbac";
 export default async function SignUpPage() {
   const { userId } = await auth();
   if (userId) {
+    try {
+      const clerkUser = await currentUser();
+      const clerkEmails = clerkUser?.emailAddresses?.map((e) => e.emailAddress.toLowerCase().trim()) || [];
+      if (clerkEmails.some((e) => isSuperAdminEmail(e))) {
+        redirect('/super-admin');
+      }
+    } catch (err: any) {
+      if (err?.digest?.includes('NEXT_REDIRECT')) throw err;
+    }
+
     const user = await getAuthenticatedUser();
     if (user?.isSuperAdmin || isSuperAdminEmail(user?.email)) {
       redirect('/super-admin');

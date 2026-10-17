@@ -3,6 +3,8 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { Role, CompanyStatus } from '@prisma/client';
+import { isSuperAdminEmail, DEFAULT_SUPER_ADMIN_EMAIL } from './super-admin';
+export { isSuperAdminEmail, DEFAULT_SUPER_ADMIN_EMAIL };
 
 export interface AuthenticatedUser {
   userId: string;
@@ -43,21 +45,6 @@ interface CachedSession {
 // In-memory cache across navigations to eliminate Clerk + DB roundtrips
 const sessionCache = new Map<string, CachedSession>();
 const SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Validates whether an email address belongs to an App-Level Super Admin
- * specified in environment variable SUPER_ADMIN_EMAILS.
- */
-export function isSuperAdminEmail(email?: string | null): boolean {
-  if (!email) return false;
-  const rawSuperEmails = process.env.SUPER_ADMIN_EMAILS || '';
-  const allowed = rawSuperEmails
-    .split(',')
-    .map((e) => e.trim().replace(/^["']|["']$/g, '').toLowerCase())
-    .filter(Boolean);
-  const normalized = email.toLowerCase().trim();
-  return allowed.includes(normalized);
-}
 
 /**
  * Resolves the currently authenticated user from Clerk session and PostgreSQL DB.
@@ -258,6 +245,30 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') ||
       clerkUser.username ||
       primaryEmail;
+
+    // Platform Super Admin fast-path: Super Admin does not require an employee or company record unless actively impersonating
+    if (isSuper && !impersonateCompanyId) {
+      const superAdminUser: AuthenticatedUser = {
+        userId,
+        email: primaryEmail,
+        name,
+        role: Role.CEO,
+        isRealCeo: true,
+        companyId: null,
+        companyName: null,
+        companySlug: null,
+        companyStatus: null,
+        isSuperAdmin: true,
+        isImpersonating: false,
+      };
+
+      sessionCache.set(cacheKey, {
+        user: superAdminUser,
+        expiresAt: Date.now() + SESSION_TTL_MS,
+      });
+
+      return superAdminUser;
+    }
 
     // Check if user is configured as CEO via ADMIN_EMAIL or company domain wildcard
     if (isAllowedCeoEmail(normalizedEmail)) {
