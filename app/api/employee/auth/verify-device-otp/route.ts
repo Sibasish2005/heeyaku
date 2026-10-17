@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Step 2: Verify the 6-digit code with Clerk
+    // Step 2: Verify the 6-digit code
     const verification = await ClerkSyncService.attemptEmailOtpVerification({
       emailAddressId: challenge.emailAddressId,
       verificationId: challenge.verificationId,
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: verification.error || 'Invalid or expired verification code. Please check your email and try again.',
+          error: 'Invalid or expired verification code. Please try again.',
         },
         { status: 400 }
       );
@@ -91,14 +91,14 @@ export async function POST(req: NextRequest) {
 
     if (!employee || !employee.isActive) {
       return NextResponse.json(
-        { success: false, error: 'Employee account is inactive or not found.' },
+        { success: false, error: 'Account is inactive or not found.' },
         { status: 401 }
       );
     }
 
     if (employee.company && employee.company.status === 'SUSPENDED_BY_ADMIN') {
       return NextResponse.json(
-        { success: false, error: 'Your organization workspace has been suspended.' },
+        { success: false, error: 'Your workspace has been suspended.' },
         { status: 403 }
       );
     }
@@ -151,10 +151,9 @@ export async function POST(req: NextRequest) {
         teamId: employee.teamId,
       },
     });
-  } catch (error) {
-    console.error('Device OTP verification error:', error);
+  } catch {
     return NextResponse.json(
-      { success: false, error: 'Internal server error during device verification.' },
+      { success: false, error: 'Unable to complete verification. Please try again.' },
       { status: 500 }
     );
   }

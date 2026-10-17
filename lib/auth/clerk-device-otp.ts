@@ -89,8 +89,7 @@ export async function initiateClerkDeviceOtp(
 
     const prepData = await prepRes.json();
     if (prepRes.status >= 400 || prepData.errors?.length) {
-      const errMsg = prepData.errors?.[0]?.message || 'Failed to dispatch Clerk OTP email.';
-      throw new Error(errMsg);
+      throw new Error('Verification challenge dispatch failed.');
     }
 
     return {
@@ -98,18 +97,17 @@ export async function initiateClerkDeviceOtp(
       clerkSignInId: signInId,
       maskedEmail: emailFactor.safe_identifier ? maskEmail(emailFactor.safe_identifier) : masked,
     };
-  } catch (err: any) {
-    console.error('[ClerkDeviceOTP] Error initiating Clerk OTP:', err?.message || err);
+  } catch {
     return {
       success: false,
       maskedEmail: masked,
-      error: err?.message || 'Failed to dispatch Clerk verification OTP.',
+      error: 'Unable to send verification code. Please try again.',
     };
   }
 }
 
 /**
- * Verifies the 6-digit OTP code against Clerk's verification engine.
+ * Verifies the 6-digit OTP code against verification engine.
  */
 export async function verifyClerkDeviceOtp(
   clerkSignInId: string,
@@ -134,11 +132,9 @@ export async function verifyClerkDeviceOtp(
     const verifyData = await verifyRes.json();
 
     if (verifyRes.status >= 400 || verifyData.errors?.length) {
-      const clerkErr = verifyData.errors?.[0];
-      const message = clerkErr?.message || 'Incorrect verification code. Please check and try again.';
       return {
         verified: false,
-        error: message,
+        error: 'Invalid or expired verification code. Please try again.',
       };
     }
 
@@ -149,13 +145,13 @@ export async function verifyClerkDeviceOtp(
 
     return {
       verified: false,
-      error: 'Verification was not completed. Please request a new code.',
+      error: 'Verification could not be completed. Please request a new code.',
     };
-  } catch (err: any) {
-    console.error('[ClerkDeviceOTP] Error verifying Clerk OTP:', err?.message || err);
+  } catch {
     return {
       verified: false,
-      error: err?.message || 'Could not reach Clerk authentication server.',
+      error: 'Unable to reach verification service. Please try again.',
     };
   }
 }
+

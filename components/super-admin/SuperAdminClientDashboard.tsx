@@ -248,13 +248,6 @@ export default function SuperAdminClientDashboard({
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Live Systems
             </span>
-            <a
-              href="/admin/dashboard"
-              className="flex items-center gap-1.5 px-3 py-1 rounded-xl border border-border bg-card text-foreground hover:bg-muted/60 transition text-xs font-semibold shadow-2xs"
-            >
-              <Building2 className="w-3.5 h-3.5 text-[#2563EB]" />
-              <span>Primary Workspace</span>
-            </a>
           </div>
         </div>
 

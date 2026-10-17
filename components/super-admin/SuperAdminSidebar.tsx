@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Building2,
-  LayoutDashboard,
   ShieldAlert,
   Home,
   ArrowUpRight,
@@ -40,12 +39,6 @@ export default function SuperAdminSidebar({
       href: '/super-admin',
       icon: Building2,
       badge: pendingCount > 0 ? `${pendingCount} pending` : null,
-    },
-    {
-      label: 'Primary Workspace',
-      href: '/admin/dashboard',
-      icon: LayoutDashboard,
-      badge: null,
     },
   ];
 

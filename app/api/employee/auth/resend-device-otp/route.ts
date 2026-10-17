@@ -82,14 +82,14 @@ export async function POST(req: NextRequest) {
       success: true,
       tempToken: newTempToken,
       maskedEmail: masked,
-      message: `A new 6-digit Clerk verification code has been sent to ${masked}.`,
+      message: `A new 6-digit verification code has been sent to ${masked}.`,
     });
-  } catch (error: any) {
-    console.error('Resend device OTP error:', error);
+  } catch {
     return NextResponse.json(
-      { success: false, error: error?.message || 'Failed to resend verification code via Clerk.' },
+      { success: false, error: 'Unable to resend verification code. Please try again.' },
       { status: 500 }
     );
   }
 }
+
 

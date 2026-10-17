@@ -109,14 +109,14 @@ export async function POST(req: NextRequest) {
 
     if (!employee) {
       return NextResponse.json(
-        { success: false, error: 'Invalid Employee ID or password.' },
+        { success: false, error: 'Invalid credentials. Please verify and try again.' },
         { status: 401 }
       );
     }
 
     let isMatch = false;
 
-    // Step 1: Verify credentials with Clerk Backend API if clerkUserId is linked
+    // Step 1: Verify credentials with authentication service if user is linked
     if (employee.clerkUserId && process.env.CLERK_SECRET_KEY) {
       try {
         const { clerkClient } = await import('@clerk/nextjs/server');
@@ -128,19 +128,19 @@ export async function POST(req: NextRequest) {
         if (verification?.verified) {
           isMatch = true;
         }
-      } catch (clerkErr) {
-        // Fall back to bcrypt if Clerk throws on network/sync edge cases
+      } catch {
+        // Fall through to hash verification
       }
     }
 
-    // Step 2: Fall back to local database bcrypt hash
+    // Step 2: Fall back to local hash
     if (!isMatch) {
       isMatch = await bcrypt.compare(password, employee.passwordHash);
     }
 
     if (!isMatch || !employee.isActive) {
       return NextResponse.json(
-        { success: false, error: 'Invalid Employee ID/Email or password.' },
+        { success: false, error: 'Invalid credentials. Please verify and try again.' },
         { status: 401 }
       );
     }
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Your organization workspace has been suspended by the platform administrator. Access is temporarily restricted.',
+          error: 'Your workspace has been suspended by the platform administrator. Access is temporarily restricted.',
         },
         { status: 403 }
       );
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Mobile app access is restricted to Business Development Associates (BDA). For administrative or team lead access, please log in via the Web Portal.',
+          error: 'Mobile app access is restricted to Business Development Associates (BDA).',
         },
         { status: 403 }
       );
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
     resetRateLimit(rateLimitKey);
     resetRateLimit(accountRateLimitKey);
 
-    // Device Verification Gate: If deviceId is provided, enforce Clerk OTP on first login from that device
+    // Device Verification Gate: If deviceId is provided, enforce OTP on first login from that device
     if (deviceId) {
       const cleanDeviceId = String(deviceId).trim();
       const trustedDevice = await prisma.employeeDevice.findUnique({
@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // If this device has not been verified yet, trigger Clerk OTP challenge!
+      // If this device has not been verified yet, trigger verification code challenge!
       if (!trustedDevice) {
         try {
           const prep = await ClerkSyncService.prepareEmailOtpVerification({
@@ -206,14 +206,13 @@ export async function POST(req: NextRequest) {
             requiresOtp: true,
             maskedEmail: masked,
             tempToken,
-            message: `First-time device login detected. A 6-digit Clerk verification code has been sent to ${masked}.`,
+            message: `First-time device login detected. A 6-digit verification code has been sent to ${masked}.`,
           });
-        } catch (clerkErr: any) {
-          console.error('[EmployeeLogin] Clerk OTP dispatch failed:', clerkErr?.message || clerkErr);
+        } catch {
           return NextResponse.json(
             {
               success: false,
-              error: clerkErr?.message || 'Failed to dispatch device verification code via Clerk. Please try again.',
+              error: 'Unable to send verification code. Please try again.',
             },
             { status: 500 }
           );
@@ -252,10 +251,9 @@ export async function POST(req: NextRequest) {
         teamId: employee.teamId,
       },
     });
-  } catch (error) {
-    console.error('Employee login error:', error);
+  } catch {
     return NextResponse.json(
-      { success: false, error: 'Internal server error occurred during login.' },
+      { success: false, error: 'Unable to process login. Please try again.' },
       { status: 500 }
     );
   }
