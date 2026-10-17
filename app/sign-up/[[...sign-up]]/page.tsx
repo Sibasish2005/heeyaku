@@ -1,8 +1,26 @@
 import { SignUp } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import HeeyakuLogo from "@/components/landingpage/shared/HeeyakuLogo";
+import { getAuthenticatedUser, isSuperAdminEmail } from "@/lib/auth/rbac";
 
-export default function SignUpPage() {
+export default async function SignUpPage() {
+  const { userId } = await auth();
+  if (userId) {
+    const user = await getAuthenticatedUser();
+    if (user?.isSuperAdmin || isSuperAdminEmail(user?.email)) {
+      redirect('/super-admin');
+    }
+    if (user?.companyStatus === 'ACTIVE') {
+      redirect('/admin/dashboard');
+    }
+    if (user?.companyStatus === 'PENDING_VERIFICATION') {
+      redirect('/verification-pending');
+    }
+    redirect('/onboarding');
+  }
+
   return (
     <main className="min-h-dvh w-full bg-background flex flex-col justify-center items-center p-4 sm:p-6 selection:bg-[#2563EB] selection:text-white">
       {/* Brand Header */}
@@ -26,7 +44,7 @@ export default function SignUpPage() {
           path="/sign-up"
           routing="path"
           signInUrl="/sign-in"
-          fallbackRedirectUrl="/onboarding"
+          fallbackRedirectUrl="/admin"
         />
       </div>
     </main>

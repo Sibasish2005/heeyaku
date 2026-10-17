@@ -1,4 +1,4 @@
-import { getAuthenticatedUser } from '@/lib/auth/rbac';
+import { getAuthenticatedUser, isSuperAdminEmail } from '@/lib/auth/rbac';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import OnboardingFormClient from './OnboardingFormClient';
@@ -14,7 +14,7 @@ export default async function OnboardingPage() {
   const user = await getAuthenticatedUser();
 
   // If Super Admin, route directly to the Super Admin governance portal
-  if (user?.isSuperAdmin) {
+  if (user?.isSuperAdmin || isSuperAdminEmail(user?.email)) {
     redirect('/super-admin');
   }
 
@@ -51,6 +51,11 @@ export default async function OnboardingPage() {
     } catch {
       // Non-critical fallback
     }
+  }
+
+  // Fail-safe: If resolved Clerk email belongs to Super Admin, route directly to governance portal
+  if (isSuperAdminEmail(defaultEmail)) {
+    redirect('/super-admin');
   }
 
   return (
