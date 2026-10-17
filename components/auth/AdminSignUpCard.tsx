@@ -111,7 +111,7 @@ export default function AdminSignUpCard() {
             <input
               type="email"
               required
-              placeholder="subhra1234c@gmail.com"
+              placeholder="admin@yourcompany.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-xs bg-muted/40 focus:bg-background border border-border focus:border-[#2563EB] text-foreground rounded-xl outline-hidden transition-colors placeholder:text-muted-foreground"

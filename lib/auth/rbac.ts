@@ -3,8 +3,8 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { Role, CompanyStatus } from '@prisma/client';
-import { isSuperAdminEmail, DEFAULT_SUPER_ADMIN_EMAIL } from './super-admin';
-export { isSuperAdminEmail, DEFAULT_SUPER_ADMIN_EMAIL };
+import { isSuperAdminEmail } from './super-admin';
+export { isSuperAdminEmail };
 
 export interface AuthenticatedUser {
   userId: string;
