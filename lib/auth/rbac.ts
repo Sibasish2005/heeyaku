@@ -463,10 +463,44 @@ export const assertAuthenticatedUser = cache(async (): Promise<AuthenticatedUser
  */
 export const assertSuperAdmin = cache(async (): Promise<AuthenticatedUser> => {
   const user = await getAuthenticatedUser();
-  if (!user || !user.isSuperAdmin) {
-    throw new AuthorizationError('Access denied. Super Admin privileges required.', 403);
+  if (user?.isSuperAdmin) {
+    return user;
   }
-  return user;
+
+  // Direct Clerk identity fallback: guarantee Super Admin access by verified email
+  const { userId } = await auth();
+  if (userId) {
+    try {
+      const clerkUser = await currentUser();
+      const clerkEmails = clerkUser?.emailAddresses?.map((e) => e.emailAddress.toLowerCase().trim()) || [];
+      if (clerkEmails.some((e) => isSuperAdminEmail(e))) {
+        const primaryEmail =
+          clerkUser?.emailAddresses.find((e) => e.id === clerkUser.primaryEmailAddressId)?.emailAddress ||
+          clerkEmails[0] ||
+          '';
+        const name =
+          [clerkUser?.firstName, clerkUser?.lastName].filter(Boolean).join(' ') ||
+          clerkUser?.username ||
+          primaryEmail;
+
+        const authSuperUser: AuthenticatedUser = {
+          userId,
+          email: primaryEmail,
+          name,
+          role: Role.CEO,
+          isRealCeo: true,
+          isSuperAdmin: true,
+          isImpersonating: false,
+        };
+
+        return authSuperUser;
+      }
+    } catch {
+      // Non-blocking fallback
+    }
+  }
+
+  throw new AuthorizationError('Access denied. Super Admin privileges required.', 403);
 });
 
 /**
