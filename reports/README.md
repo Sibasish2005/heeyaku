@@ -1,6 +1,6 @@
-# HEEYAKU — Production Architecture & Audit Reports (Stages 1 – 4)
+# HEEYAKU — Production Architecture & Audit Reports (Stages 1 – 5)
 
-This directory contains the complete, authoritative documentation, security audits, and verification reports for the HEEYAKU CRM and Telephony platform across Stages 1 through 4.
+This directory contains the authoritative documentation, security audits, verification reports, and target migration architectures for the HEEYAKU CRM and Telephony platform across Stages 1 through 5.
 
 ---
 
@@ -13,37 +13,57 @@ This directory contains the complete, authoritative documentation, security audi
 | [**Stage 3: Lead Pipeline & Integrations**](file:///c:/Users/sibas/OneDrive/Desktop/Heeyaku%20Project/heeyaku/reports/STAGE_3_LEAD_PIPELINE_INTEGRATIONS_REPORT.md) | **Stage 3** | External API lead ingestion, Google Sheets two-way sync, connected-call KPI disposition gating (talk time > 0s), prospect promotion, cross-squad transfer, ExcelJS/PapaParse export. | **VERIFIED** |
 | [**Stage 4: Production Hardening & Security**](file:///c:/Users/sibas/OneDrive/Desktop/Heeyaku%20Project/heeyaku/reports/STAGE_4_PRODUCTION_HARDENING_VERIFICATION_REPORT.md) | **Stage 4** | Complete synthesis of Stages 4.1 – 4.8.4: CWE-209 sanitization, ingress anti-spoofing, distributed rate limiting with $0 in-memory fallback, timing-safe nonce purge, 5-layer restore isolation, off-server AES-256 replication. | **VERIFIED** |
 | [**Stage 4.8.3 & 4.8.4 Deployment & Release Gate**](file:///c:/Users/sibas/OneDrive/Desktop/Heeyaku%20Project/heeyaku/reports/STAGE_4_8_3_REPORT.md) | **Stage 4.8.3 / 4.8.4** | Detailed deployment ingress configuration, Vercel cron registration, backup & recovery runbooks, automated test outputs, and operator release checklist. | **PARTIAL** (Pending Operator Actions) |
+| [**Stage 4.8.5: Operational Release Gate Closure**](file:///c:/Users/sibas/OneDrive/Desktop/Heeyaku%20Project/heeyaku/reports/STAGE_4_8_5_OPERATIONAL_RELEASE_GATE_CLOSURE_REPORT.md) | **Stage 4.8.5** | Assessment of code/debugging completeness, 5-layer restore drill safety, and exact runbook for the 3 remaining operator steps. | **PARTIAL** (Pending Operator Actions) |
+| [**Stage 5: Decoupled Architecture Migration Plan**](file:///c:/Users/sibas/OneDrive/Desktop/Heeyaku%20Project/heeyaku/reports/STAGE_5_DECOUPLED_ARCHITECTURE_MIGRATION_PLAN.md) | **Stage 5 (Target)** | Cloudflare Pages (Frontend) + AWS API Gateway / Lambda (Backend) migration plan, converting 52 Server Actions & 15 API routes, PgBouncer setup, Clerk auth, and Cloudflare R2 APK distribution. | **ARCHITECTED** (Ready for Execution) |
 
 ---
 
-## 🛡️ Overall System Architecture
+## 🛡️ Current vs. Target Deployment Architecture
 
+### Current Deployment (Stage 4)
+- **Monolith:** Next.js 16.4.2 App Router on Vercel Edge/Serverless.
+- **Database:** Self-Hosted PostgreSQL server.
+- **Mobile:** React Native / Kotlin app calling Vercel `/api/employee/*`.
+- **Scheduled Jobs:** Vercel Cron invoking `/api/cron/cleanup-nonces`.
+
+### Target Decoupled Deployment (Stage 5)
 ```mermaid
 graph TD
-    Client[Web & Mobile Clients] --> Ingress[Vercel Edge / Ingress Defense]
-    Ingress --> Middleware[RBAC & Rate Limiting Engine]
-    Middleware --> AppRouter[Next.js App Router API & Server Actions]
-    AppRouter --> Prisma[Prisma ORM 6.19.3]
-    Prisma --> DB[(Self-Hosted PostgreSQL)]
-    
-    Mobile[Android CallTracker App] --> Telemetry[Telephony Native Module]
-    Telemetry --> SQLite[(Offline SQLite FIFO Queue)]
-    SQLite --> CallSyncAPI[/api/employee/calls/sync]
-    CallSyncAPI --> Prisma
+    subgraph Clients
+        Web[Web Browser / CRM Users]
+        Mobile[Android CallTracker App]
+    end
 
-    Cron[Vercel Daily Cron: 02:00 UTC] --> NoncePurge[/api/cron/cleanup-nonces]
-    NoncePurge --> DB
+    subgraph Cloudflare
+        CFPages[Cloudflare Pages: Static UI / Edge SSR]
+        R2[Cloudflare R2 Bucket: APK Distribution]
+    end
 
-    DB --> Backup[scripts/backup-db.sh]
-    Backup --> Encrypt[scripts/replicate-backup.sh]
-    Encrypt --> R2[(Cloudflare R2 / AWS S3)]
+    subgraph AWS
+        APIGW[AWS API Gateway: HTTPS Routing, CORS, Throttling]
+        Lambda[AWS Lambda: Micro-handlers / Container Functions]
+    end
+
+    subgraph Database Host
+        PgBouncer[PgBouncer Connection Pooler]
+        Postgres[(Self-Hosted PostgreSQL)]
+    end
+
+    Web -->|Static Assets & HTML| CFPages
+    Web -->|Authenticated REST Calls| APIGW
+    Mobile -->|Download APK| R2
+    Mobile -->|Telephony Sync & Auth| APIGW
+
+    APIGW --> Lambda
+    Lambda -->|Port 5432 / SSL| PgBouncer
+    PgBouncer --> Postgres
 ```
 
 ---
 
 ## 🚀 Pre-Production Operator Checklist
 
-To transition the release gate from **PARTIAL** to **PASS**, execute the 3 operational steps detailed in [Stage 4.8.3 Report Section 8](file:///c:/Users/sibas/OneDrive/Desktop/Heeyaku%20Project/heeyaku/reports/STAGE_4_8_3_REPORT.md#8-operator-actions-required-for-final-production-release):
+To transition the release gate from **PARTIAL** to **PASS**, execute the 3 operational steps detailed in [Stage 4.8.5 Report Section 3](file:///c:/Users/sibas/OneDrive/Desktop/Heeyaku%20Project/heeyaku/reports/STAGE_4_8_5_OPERATIONAL_RELEASE_GATE_CLOSURE_REPORT.md#3-operator-execution-runbook):
 1. **Set `CRON_SECRET`:** Add the variable in Vercel Project Settings > Environment Variables.
 2. **Run Restore Drill:** Execute `./scripts/restore-drill.sh <DUMP_PATH> heeyaku_drill_temp` on the PostgreSQL server.
 3. **Configure Offsite Backup:** Configure `R2_BACKUP_BUCKET` and `BACKUP_ENCRYPTION_KEY` on the database server.
