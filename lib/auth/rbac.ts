@@ -17,7 +17,6 @@ export interface AuthenticatedUser {
   ledTeamId?: string | null;
   ledTeamName?: string | null;
   isRealCeo?: boolean;
-  simulatedRole?: Role | null;
   companyId?: string | null;
   companyName?: string | null;
   companySlug?: string | null;
@@ -48,9 +47,9 @@ const SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Resolves the currently authenticated user from Clerk session and PostgreSQL DB.
- * Checks for Root CEO status in ADMIN_EMAIL environment variable, checks for
- * CEO developer role simulation cookie ('heeyaku_simulated_role'), matches employee record,
+ * Checks for Root CEO status in ADMIN_EMAIL environment variable, matches employee record,
  * and caches results in-memory with a 5-minute TTL.
+ * Roles are strictly constant per email/account with no simulation overrides.
  *
  * @returns {Promise<AuthenticatedUser | null>} The authenticated profile or null if unauthenticated
  */
@@ -60,9 +59,8 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
     if (!userId) return null;
 
     const cookieStore = await cookies();
-    const simulatedRoleValue = cookieStore.get('heeyaku_simulated_role')?.value;
     const impersonateCompanyId = cookieStore.get('heeyaku_impersonate_company_id')?.value;
-    const cacheKey = `${userId}:${simulatedRoleValue || 'DEFAULT'}:${impersonateCompanyId || 'NONE'}`;
+    const cacheKey = `${userId}:${impersonateCompanyId || 'NONE'}`;
 
     if (sessionCache.size > 1000) {
       const now = Date.now();
@@ -113,26 +111,12 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
         }
       }
 
-      let effectiveRole = isConfiguredCeo ? Role.CEO : dbEmployee.role;
+      const effectiveRole = isConfiguredCeo ? Role.CEO : dbEmployee.role;
 
-      let effectiveTeamId: string | null = dbEmployee.teamId;
-      let effectiveTeamName: string | null = dbEmployee.teamGroup?.name || null;
-      let effectiveLedTeamId: string | null = dbEmployee.ledTeam?.id || null;
-      let effectiveLedTeamName: string | null = dbEmployee.ledTeam?.name || null;
-
-      if (isConfiguredCeo && simulatedRoleValue && ['HR', 'TEAM_LEAD', 'BDA'].includes(simulatedRoleValue)) {
-        effectiveRole = simulatedRoleValue as Role;
-        if (effectiveRole === Role.TEAM_LEAD) {
-          const firstTeam = await prisma.team.findFirst({
-            where: dbEmployee.companyId ? { companyId: dbEmployee.companyId } : {},
-            orderBy: { name: 'asc' },
-          });
-          effectiveTeamId = firstTeam?.id || null;
-          effectiveTeamName = firstTeam?.name || null;
-          effectiveLedTeamId = firstTeam?.id || null;
-          effectiveLedTeamName = firstTeam?.name || null;
-        }
-      }
+      const effectiveTeamId: string | null = dbEmployee.teamId;
+      const effectiveTeamName: string | null = dbEmployee.teamGroup?.name || null;
+      const effectiveLedTeamId: string | null = dbEmployee.ledTeam?.id || null;
+      const effectiveLedTeamName: string | null = dbEmployee.ledTeam?.name || null;
 
       // Resolve company details & trial expiration
       let effectiveCompany = dbEmployee.company;
@@ -163,7 +147,6 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
         name: dbEmployee.name,
         role: effectiveRole,
         isRealCeo: isConfiguredCeo,
-        simulatedRole: isConfiguredCeo && effectiveRole !== Role.CEO ? effectiveRole : null,
         employeeId: dbEmployee.id,
         teamId: effectiveTeamId,
         teamName: effectiveTeamName,
@@ -285,18 +268,9 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
 
     // Check if user is configured as CEO via ADMIN_EMAIL or company domain wildcard
     if (isAllowedCeoEmail(normalizedEmail)) {
-      let effectiveRole: Role = Role.CEO;
-      let effectiveTeamId: string | null = null;
-      let effectiveTeamName: string | null = null;
-
-      if (simulatedRoleValue && ['HR', 'TEAM_LEAD', 'BDA'].includes(simulatedRoleValue)) {
-        effectiveRole = simulatedRoleValue as Role;
-        if (effectiveRole === Role.TEAM_LEAD) {
-          const firstTeam = await prisma.team.findFirst({ orderBy: { name: 'asc' } });
-          effectiveTeamId = firstTeam?.id || null;
-          effectiveTeamName = firstTeam?.name || null;
-        }
-      }
+      const effectiveRole: Role = Role.CEO;
+      const effectiveTeamId: string | null = null;
+      const effectiveTeamName: string | null = null;
 
       // Link clerkUserId in database if matching employee record exists
       const existingEmployee = await prisma.employee.findFirst({
@@ -337,7 +311,6 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
         name,
         role: effectiveRole,
         isRealCeo: true,
-        simulatedRole: effectiveRole !== Role.CEO ? effectiveRole : null,
         employeeId: existingEmployee?.id,
         teamId: effectiveTeamId,
         teamName: effectiveTeamName,
@@ -436,7 +409,6 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       name: employee.name || name,
       role: effectiveRole,
       isRealCeo: isConfiguredCeo,
-      simulatedRole: isConfiguredCeo && effectiveRole !== Role.CEO ? effectiveRole : null,
       employeeId: employee.id,
       teamId: employee.teamId,
       teamName: employee.teamGroup?.name || null,

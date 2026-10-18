@@ -274,8 +274,7 @@ Heeyaku uses two distinct authentication mechanisms tailored to different client
 │ Client Browser ➔ Clerk SDK ➔ Clerk JWT Cookie ➔ proxy.ts ➔ getAuthenticatedUser()       │
 │ • Validates Clerk session.                                                             │
 │ • Matches PostgreSQL Employee record via clerkUserId or email.                        │
-│ • Resolves Role (CEO, HR, TEAM_LEAD).                                                 │
-│ • Checks CEO developer role simulation cookie (heeyaku_simulated_role).                │
+│ • Resolves Role (CEO, HR, TEAM_LEAD, BDA) strictly constant per account/email.        │
 │ • Caches resolved session in-memory for 5 minutes (invalidated on account mutation).    │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 
