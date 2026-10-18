@@ -44,9 +44,18 @@ const DASHBOARD_CACHE_TTL_MS = 25 * 1000; // 25 seconds fast cache
 /**
  * Manually busts the in-memory dashboard metric cache when a mutation
  * (create lead, update status, change assignment, add employee) occurs.
+ * Supports targeted invalidation by companyId.
  */
-export function invalidateDashboardMetricsCache(): void {
-  metricsCacheMap.clear();
+export function invalidateDashboardMetricsCache(companyId?: string | null): void {
+  if (companyId) {
+    for (const key of metricsCacheMap.keys()) {
+      if (key.startsWith(`${companyId}:`)) {
+        metricsCacheMap.delete(key);
+      }
+    }
+  } else {
+    metricsCacheMap.clear();
+  }
 }
 
 /**
@@ -65,8 +74,13 @@ export function invalidateDashboardMetricsCache(): void {
  * - `topPerformerToday`: Top performing staff member for the current day
  * - `topPerformerThisMonth`: Top performing staff member for the current month
  */
-export async function getDashboardMetrics(teamId?: string | null): Promise<DashboardMetricsResult> {
-  const cacheKey = teamId || '__global__';
+export async function getDashboardMetrics(
+  teamId?: string | null,
+  companyId?: string | null,
+  isSuperAdmin: boolean = false
+): Promise<DashboardMetricsResult> {
+  const effectiveCompanyId = isSuperAdmin ? (companyId || '__superadmin_global__') : (companyId || '__no_company__');
+  const cacheKey = `${effectiveCompanyId}:${teamId || '__global__'}`;
   const now = Date.now();
   const cached = metricsCacheMap.get(cacheKey);
   if (cached && now < cached.expiresAt) {
@@ -80,8 +94,18 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
   const startOfMonth = new Date(`${yearStr}-${monthStr}-01T00:00:00.000+05:30`);
 
   try {
-    const leadTeamFilter = teamId ? { teamId } : {};
-    const employeeTeamFilter = teamId ? { teamId } : {};
+    const companyLeadFilter = !isSuperAdmin
+      ? { companyId: companyId || '__NO_COMPANY__' }
+      : (companyId ? { companyId } : {});
+    const companyEmployeeFilter = !isSuperAdmin
+      ? { companyId: companyId || '__NO_COMPANY__' }
+      : (companyId ? { companyId } : {});
+    const companyCallFilter = !isSuperAdmin
+      ? { employee: { companyId: companyId || '__NO_COMPANY__' } }
+      : (companyId ? { employee: { companyId } } : {});
+
+    const leadTeamFilter = teamId ? { teamId, ...companyLeadFilter } : companyLeadFilter;
+    const employeeTeamFilter = teamId ? { teamId, ...companyEmployeeFilter } : companyEmployeeFilter;
 
     const [
       todayStatusCounts,
@@ -220,6 +244,7 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
           connected: true,
           durationSeconds: { gt: 0 },
           startedAt: { gte: startOfToday },
+          ...companyCallFilter,
         },
         _count: { _all: true },
       }),
@@ -229,6 +254,7 @@ export async function getDashboardMetrics(teamId?: string | null): Promise<Dashb
           connected: true,
           durationSeconds: { gt: 0 },
           startedAt: { gte: startOfMonth },
+          ...companyCallFilter,
         },
         _count: { _all: true },
       }),

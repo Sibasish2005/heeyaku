@@ -98,11 +98,14 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
       if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
         const employee = await prisma.employee.findUnique({
           where: { id: assignedEmployeeId },
-          select: { id: true, isActive: true, teamId: true, role: true },
+          select: { id: true, isActive: true, teamId: true, role: true, companyId: true },
         });
 
         if (!employee) {
           return { success: false, error: 'Selected employee does not exist.' };
+        }
+        if (!admin.isSuperAdmin && (!admin.companyId || employee.companyId !== admin.companyId)) {
+          return { success: false, error: 'Unauthorized: Selected employee belongs to another organization.' };
         }
         if (!employee.isActive) {
           return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
@@ -121,10 +124,13 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
       if (teamId && teamId.trim() !== '') {
         const team = await prisma.team.findUnique({
           where: { id: teamId },
-          select: { id: true },
+          select: { id: true, companyId: true },
         });
         if (!team) {
           return { success: false, error: 'Selected squad was not found.' };
+        }
+        if (!admin.isSuperAdmin && (!admin.companyId || team.companyId !== admin.companyId)) {
+          return { success: false, error: 'Unauthorized: Selected squad belongs to another organization.' };
         }
         if (!targetEmployeeId) {
           targetTeamId = team.id;
@@ -157,6 +163,10 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
       }
     }
 
+    if (!admin.isSuperAdmin && !admin.companyId) {
+      return { success: false, error: 'Unauthorized: No active organization associated with administrator account.' };
+    }
+
     const leadCode = await generateNextLeadCode();
     const phoneDigits = toLast10Digits(phoneNumber);
 
@@ -171,6 +181,7 @@ export async function createLeadAction(input: unknown): Promise<ActionResponse<{
         source: source?.trim() || 'MANUAL',
         status: initialStatus,
         notes: notes?.trim() || null,
+        companyId: admin.companyId || null,
         teamId: targetTeamId || null,
         assignedEmployeeId: targetEmployeeId,
         assignedAt,
@@ -234,6 +245,7 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
       where: { id },
       select: {
         id: true,
+        companyId: true,
         assignedEmployeeId: true,
         status: true,
         teamId: true,
@@ -245,6 +257,12 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
 
     if (!existing) {
       return { success: false, error: 'Lead not found.' };
+    }
+
+    if (!admin.isSuperAdmin) {
+      if (!admin.companyId || existing.companyId !== admin.companyId) {
+        return { success: false, error: 'Unauthorized: Cannot modify a lead belonging to another organization.' };
+      }
     }
 
     if (admin.role === Role.TEAM_LEAD && existing.teamId !== tlTeamId && existing.assignedEmployeeId !== admin.employeeId) {
@@ -260,11 +278,14 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
       if (assignedEmployeeId && assignedEmployeeId.trim() !== '' && assignedEmployeeId !== existing.assignedEmployeeId) {
         const employee = await prisma.employee.findUnique({
           where: { id: assignedEmployeeId },
-          select: { id: true, isActive: true, teamId: true, role: true },
+          select: { id: true, isActive: true, teamId: true, role: true, companyId: true },
         });
 
         if (!employee) {
           return { success: false, error: 'Selected employee does not exist.' };
+        }
+        if (!admin.isSuperAdmin && (!admin.companyId || employee.companyId !== admin.companyId)) {
+          return { success: false, error: 'Unauthorized: Selected employee belongs to another organization.' };
         }
         if (!employee.isActive) {
           return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
@@ -294,11 +315,14 @@ export async function updateLeadAction(input: unknown): Promise<ActionResponse> 
       if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
         const employee = await prisma.employee.findUnique({
           where: { id: assignedEmployeeId },
-          select: { id: true, isActive: true, teamId: true, role: true },
+          select: { id: true, isActive: true, teamId: true, role: true, companyId: true },
         });
 
         if (!employee) {
           return { success: false, error: 'Selected employee does not exist.' };
+        }
+        if (!admin.isSuperAdmin && (!admin.companyId || employee.companyId !== admin.companyId)) {
+          return { success: false, error: 'Unauthorized: Selected employee belongs to another organization.' };
         }
         if (!employee.isActive) {
           return { success: false, error: 'Cannot assign leads to a deactivated employee.' };
@@ -411,11 +435,17 @@ export async function deleteLeadAction(id: string): Promise<ActionResponse> {
     const tlTeamId = admin.role === Role.TEAM_LEAD ? (admin.ledTeamId || admin.teamId || null) : null;
     const lead = await prisma.lead.findUnique({
       where: { id },
-      select: { id: true, assignedEmployeeId: true, teamId: true },
+      select: { id: true, companyId: true, assignedEmployeeId: true, teamId: true },
     });
 
     if (!lead) {
       return { success: false, error: 'Lead not found.' };
+    }
+
+    if (!admin.isSuperAdmin) {
+      if (!admin.companyId || lead.companyId !== admin.companyId) {
+        return { success: false, error: 'Unauthorized: Cannot delete a lead belonging to another organization.' };
+      }
     }
 
     if (admin.role === Role.TEAM_LEAD && (!tlTeamId || lead.teamId !== tlTeamId)) {

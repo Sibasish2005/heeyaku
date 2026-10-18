@@ -77,7 +77,7 @@ export async function validateAndPreviewImportAction(
   }>
 ): Promise<ActionResponse<ImportPreviewResult>> {
   try {
-    await assertAdminAccess();
+    const admin = await assertAdminAccess();
 
     if (!Array.isArray(rows) || rows.length === 0) {
       return { success: false, error: 'No data rows provided for import.' };
@@ -161,6 +161,7 @@ export async function validateAndPreviewImportAction(
       const existingLeads = await prisma.lead.findMany({
         where: {
           phoneNumber: { in: phoneChunk },
+          ...(!admin.isSuperAdmin ? { companyId: admin.companyId || '__NO_COMPANY__' } : {}),
         },
         select: {
           leadCode: true,
@@ -255,10 +256,13 @@ export async function executeImportAction(input: {
       if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
         const employee = await prisma.employee.findUnique({
           where: { id: assignedEmployeeId },
-          select: { id: true, name: true, employeeCode: true, isActive: true, teamId: true, role: true },
+          select: { id: true, name: true, employeeCode: true, isActive: true, teamId: true, role: true, companyId: true },
         });
         if (!employee) {
           return { success: false, error: 'Selected employee not found.' };
+        }
+        if (!admin.isSuperAdmin && admin.companyId && employee.companyId !== admin.companyId) {
+          return { success: false, error: 'Unauthorized: Selected employee belongs to another organization.' };
         }
         if (!employee.isActive) {
           return { success: false, error: 'Cannot assign imported leads to a deactivated employee.' };
@@ -274,10 +278,13 @@ export async function executeImportAction(input: {
       } else if (teamId && teamId.trim() !== '') {
         const team = await prisma.team.findUnique({
           where: { id: teamId },
-          select: { id: true, name: true },
+          select: { id: true, name: true, companyId: true },
         });
         if (!team) {
           return { success: false, error: 'Selected squad was not found.' };
+        }
+        if (!admin.isSuperAdmin && admin.companyId && team.companyId !== admin.companyId) {
+          return { success: false, error: 'Unauthorized: Selected squad belongs to another organization.' };
         }
         targetTeamId = team.id;
         targetTargetName = `Squad ${team.name}`;
@@ -286,11 +293,14 @@ export async function executeImportAction(input: {
       if (assignedEmployeeId && assignedEmployeeId.trim() !== '') {
         const employee = await prisma.employee.findUnique({
           where: { id: assignedEmployeeId },
-          select: { id: true, name: true, employeeCode: true, isActive: true, teamId: true, role: true },
+          select: { id: true, name: true, employeeCode: true, isActive: true, teamId: true, role: true, companyId: true },
         });
 
         if (!employee) {
           return { success: false, error: 'Selected employee not found.' };
+        }
+        if (!admin.isSuperAdmin && admin.companyId && employee.companyId !== admin.companyId) {
+          return { success: false, error: 'Unauthorized: Selected employee belongs to another organization.' };
         }
         if (!employee.isActive) {
           return { success: false, error: 'Cannot assign imported leads to a deactivated employee.' };
@@ -299,6 +309,8 @@ export async function executeImportAction(input: {
           return { success: false, error: 'Unauthorized: Team Leads can only assign leads to BDAs.' };
         }
 
+        // Feature Note: Cross-squad lead assignment within the same company is permitted so a Team Lead
+        // can manage other teams when another Team Lead is absent. Target squad is set to the BDA's squad.
         targetEmployeeId = employee.id;
         targetTeamId = employee.teamId || tlTeamId;
         targetTargetName = `${employee.name} (${employee.employeeCode})`;
@@ -325,6 +337,7 @@ export async function executeImportAction(input: {
       teamId: targetTeamId || null,
       assignedEmployeeId: targetEmployeeId,
       assignedAt,
+      companyId: admin.companyId || null,
     }));
 
     // Perform database insertion in batches of 1,000 to stay well under Postgres parameter limits

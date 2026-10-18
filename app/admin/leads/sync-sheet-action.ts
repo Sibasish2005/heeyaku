@@ -184,11 +184,12 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
     }
 
     // ──────────────────────────────────────────────────────────
-    // OPTIMIZATION 1: Content hash — skip if sheet unchanged
+    // OPTIMIZATION 1: Content hash — skip if sheet unchanged (isolated per tenant)
     // ──────────────────────────────────────────────────────────
+    const syncKey = admin.companyId ? `google_sheets_${admin.companyId}` : 'google_sheets';
     const contentHash = fastContentHash(csvText, rows.length);
     const syncMeta = await prisma.syncMeta.findUnique({
-      where: { syncType: 'google_sheets' },
+      where: { syncType: syncKey },
     });
 
     if (syncMeta?.sheetHash === contentHash) {
@@ -230,6 +231,7 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
       source: string;
       notes: string | null;
       teamId: string | null;
+      companyId?: string | null;
     }> = [];
 
     const seenPhonesInBatch = new Set<string>();
@@ -273,23 +275,26 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
         source: 'GOOGLE_SHEETS',
         notes: notes ? `[Google Sheets] ${notes}` : '[Imported from Google Sheets]',
         teamId: tlTeamId || null,
+        companyId: admin.companyId || null,
       });
     }
 
     if (candidateLeads.length === 0) {
       // Update sync metadata even if no new leads
       await prisma.syncMeta.upsert({
-        where: { syncType: 'google_sheets' },
+        where: { syncType: syncKey },
         create: {
-          syncType: 'google_sheets',
+          syncType: syncKey,
           lastRowCount: rows.length,
           sheetHash: contentHash,
           lastSyncedAt: new Date(),
+          companyId: admin.companyId || null,
         },
         update: {
           lastRowCount: rows.length,
           sheetHash: contentHash,
           lastSyncedAt: new Date(),
+          companyId: admin.companyId || null,
         },
       });
 
@@ -313,6 +318,7 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
         phoneDigits: {
           in: Array.from(seenPhonesInBatch),
         },
+        ...(!admin.isSuperAdmin ? { companyId: admin.companyId || '__NO_COMPANY__' } : {}),
       },
       select: { phoneDigits: true },
     });
@@ -350,17 +356,19 @@ export async function syncGoogleSheetDirectAction(customUrl?: string): Promise<S
     // Update sync watermark
     // ──────────────────────────────────────────────────────────
     await prisma.syncMeta.upsert({
-      where: { syncType: 'google_sheets' },
+      where: { syncType: syncKey },
       create: {
-        syncType: 'google_sheets',
+        syncType: syncKey,
         lastRowCount: rows.length,
         sheetHash: contentHash,
         lastSyncedAt: new Date(),
+        companyId: admin.companyId || null,
       },
       update: {
         lastRowCount: rows.length,
         sheetHash: contentHash,
         lastSyncedAt: new Date(),
+        companyId: admin.companyId || null,
       },
     });
 

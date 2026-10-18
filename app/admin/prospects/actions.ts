@@ -55,11 +55,22 @@ export async function updateProspectStatusAction(
         notes: true,
         leadCode: true,
         name: true,
+        companyId: true,
       },
     });
 
     if (!prospect) {
       return { success: false, error: 'Prospect not found.' };
+    }
+
+    // 🔒 Multi-Tenant Boundary Check
+    if (!admin.isSuperAdmin) {
+      if (!admin.companyId || prospect.companyId !== admin.companyId) {
+        return {
+          success: false,
+          error: 'Unauthorized: Cannot modify a prospect belonging to another organization.',
+        };
+      }
     }
 
     // Authorization Boundary Check

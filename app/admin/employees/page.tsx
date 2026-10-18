@@ -28,21 +28,28 @@ export default async function EmployeesPage() {
   let formattedEmployees: EmployeeListItem[] = [];
 
   try {
+    const companyScope = !admin.isSuperAdmin ? { companyId: admin.companyId || '__NO_COMPANY__' } : {};
+
     // 🔒 Team Leads ONLY see BDAs of their assigned squad. Never HR, never other TLs, never other squads' BDAs.
     const employeeWhere: Prisma.EmployeeWhereInput = isTeamLead
       ? {
           role: Role.BDA,
           teamId: targetTeamId || '__UNASSIGNED_SQUAD__',
+          ...companyScope,
         }
-      : {};
+      : {
+          ...companyScope,
+        };
 
     const leadWhere: Prisma.LeadWhereInput = {
       assignedEmployeeId: { not: null },
+      ...companyScope,
       ...(isTeamLead
         ? {
             assignedEmployee: {
               role: Role.BDA,
               teamId: targetTeamId || '__UNASSIGNED_SQUAD__',
+              ...companyScope,
             },
           }
         : targetTeamId
@@ -52,15 +59,17 @@ export default async function EmployeesPage() {
 
     const callWhere: Prisma.CallLogWhereInput = {
       leadId: { not: null },
+      ...companyScope,
       ...(isTeamLead
         ? {
             employee: {
               role: Role.BDA,
               teamId: targetTeamId || '__UNASSIGNED_SQUAD__',
+              ...companyScope,
             },
           }
         : targetTeamId
-        ? { employee: { teamId: targetTeamId } }
+        ? { employee: { teamId: targetTeamId, ...companyScope } }
         : {}),
     };
 

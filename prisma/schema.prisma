@@ -67,6 +67,7 @@ model Company {
   leads           Lead[]
   callLogs        CallLog[]
   syncMeta        SyncMeta[]
+  apiKeys         CompanyApiKey[]
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
@@ -257,4 +258,34 @@ model EmployeeDevice {
   @@index([employeeId])
   @@index([deviceId])
   @@map("employee_devices")
+}
+
+model ConsumedNonce {
+  id        String   @id @default(cuid())
+  nonce     String   @unique
+  purpose   String   @default("onboarding")
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([nonce])
+  @@index([expiresAt])
+  @@map("consumed_nonces")
+}
+
+model CompanyApiKey {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  keyPrefix   String
+  keyHash     String    @unique
+  name        String?
+  revokedAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([companyId])
+  @@index([keyHash])
+  @@index([revokedAt])
+  @@map("company_api_keys")
 }

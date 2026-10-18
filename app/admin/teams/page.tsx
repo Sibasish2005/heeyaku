@@ -19,8 +19,12 @@ export default async function TeamsPage() {
   const isTeamLead = admin.role === Role.TEAM_LEAD;
   const targetTeamId = isTeamLead ? (admin.ledTeamId || admin.teamId || null) : null;
 
+  const companyScope = !admin.isSuperAdmin ? { companyId: admin.companyId || '__NO_COMPANY__' } : {};
+
   const teams = await prisma.team.findMany({
-    where: isTeamLead ? { id: targetTeamId || '__UNASSIGNED_SQUAD__' } : {},
+    where: isTeamLead
+      ? { id: targetTeamId || '__UNASSIGNED_SQUAD__', ...companyScope }
+      : { ...companyScope },
     include: {
       teamLead: {
         select: {

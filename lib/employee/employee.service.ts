@@ -65,32 +65,12 @@ export class EmployeeService {
       throw new Error('Unauthorized: Only the CEO can appoint or onboard Human Resources administrators.');
     }
 
-    // Check email uniqueness
+    // Check email uniqueness before external provisioning
     const existing = await prisma.employee.findUnique({
       where: { email: normalizedEmail },
     });
     if (existing) {
       throw new Error('An employee with this email address already exists.');
-    }
-
-    // Enforce Caller Seat Limit for BDAs at service layer
-    if (role === 'BDA' && callerCompanyId) {
-      const company = await prisma.company.findUnique({
-        where: { id: callerCompanyId },
-        select: { maxBdas: true, name: true },
-      });
-      if (company) {
-        const activeBdaCount = await prisma.employee.count({
-          where: {
-            companyId: callerCompanyId,
-            role: 'BDA',
-            isActive: true,
-          },
-        });
-        if (activeBdaCount >= company.maxBdas) {
-          throw new Error(`Caller seat limit reached (${activeBdaCount} / ${company.maxBdas} BDAs). Contact platform administrator to increase caller seats.`);
-        }
-      }
     }
 
     // Resolve target teamId if assigned to a Team Lead
@@ -130,37 +110,78 @@ export class EmployeeService {
       console.warn(`[EmployeeService] Clerk provisioning notice for ${normalizedEmail}:`, clerkErr);
     }
 
-    const employee = await prisma.employee.create({
-      data: {
-        employeeCode,
-        name: name.trim(),
-        email: normalizedEmail,
-        phoneNumber: phoneNumber.trim(),
-        role: employeeRole,
-        companyId: callerCompanyId || null,
-        clerkUserId,
-        teamId: resolvedTeamId,
-        team: resolvedTeamName,
-        notes: notes?.trim() || null,
-        passwordHash,
-        isActive: true,
-      },
-      select: {
-        id: true,
-        employeeCode: true,
-        name: true,
-        email: true,
-        role: true,
-      },
-    });
-
-    // If newly created employee is a TEAM_LEAD and has a teamId, assign as teamLeadId
-    if (employeeRole === Role.TEAM_LEAD && resolvedTeamId) {
-      await prisma.team.update({
-        where: { id: resolvedTeamId },
-        data: { teamLeadId: employee.id },
+    // Atomically enforce seat quota and persist employee inside a database transaction to prevent race conditions
+    const employee = await prisma.$transaction(async (tx) => {
+      // Re-verify email uniqueness inside transaction
+      const existingInTx = await tx.employee.findUnique({
+        where: { email: normalizedEmail },
       });
-    }
+      if (existingInTx) {
+        throw new Error('An employee with this email address already exists.');
+      }
+
+      // Enforce Caller Seat Limit for BDAs inside transaction with pessimistic row lock
+      if (role === 'BDA' && callerCompanyId) {
+        // Pessimistic exclusive row lock on the target company row.
+        // Serializes concurrent BDA creation for this company without affecting other companies.
+        // FAIL CLOSED: Never swallow locking errors. If row locking fails, abort operation immediately.
+        await tx.$queryRaw`SELECT "id" FROM "companies" WHERE "id" = ${callerCompanyId} FOR UPDATE;`;
+
+        const company = await tx.company.findUnique({
+          where: { id: callerCompanyId },
+          select: { maxBdas: true, name: true },
+        });
+        if (company) {
+          const activeBdaCount = await tx.employee.count({
+            where: {
+              companyId: callerCompanyId,
+              role: 'BDA',
+              isActive: true,
+            },
+          });
+          if (activeBdaCount >= company.maxBdas) {
+            throw new Error(`Caller seat limit reached (${activeBdaCount} / ${company.maxBdas} BDAs). Contact platform administrator to increase caller seats.`);
+          }
+        }
+      }
+
+      // Generate sequential unique employee code inside the transaction
+      const txEmployeeCode = await generateNextEmployeeCode(tx);
+
+      const created = await tx.employee.create({
+        data: {
+          employeeCode: txEmployeeCode || employeeCode,
+          name: name.trim(),
+          email: normalizedEmail,
+          phoneNumber: phoneNumber.trim(),
+          role: employeeRole,
+          companyId: callerCompanyId || null,
+          clerkUserId,
+          teamId: resolvedTeamId,
+          team: resolvedTeamName,
+          notes: notes?.trim() || null,
+          passwordHash,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          employeeCode: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+      });
+
+      // If newly created employee is a TEAM_LEAD and has a teamId, assign as teamLeadId
+      if (employeeRole === Role.TEAM_LEAD && resolvedTeamId) {
+        await tx.team.update({
+          where: { id: resolvedTeamId },
+          data: { teamLeadId: created.id },
+        });
+      }
+
+      return created;
+    });
 
     return {
       ...employee,
@@ -192,7 +213,9 @@ export class EmployeeService {
    */
   static async updateEmployee(
     input: UpdateEmployeeInput,
-    callerRole: Role
+    callerRole: Role,
+    callerCompanyId?: string | null,
+    isSuperAdmin: boolean = false
   ): Promise<void> {
     const { id, name, email, phoneNumber, role, teamId, teamLeadId, team, notes } = input;
     const normalizedEmail = email.toLowerCase().trim();
@@ -206,6 +229,12 @@ export class EmployeeService {
       throw new Error('Employee not found.');
     }
 
+    if (!isSuperAdmin) {
+      if (!callerCompanyId || target.companyId !== callerCompanyId) {
+        throw new Error('Unauthorized: Cannot access or modify an employee from another organization.');
+      }
+    }
+
     if (target.role === Role.CEO || isAllowedCeoEmail(target.email)) {
       throw new Error('Unauthorized: Root CEO accounts are managed via .env and cannot be modified.');
     }
@@ -216,26 +245,6 @@ export class EmployeeService {
 
     if (callerRole === Role.HR && role === 'HR' && target.role !== Role.HR) {
       throw new Error('Unauthorized: Only the CEO can promote employees to HR administrator.');
-    }
-
-    // Caller seat limit check when changing role to BDA
-    if (role === 'BDA' && target.role !== Role.BDA && target.companyId) {
-      const company = await prisma.company.findUnique({
-        where: { id: target.companyId },
-        select: { maxBdas: true },
-      });
-      if (company) {
-        const activeBdaCount = await prisma.employee.count({
-          where: {
-            companyId: target.companyId,
-            role: Role.BDA,
-            isActive: true,
-          },
-        });
-        if (activeBdaCount >= company.maxBdas) {
-          throw new Error(`Cannot change role to BDA: Caller seat limit reached (${activeBdaCount} / ${company.maxBdas} BDAs).`);
-        }
-      }
     }
 
     if (isAllowedCeoEmail(normalizedEmail)) {
@@ -267,18 +276,49 @@ export class EmployeeService {
       }
     }
 
-    await prisma.employee.update({
-      where: { id },
-      data: {
-        name: name.trim(),
-        email: normalizedEmail,
-        phoneNumber: phoneNumber.trim(),
-        role: role ? (role as Role) : undefined,
-        teamId: resolvedTeamId,
-        team: resolvedTeamName,
-        notes: notes?.trim() || null,
-      },
-    });
+    const updateData = {
+      name: name.trim(),
+      email: normalizedEmail,
+      phoneNumber: phoneNumber.trim(),
+      role: role ? (role as Role) : undefined,
+      teamId: resolvedTeamId,
+      team: resolvedTeamName,
+      notes: notes?.trim() || null,
+    };
+
+    // Caller seat limit check when changing role to BDA (atomic row lock inside transaction)
+    if (role === 'BDA' && target.role !== Role.BDA && target.companyId) {
+      const targetCompanyId = target.companyId;
+      await prisma.$transaction(async (tx) => {
+        // FAIL CLOSED: Never swallow locking errors.
+        await tx.$queryRaw`SELECT "id" FROM "companies" WHERE "id" = ${targetCompanyId} FOR UPDATE;`;
+        const company = await tx.company.findUnique({
+          where: { id: targetCompanyId },
+          select: { maxBdas: true },
+        });
+        if (company) {
+          const activeBdaCount = await tx.employee.count({
+            where: {
+              companyId: targetCompanyId,
+              role: Role.BDA,
+              isActive: true,
+            },
+          });
+          if (activeBdaCount >= company.maxBdas) {
+            throw new Error(`Cannot change role to BDA: Caller seat limit reached (${activeBdaCount} / ${company.maxBdas} BDAs).`);
+          }
+        }
+        await tx.employee.update({
+          where: { id },
+          data: updateData,
+        });
+      });
+    } else {
+      await prisma.employee.update({
+        where: { id },
+        data: updateData,
+      });
+    }
 
     if (target.clerkUserId) {
       await ClerkSyncService.updateProfile(target.clerkUserId, name);
@@ -300,15 +340,23 @@ export class EmployeeService {
   static async resetPassword(
     employeeId: string,
     callerRole: Role,
-    manualPassword?: string
+    manualPassword?: string,
+    callerCompanyId?: string | null,
+    isSuperAdmin: boolean = false
   ): Promise<PasswordResetResult> {
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
-      select: { id: true, employeeCode: true, name: true, role: true, email: true, clerkUserId: true },
+      select: { id: true, employeeCode: true, name: true, role: true, email: true, clerkUserId: true, companyId: true },
     });
 
     if (!employee) {
       throw new Error('Employee not found.');
+    }
+
+    if (!isSuperAdmin) {
+      if (!callerCompanyId || employee.companyId !== callerCompanyId) {
+        throw new Error('Unauthorized: Cannot reset credentials for an employee belonging to another organization.');
+      }
     }
 
     if (employee.role === Role.CEO || isAllowedCeoEmail(employee.email)) {
@@ -365,15 +413,23 @@ export class EmployeeService {
   static async deleteEmployee(
     employeeId: string,
     callerId: string | undefined,
-    callerRole: Role
+    callerRole: Role,
+    callerCompanyId?: string | null,
+    isSuperAdmin: boolean = false
   ): Promise<void> {
     const target = await prisma.employee.findUnique({
       where: { id: employeeId },
-      select: { id: true, role: true, email: true, clerkUserId: true },
+      select: { id: true, role: true, email: true, clerkUserId: true, companyId: true },
     });
 
     if (!target) {
       throw new Error('Employee not found.');
+    }
+
+    if (!isSuperAdmin) {
+      if (!callerCompanyId || target.companyId !== callerCompanyId) {
+        throw new Error('Unauthorized: Cannot delete an employee belonging to another organization.');
+      }
     }
 
     if (target.role === Role.CEO || isAllowedCeoEmail(target.email)) {
@@ -454,7 +510,9 @@ export class EmployeeService {
    */
   static async toggleStatus(
     employeeId: string,
-    callerRole: Role
+    callerRole: Role,
+    callerCompanyId?: string | null,
+    isSuperAdmin: boolean = false
   ): Promise<boolean> {
     const target = await prisma.employee.findUnique({
       where: { id: employeeId },
@@ -465,6 +523,12 @@ export class EmployeeService {
       throw new Error('Employee not found.');
     }
 
+    if (!isSuperAdmin) {
+      if (!callerCompanyId || target.companyId !== callerCompanyId) {
+        throw new Error('Unauthorized: Cannot modify an employee belonging to another organization.');
+      }
+    }
+
     if (target.role === Role.CEO || isAllowedCeoEmail(target.email)) {
       throw new Error('Unauthorized: CEO accounts cannot be deactivated.');
     }
@@ -473,24 +537,35 @@ export class EmployeeService {
       throw new Error('Unauthorized: HR cannot deactivate other HR administrators.');
     }
 
-    // If reactivating a deactivated BDA, verify caller seat capacity
+    // If reactivating a deactivated BDA, verify caller seat capacity atomically with pessimistic row lock
     if (!target.isActive && target.role === Role.BDA && target.companyId) {
-      const company = await prisma.company.findUnique({
-        where: { id: target.companyId },
-        select: { maxBdas: true },
-      });
-      if (company) {
-        const activeBdaCount = await prisma.employee.count({
-          where: {
-            companyId: target.companyId,
-            role: Role.BDA,
-            isActive: true,
-          },
+      const targetCompanyId = target.companyId;
+      return await prisma.$transaction(async (tx) => {
+        // FAIL CLOSED: Never swallow locking errors.
+        await tx.$queryRaw`SELECT "id" FROM "companies" WHERE "id" = ${targetCompanyId} FOR UPDATE;`;
+        const company = await tx.company.findUnique({
+          where: { id: targetCompanyId },
+          select: { maxBdas: true },
         });
-        if (activeBdaCount >= company.maxBdas) {
-          throw new Error(`Cannot reactivate BDA: Caller seat limit reached (${activeBdaCount} / ${company.maxBdas} BDAs). Contact administrator to increase caller seats.`);
+        if (company) {
+          const activeBdaCount = await tx.employee.count({
+            where: {
+              companyId: targetCompanyId,
+              role: Role.BDA,
+              isActive: true,
+            },
+          });
+          if (activeBdaCount >= company.maxBdas) {
+            throw new Error(`Cannot reactivate BDA: Caller seat limit reached (${activeBdaCount} / ${company.maxBdas} BDAs). Contact administrator to increase caller seats.`);
+          }
         }
-      }
+        const updated = await tx.employee.update({
+          where: { id: employeeId },
+          data: { isActive: true },
+          select: { isActive: true },
+        });
+        return updated.isActive;
+      });
     }
 
     const updated = await prisma.employee.update({

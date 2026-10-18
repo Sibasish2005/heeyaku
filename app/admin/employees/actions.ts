@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { assertAuthenticatedUser, canManageEmployees, canDeleteEmployee, canManageTeams } from '@/lib/auth/rbac';
+import { assertAuthenticatedUser, canManageEmployees, canDeleteEmployee, canManageTeams, invalidateUserSessionCache } from '@/lib/auth/rbac';
 import { EmployeeService, EmployeeCreationResult, PasswordResetResult } from '@/lib/employee/employee.service';
 import { CreateEmployeeSchema, UpdateEmployeeSchema } from '@/lib/employee/employee.schema';
 import { TeamService, UpdateTeamInput, CandidateBdaItem, TeamLeadOption } from '@/lib/team/team.service';
@@ -226,9 +226,11 @@ export async function updateEmployeeAction(input: unknown): Promise<ActionRespon
       };
     }
 
-    await EmployeeService.updateEmployee(validated.data, user.role);
+    await EmployeeService.updateEmployee(validated.data, user.role, user.companyId, user.isSuperAdmin);
 
     clearEmployeeIdentityCache(validated.data.id);
+    invalidateUserSessionCache(validated.data.id);
+    if (validated.data.email) invalidateUserSessionCache(validated.data.email);
     invalidateDashboardMetricsCache();
     clearEmployeeChunkCache();
     revalidatePath('/admin/employees');
@@ -263,9 +265,10 @@ export async function toggleEmployeeStatusAction(id: string): Promise<ActionResp
       };
     }
 
-    const isActive = await EmployeeService.toggleStatus(id, user.role);
+    const isActive = await EmployeeService.toggleStatus(id, user.role, user.companyId, user.isSuperAdmin);
 
     clearEmployeeIdentityCache(id);
+    invalidateUserSessionCache(id);
     invalidateDashboardMetricsCache();
     clearEmployeeChunkCache();
     revalidatePath('/admin/employees');
@@ -307,8 +310,9 @@ export async function resetEmployeePasswordAction(id: string, newPassword?: stri
       };
     }
 
-    const result = await EmployeeService.resetPassword(id, user.role, newPassword?.trim());
+    const result = await EmployeeService.resetPassword(id, user.role, newPassword?.trim(), user.companyId, user.isSuperAdmin);
     clearEmployeeIdentityCache(id);
+    invalidateUserSessionCache(id);
 
     return {
       success: true,
@@ -339,13 +343,20 @@ export async function sendResetPasswordOtpAction(employeeId: string): Promise<Ac
 
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
-      select: { id: true, name: true, email: true, employeeCode: true, role: true },
+      select: { id: true, name: true, email: true, employeeCode: true, role: true, companyId: true },
     });
 
     if (!employee) {
       return {
         success: false,
         error: 'Employee account not found.',
+      };
+    }
+
+    if (user.companyId && employee.companyId && employee.companyId !== user.companyId && !user.isSuperAdmin) {
+      return {
+        success: false,
+        error: 'Unauthorized access: Employee belongs to another organization.',
       };
     }
 
@@ -424,6 +435,7 @@ export async function verifyResetPasswordOtpAndResetAction(input: {
     // OTP verified successfully: proceed to reset password in PostgreSQL and Clerk
     const result = await EmployeeService.resetPassword(employeeId, user.role, newPassword?.trim());
     clearEmployeeIdentityCache(employeeId);
+    invalidateUserSessionCache(employeeId);
 
     return {
       success: true,
@@ -454,9 +466,10 @@ export async function deleteEmployeeAction(id: string): Promise<ActionResponse> 
       };
     }
 
-    await EmployeeService.deleteEmployee(id, user.employeeId, user.role);
+    await EmployeeService.deleteEmployee(id, user.employeeId, user.role, user.companyId, user.isSuperAdmin);
 
     clearEmployeeIdentityCache(id);
+    invalidateUserSessionCache(id);
     invalidateDashboardMetricsCache();
     clearEmployeeChunkCache();
     revalidatePath('/admin/employees');
@@ -488,7 +501,7 @@ export async function createTeamAction(input: {
       return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
     }
 
-    const team = await TeamService.createTeam(input);
+    const team = await TeamService.createTeam(input, user.companyId, user.isSuperAdmin);
 
     revalidatePath('/admin/teams');
     revalidatePath('/admin/employees');
@@ -513,7 +526,7 @@ export async function updateTeamAction(input: UpdateTeamInput): Promise<ActionRe
       return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
     }
 
-    const team = await TeamService.updateTeam(input);
+    const team = await TeamService.updateTeam(input, user.companyId, user.isSuperAdmin);
 
     revalidatePath('/admin/teams');
     revalidatePath(`/admin/teams/${team.id}`);
@@ -542,7 +555,7 @@ export async function addBdasToTeamAction(
       return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
     }
 
-    const count = await TeamService.addBdasToTeam(teamId, employeeIds);
+    const count = await TeamService.addBdasToTeam(teamId, employeeIds, user.companyId, user.isSuperAdmin);
 
     revalidatePath('/admin/teams');
     revalidatePath(`/admin/teams/${teamId}`);
@@ -571,7 +584,7 @@ export async function removeBdaFromTeamAction(
       return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
     }
 
-    await TeamService.removeBdaFromTeam(teamId, employeeId);
+    await TeamService.removeBdaFromTeam(teamId, employeeId, user.companyId, user.isSuperAdmin);
 
     revalidatePath('/admin/teams');
     revalidatePath(`/admin/teams/${teamId}`);
@@ -597,7 +610,7 @@ export async function deleteTeamAction(teamId: string): Promise<ActionResponse<b
       return { success: false, error: 'Unauthorized: Only CEO and HR can dissolve squads.' };
     }
 
-    await TeamService.deleteTeam(teamId);
+    await TeamService.deleteTeam(teamId, user.companyId, user.isSuperAdmin);
 
     revalidatePath('/admin/teams');
     revalidatePath('/admin/employees');
@@ -617,8 +630,8 @@ export async function deleteTeamAction(teamId: string): Promise<ActionResponse<b
  */
 export async function fetchAvailableBdasForTeamAction(teamId: string): Promise<ActionResponse<CandidateBdaItem[]>> {
   try {
-    await assertAuthenticatedUser();
-    const data = await TeamService.fetchAvailableBdas(teamId);
+    const user = await assertAuthenticatedUser();
+    const data = await TeamService.fetchAvailableBdas(teamId, user.companyId, user.isSuperAdmin);
     return { success: true, data };
   } catch (error) {
     return {
@@ -633,8 +646,8 @@ export async function fetchAvailableBdasForTeamAction(teamId: string): Promise<A
  */
 export async function fetchActiveTeamLeadsAction(): Promise<ActionResponse<TeamLeadOption[]>> {
   try {
-    await assertAuthenticatedUser();
-    const data = await TeamService.fetchActiveTeamLeads();
+    const user = await assertAuthenticatedUser();
+    const data = await TeamService.fetchActiveTeamLeads(user.companyId, user.isSuperAdmin);
     return { success: true, data };
   } catch (error) {
     return {

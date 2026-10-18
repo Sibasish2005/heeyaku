@@ -4,7 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { signEmployeeToken, signDeviceChallengeToken } from '@/lib/auth/employee-token';
 import { ClerkSyncService } from '@/lib/auth/clerk-sync';
 import { maskEmail } from '@/lib/auth/clerk-device-otp';
-import { checkRateLimit, resetRateLimit } from '@/lib/security/rate-limit';
+import { checkRateLimit, checkRateLimitDistributed, resetRateLimit } from '@/lib/security/rate-limit';
+import { getClientIp } from '@/lib/security/client-ip';
 
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -28,9 +29,9 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown-ip';
+    const ip = getClientIp(req);
     const rateLimitKey = `login:${ip}`;
-    const rateLimit = checkRateLimit(rateLimitKey, { windowMs: 60 * 1000, maxAttempts: 5 });
+    const rateLimit = await checkRateLimitDistributed(rateLimitKey, { windowMs: 60 * 1000, maxAttempts: 5 });
 
     if (!rateLimit.allowed) {
       return NextResponse.json(
@@ -59,6 +60,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!deviceId || typeof deviceId !== 'string' || !deviceId.trim()) {
+      return NextResponse.json(
+        { success: false, error: 'Device ID is required for mobile authentication.' },
+        { status: 400 }
+      );
+    }
+
     if (String(password).length < 8) {
       return NextResponse.json(
         { success: false, error: 'Password must be at least 8 characters.' },
@@ -69,7 +77,7 @@ export async function POST(req: NextRequest) {
     const trimmedId = String(identifier).trim();
     const normalizedId = trimmedId.toUpperCase();
     const accountRateLimitKey = `login:account:${normalizedId}`;
-    const accountRateLimit = checkRateLimit(accountRateLimitKey, { windowMs: 2 * 60 * 1000, maxAttempts: 5 });
+    const accountRateLimit = await checkRateLimitDistributed(accountRateLimitKey, { windowMs: 2 * 60 * 1000, maxAttempts: 5 });
 
     if (!accountRateLimit.allowed) {
       return NextResponse.json(
@@ -172,63 +180,61 @@ export async function POST(req: NextRequest) {
     resetRateLimit(rateLimitKey);
     resetRateLimit(accountRateLimitKey);
 
-    // Device Verification Gate: If deviceId is provided, enforce OTP on first login from that device
-    if (deviceId) {
-      const cleanDeviceId = String(deviceId).trim();
-      const trustedDevice = await prisma.employeeDevice.findUnique({
-        where: {
-          employeeId_deviceId: {
-            employeeId: employee.id,
-            deviceId: cleanDeviceId,
+    // Device Verification Gate: Enforce OTP on first login from that device
+    const cleanDeviceId = String(deviceId).trim();
+    const trustedDevice = await prisma.employeeDevice.findUnique({
+      where: {
+        employeeId_deviceId: {
+          employeeId: employee.id,
+          deviceId: cleanDeviceId,
+        },
+      },
+    });
+
+    // If this device has not been verified yet, trigger verification code challenge!
+    if (!trustedDevice) {
+      try {
+        const prep = await ClerkSyncService.prepareEmailOtpVerification({
+          email: employee.email,
+          name: employee.name,
+        });
+
+        const tempToken = signDeviceChallengeToken({
+          employeeId: employee.id,
+          email: employee.email,
+          deviceId: cleanDeviceId,
+          emailAddressId: prep.emailAddressId,
+          verificationId: prep.verificationId,
+        });
+
+        const masked = maskEmail(employee.email);
+
+        return NextResponse.json({
+          success: true,
+          requiresOtp: true,
+          maskedEmail: masked,
+          tempToken,
+          message: `First-time device login detected. A 6-digit verification code has been sent to ${masked}.`,
+        });
+      } catch {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Unable to send verification code. Please try again.',
           },
-        },
-      });
-
-      // If this device has not been verified yet, trigger verification code challenge!
-      if (!trustedDevice) {
-        try {
-          const prep = await ClerkSyncService.prepareEmailOtpVerification({
-            email: employee.email,
-            name: employee.name,
-          });
-
-          const tempToken = signDeviceChallengeToken({
-            employeeId: employee.id,
-            email: employee.email,
-            deviceId: cleanDeviceId,
-            emailAddressId: prep.emailAddressId,
-            verificationId: prep.verificationId,
-          });
-
-          const masked = maskEmail(employee.email);
-
-          return NextResponse.json({
-            success: true,
-            requiresOtp: true,
-            maskedEmail: masked,
-            tempToken,
-            message: `First-time device login detected. A 6-digit verification code has been sent to ${masked}.`,
-          });
-        } catch {
-          return NextResponse.json(
-            {
-              success: false,
-              error: 'Unable to send verification code. Please try again.',
-            },
-            { status: 500 }
-          );
-        }
+          { status: 500 }
+        );
       }
-
-      // Device is already trusted - update lastUsedAt
-      await prisma.employeeDevice.update({
-        where: { id: trustedDevice.id },
-        data: {
-          lastUsedAt: new Date(),
-          ...(deviceName ? { deviceName: String(deviceName).trim() } : {}),
-        },
-      });
     }
+
+    // Device is already trusted - update lastUsedAt
+    await prisma.employeeDevice.update({
+      where: { id: trustedDevice.id },
+      data: {
+        lastUsedAt: new Date(),
+        ...(deviceName ? { deviceName: String(deviceName).trim() } : {}),
+      },
+    });
 
     const token = signEmployeeToken({
       employeeId: employee.id,

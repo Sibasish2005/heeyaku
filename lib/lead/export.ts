@@ -1,4 +1,5 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import Papa from 'papaparse';
 
 export interface LeadExportData {
   leadCode: string;
@@ -27,11 +28,15 @@ export interface LeadExportData {
  */
 function sanitizeCell(val: string | null | undefined): string {
   if (!val) return '';
-  const str = String(val).trim();
+  const str = String(val);
   if (/^[=+\-@\t\r]/.test(str)) {
     return `'${str}`;
   }
-  return str;
+  const trimmed = str.trim();
+  if (/^[=+\-@]/.test(trimmed)) {
+    return `'${trimmed}`;
+  }
+  return trimmed;
 }
 
 /**
@@ -69,20 +74,36 @@ export function formatLeadsForExport(leads: LeadExportData[]) {
  * @param leads - Array of lead data objects
  * @param filename - Base or complete filename for the downloaded file (e.g. 'Heeyaku_Leads_2026')
  */
-export function downloadLeadsAsXlsx(leads: LeadExportData[], filename: string): void {
+export async function downloadLeadsAsXlsx(leads: LeadExportData[], filename: string): Promise<void> {
   const formatted = formatLeadsForExport(leads);
-  const worksheet = XLSX.utils.json_to_sheet(formatted);
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Leads');
 
-  // Auto-size column widths
-  const colWidths = Object.keys(formatted[0] || {}).map((key) => ({
-    wch: Math.max(key.length, 14),
-  }));
-  worksheet['!cols'] = colWidths;
+  if (formatted.length > 0) {
+    const headers = Object.keys(formatted[0]);
+    worksheet.columns = headers.map((key) => ({
+      header: key,
+      key: key,
+      width: Math.max(key.length + 2, 14),
+    }));
 
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Leads');
+    for (const row of formatted) {
+      worksheet.addRow(row);
+    }
+  }
 
-  XLSX.writeFile(workbook, filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`);
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename.endsWith('.xlsx') ? filename : `${filename}.xlsx`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 /**
@@ -94,8 +115,7 @@ export function downloadLeadsAsXlsx(leads: LeadExportData[], filename: string): 
  */
 export function downloadLeadsAsCsv(leads: LeadExportData[], filename: string): void {
   const formatted = formatLeadsForExport(leads);
-  const worksheet = XLSX.utils.json_to_sheet(formatted);
-  const csv = XLSX.utils.sheet_to_csv(worksheet);
+  const csv = Papa.unparse(formatted);
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -105,4 +125,5 @@ export function downloadLeadsAsCsv(leads: LeadExportData[], filename: string): v
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }

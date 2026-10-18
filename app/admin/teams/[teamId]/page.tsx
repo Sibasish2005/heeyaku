@@ -104,6 +104,13 @@ export default async function TeamPage({ params }: PageProps) {
     notFound();
   }
 
+  // 🔒 Multi-Tenant Data Isolation: Non-superadmins cannot view squads from another organization
+  if (!admin.isSuperAdmin) {
+    if (!admin.companyId || team.companyId !== admin.companyId) {
+      notFound();
+    }
+  }
+
   const userCanManage = canManageTeams(admin.role);
 
   // 🔒 RBAC Guard: Team Leads can only view their own squad; BDAs have no access

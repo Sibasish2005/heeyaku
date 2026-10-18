@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkRateLimit } from '@/lib/security/rate-limit';
+import { checkRateLimit, checkRateLimitDistributed } from '@/lib/security/rate-limit';
+import { getClientIp } from '@/lib/security/client-ip';
 import { handleCorsPreflight } from '@/lib/security/cors';
 
 export async function OPTIONS(req: NextRequest) {
@@ -11,8 +12,8 @@ export async function OPTIONS(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown-ip';
-    const rateLimit = checkRateLimit(`demo:${ip}`, { windowMs: 60 * 1000, maxAttempts: 5 });
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimitDistributed(`demo:${ip}`, { windowMs: 60 * 1000, maxAttempts: 5 });
 
     if (!rateLimit.allowed) {
       return NextResponse.json(

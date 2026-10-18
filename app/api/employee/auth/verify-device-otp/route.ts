@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyDeviceChallengeToken, signEmployeeToken } from '@/lib/auth/employee-token';
 import { ClerkSyncService } from '@/lib/auth/clerk-sync';
-import { checkRateLimit, resetRateLimit } from '@/lib/security/rate-limit';
+import { checkRateLimit, checkRateLimitDistributed, resetRateLimit } from '@/lib/security/rate-limit';
+import { getClientIp } from '@/lib/security/client-ip';
 
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -18,9 +19,9 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown-ip';
+    const ip = getClientIp(req);
     const rateLimitKey = `verify-otp:${ip}`;
-    const rateLimit = checkRateLimit(rateLimitKey, { windowMs: 60 * 1000, maxAttempts: 10 });
+    const rateLimit = await checkRateLimitDistributed(rateLimitKey, { windowMs: 60 * 1000, maxAttempts: 10 });
 
     if (!rateLimit.allowed) {
       return NextResponse.json(

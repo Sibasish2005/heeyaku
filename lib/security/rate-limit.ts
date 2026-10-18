@@ -6,14 +6,19 @@ interface RateLimitRecord {
 const rateLimitStore = new Map<string, RateLimitRecord>();
 
 // Garbage collect expired buckets every 5 minutes
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [key, record] of rateLimitStore.entries()) {
     if (now > record.resetAt) {
       rateLimitStore.delete(key);
     }
   }
-}, 5 * 60 * 1000).unref?.();
+}, 5 * 60 * 1000);
+
+// Prevent cleanup interval from blocking process termination
+if (cleanupInterval && typeof cleanupInterval.unref === 'function') {
+  cleanupInterval.unref();
+}
 
 export interface RateLimitOptions {
   windowMs: number;
@@ -24,10 +29,11 @@ export interface RateLimitResult {
   allowed: boolean;
   remaining: number;
   resetSeconds: number;
+  source?: 'memory' | 'distributed' | 'fallback';
 }
 
 /**
- * Sliding-window in-memory rate limiter.
+ * Sliding-window in-memory rate limiter with fail-safe bounds.
  * Tracks client requests by IP or user identity to protect against brute-force attacks,
  * credential stuffing, and volumetric request floods.
  *
@@ -36,10 +42,7 @@ export interface RateLimitResult {
  * @param options.windowMs - Sliding window duration in milliseconds (default: 60,000ms / 1 min)
  * @param options.maxAttempts - Maximum requests permitted within the window (default: 5)
  *
- * @returns {RateLimitResult} Object containing:
- * - `allowed`: boolean flag indicating whether the current request is within limits
- * - `remaining`: count of remaining attempts available in current window
- * - `resetSeconds`: countdown in seconds until window resets
+ * @returns {RateLimitResult} Object containing allowed status, remaining attempts, and reset countdown
  */
 export function checkRateLimit(
   key: string,
@@ -67,6 +70,7 @@ export function checkRateLimit(
       allowed: true,
       remaining: options.maxAttempts - 1,
       resetSeconds: Math.ceil(options.windowMs / 1000),
+      source: 'memory',
     };
   }
 
@@ -76,6 +80,7 @@ export function checkRateLimit(
       allowed: false,
       remaining: 0,
       resetSeconds,
+      source: 'memory',
     };
   }
 
@@ -84,6 +89,74 @@ export function checkRateLimit(
     allowed: true,
     remaining: Math.max(0, options.maxAttempts - record.count),
     resetSeconds: Math.ceil((record.resetAt - now) / 1000),
+    source: 'memory',
+  };
+}
+
+/**
+ * Distributed rate limiter for multi-instance deployments.
+ * If external shared storage (e.g., Upstash / Redis) is configured via environment variables,
+ * coordinates across instances. If unavailable or unconfigured, it fails safely to the
+ * in-memory rate limiter so that authentication and ingestion remain protected and operational.
+ */
+export async function checkRateLimitDistributed(
+  key: string,
+  options: RateLimitOptions = { windowMs: 60 * 1000, maxAttempts: 5 }
+): Promise<RateLimitResult> {
+  const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (upstashUrl && upstashToken) {
+    try {
+      const redisKey = `ratelimit:${key}`;
+      const res = await fetch(`${upstashUrl}/pipeline`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${upstashToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([
+          ['INCR', redisKey],
+          ['TTL', redisKey],
+        ]),
+        signal: AbortSignal.timeout(1500), // Strict 1.5s timeout for fail-safe fallback
+      });
+
+      if (res.ok) {
+        const [incrRes, ttlRes] = await res.json();
+        const currentCount = incrRes?.result || 1;
+        let ttl = ttlRes?.result || Math.ceil(options.windowMs / 1000);
+
+        if (currentCount === 1) {
+          // Set TTL on newly created key
+          const windowSeconds = Math.ceil(options.windowMs / 1000);
+          await fetch(`${upstashUrl}/expire/${encodeURIComponent(redisKey)}/${windowSeconds}`, {
+            headers: { Authorization: `Bearer ${upstashToken}` },
+          }).catch(() => {});
+          ttl = windowSeconds;
+        }
+
+        const allowed = currentCount <= options.maxAttempts;
+        return {
+          allowed,
+          remaining: Math.max(0, options.maxAttempts - currentCount),
+          resetSeconds: ttl > 0 ? ttl : Math.ceil(options.windowMs / 1000),
+          source: 'distributed',
+        };
+      }
+    } catch (err) {
+      console.warn(
+        `[RateLimit] Distributed storage error, falling back safely to in-memory store for key "${key}":`,
+        err instanceof Error ? err.message : String(err)
+      );
+    }
+  }
+
+  // Fail-safe: Always fall back to in-memory rate limiting
+  const localRes = checkRateLimit(key, options);
+  return {
+    ...localRes,
+    source: 'fallback',
   };
 }
 
@@ -95,4 +168,12 @@ export function checkRateLimit(
  */
 export function resetRateLimit(key: string): void {
   rateLimitStore.delete(key);
+}
+
+/**
+ * Clears all in-memory rate limit entries.
+ * Primarily intended for automated test suites.
+ */
+export function clearAllRateLimits(): void {
+  rateLimitStore.clear();
 }

@@ -64,10 +64,17 @@ export async function POST(req: NextRequest) {
     }
 
     const resolved = await resolveEmployeeIdentity(payload);
-    if (!resolved) {
+    if (!resolved || !resolved.employee) {
       return NextResponse.json(
-        { success: false, error: 'Employee account not found.' },
+        { success: false, error: 'Employee account not found or inactive.' },
         { status: 401 }
+      );
+    }
+    const callerCompanyId = resolved.employee.companyId;
+    if (!callerCompanyId) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: Employee is not associated with an active company organization.' },
+        { status: 403 }
       );
     }
     const employeeId = resolved.primaryId;
@@ -190,9 +197,10 @@ export async function POST(req: NextRequest) {
     // Sort parsed calls chronologically so earliest calls are processed first
     parsedCalls.sort((a, b) => a.startedAt.getTime() - b.startedAt.getTime());
 
-    // 2. Pre-fetch employee's assigned and worked leads
+    // 2. Pre-fetch employee's assigned and worked leads strictly scoped to caller's company
     const employeeLeads = await prisma.lead.findMany({
       where: {
+        companyId: callerCompanyId,
         OR: [
           { assignedEmployeeId: { in: resolved.allIds } },
           { originalBdaId: { in: resolved.allIds } },
@@ -222,7 +230,10 @@ export async function POST(req: NextRequest) {
     const teamLeadMap = new Map<string, { id: string; name: string; employeeCode: string }>();
     if (teamIdsToFetch.size > 0) {
       const teams = await prisma.team.findMany({
-        where: { id: { in: Array.from(teamIdsToFetch) } },
+        where: {
+          id: { in: Array.from(teamIdsToFetch) },
+          companyId: callerCompanyId,
+        },
         include: {
           teamLead: {
             select: { id: true, name: true, employeeCode: true, isActive: true },
@@ -246,8 +257,13 @@ export async function POST(req: NextRequest) {
 
     // Helper to find matched assigned lead for a last10 or leadId
     const findMatchedAssignedLead = (last10: string, rawLeadId?: string | null) => {
-      if (rawLeadId && leadIdMap.has(rawLeadId)) {
-        return leadIdMap.get(rawLeadId);
+      if (rawLeadId) {
+        // Security check: Client-provided leadId MUST exist within caller's company & authorized leads
+        if (leadIdMap.has(rawLeadId)) {
+          return leadIdMap.get(rawLeadId);
+        }
+        // Client attempted to link to an unknown or unauthorized lead ID. Quarantine: do not link to any lead.
+        return undefined;
       }
       if (leadMap.has(last10)) return leadMap.get(last10);
       for (const [digits, lead] of leadMap.entries()) {
@@ -279,18 +295,25 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3. Batch pre-fetch existing call logs for deduplication
+    // 3. Batch pre-fetch existing call logs for deduplication strictly within this company & employee
     const assignedCandidateIds = assignedCalls.map(a => a.item.idCandidate).filter(Boolean) as string[];
     const minTimestamp = new Date(Math.min(...assignedCalls.map(a => a.item.startedAt.getTime())) - 120 * 1000);
     const maxTimestamp = new Date(Math.max(...assignedCalls.map(a => a.item.startedAt.getTime())) + 120 * 1000);
 
     const [existingById, existingByTime] = await Promise.all([
       assignedCandidateIds.length > 0
-        ? prisma.callLog.findMany({ where: { id: { in: assignedCandidateIds } } })
+        ? prisma.callLog.findMany({
+            where: {
+              id: { in: assignedCandidateIds },
+              companyId: callerCompanyId,
+              employeeId: { in: resolved.allIds },
+            },
+          })
         : Promise.resolve([]),
       prisma.callLog.findMany({
         where: {
-          employeeId,
+          companyId: callerCompanyId,
+          employeeId: { in: resolved.allIds },
           startedAt: { gte: minTimestamp, lte: maxTimestamp },
         },
       }),
@@ -389,9 +412,18 @@ export async function POST(req: NextRequest) {
         'not_qualified',
       ]);
 
+      const UNCONNECTED_OUTCOMES_SET = new Set([
+        'no_answer',
+        'busy',
+        'wrong_number',
+      ]);
+
       if (!hasConnectedCall && callOutcomeId && CONNECTED_OUTCOMES_SET.has(callOutcomeId.toLowerCase())) {
         callOutcomeId = 'no_answer';
         callOutcomeLabel = 'No Answer';
+      } else if (hasConnectedCall && callOutcomeId && UNCONNECTED_OUTCOMES_SET.has(callOutcomeId.toLowerCase())) {
+        callOutcomeId = 'contacted';
+        callOutcomeLabel = 'Contacted';
       }
 
       let targetCallId = '';
@@ -426,6 +458,7 @@ export async function POST(req: NextRequest) {
             data: {
               id: targetCallId,
               employeeId,
+              companyId: callerCompanyId,
               leadId: targetLeadId,
               phoneNumber: item.rawNumber,
               contactName: (typeof item.raw.contactName === 'string' ? item.raw.contactName : typeof item.raw.name === 'string' ? item.raw.name : null),

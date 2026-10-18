@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyExternalApiKey } from '@/lib/auth/external-api';
+import { authenticateExternalTenant } from '@/lib/auth/external-api';
 import { toLast10Digits } from '@/lib/lead/phone';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
-import { checkRateLimit } from '@/lib/security/rate-limit';
+import { checkRateLimit, checkRateLimitDistributed } from '@/lib/security/rate-limit';
+import { getClientIp } from '@/lib/security/client-ip';
 import { handleCorsPreflight } from '@/lib/security/cors';
 import crypto from 'crypto';
 
@@ -46,8 +47,8 @@ interface IncomingSheetRow {
  */
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for') || 'unknown';
-    const rateLimit = checkRateLimit(`sync:${ip}`, { windowMs: 60 * 1000, maxAttempts: 60 });
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimitDistributed(`sync:${ip}`, { windowMs: 60 * 1000, maxAttempts: 60 });
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { success: false, error: 'Rate limit exceeded. Please try again later.' },
@@ -55,14 +56,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!verifyExternalApiKey(req)) {
+    const body = await req.json().catch(() => ({}));
+
+    // Multi-tenant resolution: Google Sheets sync must always be cryptographically bound to an authorized tenant
+    const authRes = await authenticateExternalTenant(req, body.companyId || body.companySlug || body.company, { required: true });
+    if (!authRes.success) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized. Invalid or missing API key.' },
-        { status: 401 }
+        { success: false, error: authRes.error },
+        { status: authRes.status }
       );
     }
+    const targetCompany = authRes.company;
 
-    const body = await req.json().catch(() => ({}));
     const rawRows: IncomingSheetRow[] = Array.isArray(body.rows) ? body.rows : [];
     const sinceTimestamp = body.since ? new Date(body.since) : null;
     const now = new Date();
@@ -77,6 +82,7 @@ export async function POST(req: NextRequest) {
       company: string | null;
       source: string;
       notes: string | null;
+      companyId: string;
     }> = [];
 
     const processedRowReports: Array<{
@@ -99,9 +105,10 @@ export async function POST(req: NextRequest) {
 
       const allCandidateDigits = Array.from(candidateMap.keys());
 
-      // Single efficient database batch lookup to check for existing leads
+      // Single efficient database batch lookup to check for existing leads scoped to this company
       const existingLeads = await prisma.lead.findMany({
         where: {
+          companyId: targetCompany.id,
           phoneDigits: {
             in: allCandidateDigits,
           },
@@ -140,6 +147,7 @@ export async function POST(req: NextRequest) {
             company: row.company?.trim() || null,
             source: row.source?.trim() || 'GOOGLE_SHEETS',
             notes: row.notes?.trim() || null,
+            companyId: targetCompany.id,
           });
 
           processedRowReports.push({
@@ -160,7 +168,7 @@ export async function POST(req: NextRequest) {
             skipDuplicates: true,
           });
         }
-        invalidateDashboardMetricsCache();
+        invalidateDashboardMetricsCache(targetCompany.id);
       }
     }
 
@@ -182,6 +190,7 @@ export async function POST(req: NextRequest) {
 
     const updatedLeads = await prisma.lead.findMany({
       where: {
+        companyId: targetCompany.id,
         updatedAt: { gt: querySince },
       },
       select: {
@@ -235,8 +244,8 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for') || 'unknown';
-    const rateLimit = checkRateLimit(`sync:${ip}`, { windowMs: 60 * 1000, maxAttempts: 60 });
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimitDistributed(`sync:${ip}`, { windowMs: 60 * 1000, maxAttempts: 60 });
     if (!rateLimit.allowed) {
       return NextResponse.json(
         { success: false, error: 'Rate limit exceeded. Please try again later.' },
@@ -244,12 +253,15 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    if (!verifyExternalApiKey(req)) {
+    // Multi-tenant resolution: Google Sheets sync must always be cryptographically bound to an authorized tenant
+    const authRes = await authenticateExternalTenant(req, null, { required: true });
+    if (!authRes.success) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized. Invalid or missing API key.' },
-        { status: 401 }
+        { success: false, error: authRes.error },
+        { status: authRes.status }
       );
     }
+    const targetCompany = authRes.company;
 
     const sinceParam = req.nextUrl.searchParams.get('since');
     const sinceDate = sinceParam ? new Date(sinceParam) : null;
@@ -259,6 +271,7 @@ export async function GET(req: NextRequest) {
 
     const updatedLeads = await prisma.lead.findMany({
       where: {
+        companyId: targetCompany.id,
         updatedAt: { gt: querySince },
       },
       select: {

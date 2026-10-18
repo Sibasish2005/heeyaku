@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
-import { verifyExternalApiKey } from '@/lib/auth/external-api';
+import { authenticateExternalTenant } from '@/lib/auth/external-api';
 import { toLast10Digits } from '@/lib/lead/phone';
 import { invalidateDashboardMetricsCache } from '@/lib/dashboard/metrics';
-import { checkRateLimit } from '@/lib/security/rate-limit';
+import { checkRateLimit, checkRateLimitDistributed } from '@/lib/security/rate-limit';
+import { getClientIp } from '@/lib/security/client-ip';
 import { handleCorsPreflight, withCors } from '@/lib/security/cors';
 import { getNextSequentialLeadNumber } from '@/lib/lead/code';
 
@@ -32,12 +33,12 @@ interface IngestItem {
 /**
  * Public/External REST API for Ingesting Leads into HEEYAKU.
  * Can be called by Web forms, landing pages, Meta Lead Ads webhooks, Zapier, etc.
- * Authentication: Header 'x-api-key: <KEY>' or query '?apiKey=<KEY>'
+ * Authentication: Header 'x-api-key: hk_live_<tenant>_<token>'
  */
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown-ip';
-    const rateLimit = checkRateLimit(`ingest:${ip}`, { windowMs: 60 * 1000, maxAttempts: 60 });
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimitDistributed(`ingest:${ip}`, { windowMs: 60 * 1000, maxAttempts: 60 });
 
     if (!rateLimit.allowed) {
       return NextResponse.json(
@@ -46,14 +47,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!verifyExternalApiKey(req)) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized. Invalid or missing API key.' },
-        { status: 401 }
-      );
-    }
-
     const body = await req.json().catch(() => ({}));
+
+    // Multi-tenant resolution: Ingestion must always be cryptographically bound to an authorized tenant
+    const authRes = await authenticateExternalTenant(
+      req,
+      body.companyId || body.companySlug || (typeof body === 'object' && body.company && typeof body.company === 'string' && body.company.length < 50 ? body.company : null),
+      { required: true }
+    );
+    if (!authRes.success) {
+      return NextResponse.json({ success: false, error: authRes.error }, { status: authRes.status });
+    }
+    const targetCompany = authRes.company;
+
     const rawItems: IngestItem[] = Array.isArray(body.leads)
       ? body.leads
       : Array.isArray(body)
@@ -96,9 +102,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 2. High-performance batch lookup using indexed phoneDigits
+    // 2. High-performance batch lookup scoped to this tenant
     const existingLeads = await prisma.lead.findMany({
       where: {
+        companyId: targetCompany.id,
         phoneDigits: { in: Array.from(candidateDigitsSet) },
       },
     });
@@ -134,6 +141,7 @@ export async function POST(req: NextRequest) {
       company: string | null;
       source: string;
       notes: string | null;
+      companyId: string;
     }> = [];
     const updateOperations: Prisma.PrismaPromise<unknown>[] = [];
 
@@ -175,12 +183,13 @@ export async function POST(req: NextRequest) {
           company: item.company ? String(item.company).trim() : null,
           source: item.source ? String(item.source).trim() : 'EXTERNAL_API',
           notes: item.notes ? String(item.notes).trim() : null,
+          companyId: targetCompany.id,
         };
 
         recordsToInsert.push(newRecord);
         existingMap.set(last10, {
           ...newRecord,
-          companyId: null,
+          companyId: targetCompany.id,
           teamId: null,
           status: 'NEW',
           createdAt: new Date(),
@@ -218,7 +227,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (createdCount > 0 || updatedCount > 0) {
-      invalidateDashboardMetricsCache();
+      invalidateDashboardMetricsCache(targetCompany?.id);
     }
 
     return NextResponse.json({

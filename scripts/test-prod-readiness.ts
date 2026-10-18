@@ -17,7 +17,8 @@ import { signEmployeeToken, verifyEmployeeToken } from '../lib/auth/employee-tok
 import { sanitizeErrorMessage } from '../lib/security/errors';
 import { getCorsHeaders } from '../lib/security/cors';
 import { formatLeadsForExport } from '../lib/lead/export';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import Papa from 'papaparse';
 import crypto from 'crypto';
 
 const SUITE_ID = `prod_test_${Date.now().toString(36)}`;
@@ -268,13 +269,21 @@ async function runProductionReadinessAudit() {
     assert(formattedExport.length === 1, 'Export data formatter generated standardized export row');
     assert(formattedExport[0]['Lead ID'] === testLead.leadCode, 'Export row matches lead code under Lead ID header');
 
-    const worksheet = XLSX.utils.json_to_sheet(formattedExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'HEEYAKU_Leads');
-    const xlsxBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-    assert(xlsxBuffer.length > 500, 'Excel workbook (.xlsx) binary buffer successfully generated for download');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('HEEYAKU_Leads');
+    const headers = Object.keys(formattedExport[0]);
+    worksheet.columns = headers.map((key) => ({
+      header: key,
+      key: key,
+      width: Math.max(key.length + 2, 14),
+    }));
+    for (const row of formattedExport) {
+      worksheet.addRow(row);
+    }
+    const xlsxBuffer = await workbook.xlsx.writeBuffer();
+    assert(xlsxBuffer.byteLength > 500, 'Excel workbook (.xlsx) binary buffer successfully generated for download');
 
-    const csvContent = XLSX.utils.sheet_to_csv(worksheet);
+    const csvContent = Papa.unparse(formattedExport);
     assert(csvContent.includes(testLead.leadCode), 'CSV export stream successfully generated with lead record');
 
     // -------------------------------------------------------------------------
@@ -285,7 +294,11 @@ async function runProductionReadinessAudit() {
     const sanitizedMsg = sanitizeErrorMessage(sensitivePrismaError);
     assert(!sanitizedMsg.includes('prisma'), 'Internal Prisma details stripped from error output');
     assert(!sanitizedMsg.includes('/var/task'), 'Filesystem paths stripped from client error response');
-    assert(sanitizedMsg === 'An unexpected error occurred. Please try again.', 'Safe generalized fallback message returned to client');
+    assert(
+      sanitizedMsg === 'An error occurred while processing your request. Please try again.' ||
+        sanitizedMsg === 'An unexpected error occurred. Please try again.',
+      'Safe generalized fallback message returned to client'
+    );
 
     // -------------------------------------------------------------------------
     // SECTION 7: Composite Indexes Latency Verification

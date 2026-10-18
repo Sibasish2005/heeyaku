@@ -99,9 +99,10 @@ export async function resolveEmployeeIdentity(
   const matchingEmployees = await prisma.employee.findMany({
     where: {
       isActive: true,
+      companyId: employee.companyId,
       OR: [
         { id: employee.id },
-        { id: payload.employeeId },
+        ...(payload.employeeId ? [{ id: payload.employeeId }] : []),
         ...(payload.employeeCode ? [{ employeeCode: payload.employeeCode }] : []),
         ...(payload.email ? [{ email: payload.email }] : []),
         ...(employee.employeeCode ? [{ employeeCode: employee.employeeCode }] : []),
@@ -113,7 +114,6 @@ export async function resolveEmployeeIdentity(
   const allIds = Array.from(
     new Set([
       employee.id,
-      payload.employeeId,
       ...matchingEmployees.map((e) => e.id),
     ])
   ).filter(Boolean);

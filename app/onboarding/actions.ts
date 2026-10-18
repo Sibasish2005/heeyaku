@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { CompanyStatus, Role } from '@prisma/client';
 import { invalidateUserSessionCache } from '@/lib/auth/rbac';
 import { ClerkSyncService } from '@/lib/auth/clerk-sync';
+import { signOnboardingToken, consumeOnboardingToken } from '@/lib/auth/onboarding-token';
 import { z } from 'zod';
 
 const onboardingSchema = z.object({
@@ -15,6 +16,7 @@ const onboardingSchema = z.object({
   requestedBdas: z.number().min(1).max(500).default(5),
   email: z.string().email('Valid official email address required'),
   clerkUserId: z.string().optional(),
+  onboardingToken: z.string().optional(),
 });
 
 /**
@@ -45,12 +47,39 @@ export async function sendOnboardingOtpAction(input: {
       name: input.name?.trim() || 'Company CEO',
     });
 
+    if (result.alreadyVerified) {
+      let isCallerOwner = false;
+      try {
+        const clerkUser = await currentUser();
+        const callerEmails = clerkUser?.emailAddresses?.map((e) => e.emailAddress.toLowerCase().trim()) || [];
+        isCallerOwner = callerEmails.includes(normalizedEmail);
+      } catch {
+        // Not authenticated
+      }
+
+      if (isCallerOwner) {
+        return {
+          success: true,
+          emailAddressId: result.emailAddressId,
+          verificationId: result.verificationId,
+          clerkUserId: result.clerkUserId,
+          alreadyVerified: true,
+        };
+      }
+
+      // If caller is NOT the authenticated owner of this verified email, fail safe:
+      return {
+        success: false,
+        error: 'This email is already registered with an existing account. Please sign in to continue onboarding.',
+      };
+    }
+
     return {
       success: true,
       emailAddressId: result.emailAddressId,
       verificationId: result.verificationId,
       clerkUserId: result.clerkUserId,
-      alreadyVerified: result.alreadyVerified,
+      alreadyVerified: false,
     };
   } catch (error: any) {
     console.error('sendOnboardingOtpAction error:', error);
@@ -62,30 +91,38 @@ export async function sendOnboardingOtpAction(input: {
 }
 
 /**
- * Server Action: Validates the 6-digit Clerk OTP code entered by the CEO.
+ * Server Action: Validates the 6-digit Clerk OTP code entered by the CEO and issues a signed onboarding token.
+ * Enforces genuine OTP challenge verification against Clerk. Sentinel bypass values are strictly rejected.
  */
 export async function verifyOnboardingOtpAction(input: {
   emailAddressId: string;
   verificationId: string;
   code: string;
+  email?: string;
+  clerkUserId?: string;
 }): Promise<{
   success: boolean;
   verified?: boolean;
+  onboardingToken?: string;
   error?: string;
 }> {
   try {
-    if (input.verificationId === 'already_verified') {
-      return { success: true, verified: true };
+    const normalizedEmail = input.email ? input.email.toLowerCase().trim() : '';
+
+    // ZERO BYPASS: Any client-controlled sentinel values like 'already_verified' are explicitly rejected.
+    if (!input.emailAddressId || !input.verificationId || !input.code?.trim() || input.verificationId === 'already_verified') {
+      return { success: false, error: 'Please enter a valid 6-digit verification code.' };
     }
 
-    if (!input.emailAddressId || !input.verificationId || !input.code?.trim()) {
-      return { success: false, error: 'Please enter the 6-digit verification code.' };
+    const cleanCode = input.code.trim();
+    if (cleanCode.length !== 6 || !/^\d{6}$/.test(cleanCode)) {
+      return { success: false, error: 'Verification code must be exactly 6 digits.' };
     }
 
     const result = await ClerkSyncService.attemptEmailOtpVerification({
       emailAddressId: input.emailAddressId,
       verificationId: input.verificationId,
-      code: input.code.trim(),
+      code: cleanCode,
     });
 
     if (!result.verified) {
@@ -95,12 +132,29 @@ export async function verifyOnboardingOtpAction(input: {
       };
     }
 
-    return { success: true, verified: true };
+    // Derive verified identity directly from server-side verification results
+    const verifiedEmail = result.email ? result.email.toLowerCase().trim() : normalizedEmail;
+    const verifiedClerkUserId = result.clerkUserId || input.clerkUserId;
+
+    if (!verifiedEmail || !verifiedClerkUserId) {
+      return {
+        success: false,
+        error: 'Unable to resolve verified identity attributes. Please try again.',
+      };
+    }
+
+    const token = signOnboardingToken({
+      email: verifiedEmail,
+      clerkUserId: verifiedClerkUserId,
+      verificationId: input.verificationId,
+    });
+
+    return { success: true, verified: true, onboardingToken: token };
   } catch (error: any) {
     console.error('verifyOnboardingOtpAction error:', error);
     return {
       success: false,
-      error: error?.message || 'Verification failed. Please try again.',
+      error: 'Verification failed. Please check your code and try again.',
     };
   }
 }
@@ -116,6 +170,7 @@ export async function registerCompanyAction(formData: {
   requestedBdas: number;
   email: string;
   clerkUserId?: string;
+  onboardingToken?: string;
 }): Promise<{ success: boolean; companyId?: string; error?: string }> {
   try {
     const validated = onboardingSchema.safeParse(formData);
@@ -123,24 +178,59 @@ export async function registerCompanyAction(formData: {
       return { success: false, error: validated.error.issues[0]?.message || 'Invalid form input' };
     }
 
-    const { companyName, slug, phoneNumber, industry, requestedBdas, email, clerkUserId } = validated.data;
+    const { companyName, slug, phoneNumber, industry, requestedBdas, email, clerkUserId, onboardingToken } = validated.data;
     const primaryEmail = email.toLowerCase().trim();
 
-    // Resolve Clerk User ID: check session, currentUser, or validated clerkUserId from OTP
+    // Authenticated identity resolution:
+    // 1. Check for active Clerk session
     const authState = await auth();
     let resolvedUserId = authState.userId;
+    let authenticatedUserEmails: string[] = [];
 
-    if (!resolvedUserId) {
-      try {
-        const clerkUser = await currentUser();
+    try {
+      const clerkUser = await currentUser();
+      if (!resolvedUserId) {
         resolvedUserId = clerkUser?.id || null;
-      } catch {
-        // Fallback
       }
+      authenticatedUserEmails = clerkUser?.emailAddresses?.map((e) => e.emailAddress.toLowerCase().trim()) || [];
+    } catch {
+      // Fallback
     }
 
-    if (!resolvedUserId && clerkUserId) {
-      resolvedUserId = clerkUserId;
+    // 2. Identity Verification Boundary:
+    if (onboardingToken) {
+      // Verified via single-use HMAC token issued upon genuine OTP verification
+      const verifiedPayload = await consumeOnboardingToken(onboardingToken);
+      if (!verifiedPayload) {
+        return {
+          success: false,
+          error: 'Verification session has expired, is invalid, or was already used. Please verify your email again.',
+        };
+      }
+
+      if (verifiedPayload.email !== primaryEmail) {
+        return {
+          success: false,
+          error: 'Identity mismatch. Please complete verification with the matching official email address.',
+        };
+      }
+
+      if (clerkUserId && verifiedPayload.clerkUserId !== clerkUserId) {
+        return {
+          success: false,
+          error: 'Identity verification failed. Please request a new verification code.',
+        };
+      }
+
+      resolvedUserId = verifiedPayload.clerkUserId;
+    } else {
+      // No token provided: Caller MUST have an active Clerk session whose verified email matches primaryEmail!
+      if (!resolvedUserId || !authenticatedUserEmails.includes(primaryEmail)) {
+        return {
+          success: false,
+          error: 'Authentication required. Please complete email OTP verification before submitting.',
+        };
+      }
     }
 
     if (!resolvedUserId) {
@@ -199,7 +289,12 @@ export async function registerCompanyAction(formData: {
       });
 
       if (employee) {
-        // Link to new company as CEO
+        // 🔒 Prevent Account Takeover / Tenant Reparenting: If employee already belongs to an organization, block takeover
+        if (employee.companyId) {
+          throw new Error('This account or email address is already associated with an existing organization. Please sign in to your workspace or contact support.');
+        }
+
+        // Link unattached employee record to new company as CEO
         await tx.employee.update({
           where: { id: employee.id },
           data: {
@@ -236,6 +331,11 @@ export async function registerCompanyAction(formData: {
     return { success: true, companyId: company.id };
   } catch (err: any) {
     console.error('registerCompanyAction error:', err);
-    return { success: false, error: err?.message || 'Failed to submit company registration.' };
+    const safeMessage = typeof err?.message === 'string' && (
+      err.message.includes('already associated with an existing organization') ||
+      err.message.includes('A workspace with this name or URL slug already exists') ||
+      err.message.includes('company registration')
+    ) ? err.message : 'Unable to complete workspace registration. Please check your information and try again.';
+    return { success: false, error: safeMessage };
   }
 }

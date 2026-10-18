@@ -37,10 +37,18 @@ export async function GET(req: NextRequest) {
     }
 
     const resolved = await resolveEmployeeIdentity(payload);
-    if (!resolved) {
+    if (!resolved || !resolved.employee) {
       return NextResponse.json(
-        { success: false, error: 'Employee account not found.' },
+        { success: false, error: 'Employee account not found or inactive.' },
         { status: 401 }
+      );
+    }
+
+    const companyId = resolved.employee.companyId;
+    if (!companyId) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: Employee is not associated with an active company organization.' },
+        { status: 403 }
       );
     }
 
@@ -49,6 +57,7 @@ export async function GET(req: NextRequest) {
 
     const leads = await prisma.lead.findMany({
       where: {
+        companyId,
         OR: [
           { assignedEmployeeId: { in: employeeIds } },
           { originalBdaId: { in: employeeIds } },

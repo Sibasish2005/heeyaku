@@ -74,6 +74,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
           { originalBdaId: employeeId },
           { callLogs: { some: { employeeId } } },
         ],
+        ...(!admin.isSuperAdmin ? { companyId: admin.companyId || '__NO_COMPANY__' } : {}),
       },
       orderBy: {
         updatedAt: 'desc',
@@ -133,6 +134,13 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
 
   if (!employee) {
     notFound();
+  }
+
+  // 🔒 Multi-Tenant Data Isolation: Non-superadmins cannot view employees from another organization
+  if (!admin.isSuperAdmin) {
+    if (!admin.companyId || employee.companyId !== admin.companyId) {
+      notFound();
+    }
   }
 
   // 🔒 Squad Data Isolation: Team Leads cannot view employees outside their own squad, and can strictly only view BDAs

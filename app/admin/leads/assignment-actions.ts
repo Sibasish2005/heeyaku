@@ -75,7 +75,7 @@ export async function assignLeadsAction(input: unknown): Promise<ActionResponse<
     // Verify employee exists and is active
     const employee = await prisma.employee.findUnique({
       where: { id: employeeId },
-      select: { id: true, name: true, employeeCode: true, isActive: true, teamId: true, role: true },
+      select: { id: true, name: true, employeeCode: true, isActive: true, teamId: true, role: true, companyId: true },
     });
 
     if (!employee) {
@@ -87,6 +87,22 @@ export async function assignLeadsAction(input: unknown): Promise<ActionResponse<
         success: false,
         error: `Cannot assign leads to ${employee.name} (${employee.employeeCode}) because their account is deactivated.`,
       };
+    }
+
+    if (!user.isSuperAdmin) {
+      if (!user.companyId || employee.companyId !== user.companyId) {
+        return { success: false, error: 'Unauthorized: Selected employee belongs to another organization.' };
+      }
+
+      const companyLeadsCount = await prisma.lead.count({
+        where: {
+          id: { in: leadIds },
+          companyId: user.companyId || '__NO_COMPANY__',
+        },
+      });
+      if (companyLeadsCount !== leadIds.length) {
+        return { success: false, error: 'Unauthorized: One or more selected leads belong to another organization.' };
+      }
     }
 
     // Role check: Leads can strictly be assigned to BDA or TEAM_LEAD. Non-telephony roles like HR and CEO cannot receive leads.
@@ -131,6 +147,7 @@ export async function assignLeadsAction(input: unknown): Promise<ActionResponse<
         where: {
           id: { in: leadIds },
           status: 'NEW',
+          ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
         },
         data: {
           assignedEmployeeId: employee.id,
@@ -145,6 +162,7 @@ export async function assignLeadsAction(input: unknown): Promise<ActionResponse<
         where: {
           id: { in: leadIds },
           status: { not: 'NEW' },
+          ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
         },
         data: {
           assignedEmployeeId: employee.id,
@@ -154,10 +172,12 @@ export async function assignLeadsAction(input: unknown): Promise<ActionResponse<
       });
     });
 
-    revalidatePath('/admin/leads');
-    revalidatePath('/admin/dashboard');
-    revalidatePath('/admin/employees');
-    revalidatePath(`/admin/employees/${employee.id}`);
+    try {
+      revalidatePath('/admin/leads');
+      revalidatePath('/admin/dashboard');
+      revalidatePath('/admin/employees');
+      revalidatePath(`/admin/employees/${employee.id}`);
+    } catch {}
 
     return {
       success: true,
@@ -217,6 +237,22 @@ export async function assignLeadsToTeamAction(input: unknown): Promise<ActionRes
       return { success: false, error: 'The selected Squad / Team could not be found.' };
     }
 
+    if (!user.isSuperAdmin) {
+      if (!user.companyId || team.companyId !== user.companyId) {
+        return { success: false, error: 'Unauthorized: Selected squad belongs to another organization.' };
+      }
+
+      const companyLeadsCount = await prisma.lead.count({
+        where: {
+          id: { in: leadIds },
+          companyId: user.companyId || '__NO_COMPANY__',
+        },
+      });
+      if (companyLeadsCount !== leadIds.length) {
+        return { success: false, error: 'Unauthorized: One or more selected leads belong to another organization.' };
+      }
+    }
+
     // Atomically assign leads to the squad pool and clear individual BDA assignment
     await prisma.$transaction(async (tx) => {
       // 1. Leads currently ASSIGNED -> transition back to NEW (unassigned within squad)
@@ -224,6 +260,7 @@ export async function assignLeadsToTeamAction(input: unknown): Promise<ActionRes
         where: {
           id: { in: leadIds },
           status: 'ASSIGNED',
+          ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
         },
         data: {
           teamId: team.id,
@@ -238,6 +275,7 @@ export async function assignLeadsToTeamAction(input: unknown): Promise<ActionRes
         where: {
           id: { in: leadIds },
           status: { not: 'ASSIGNED' },
+          ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
         },
         data: {
           teamId: team.id,
@@ -294,6 +332,18 @@ export async function unassignLeadsAction(input: unknown): Promise<ActionRespons
 
     const { leadIds } = validated.data;
 
+    if (!user.isSuperAdmin) {
+      const companyLeadsCount = await prisma.lead.count({
+        where: {
+          id: { in: leadIds },
+          companyId: user.companyId || '__NO_COMPANY__',
+        },
+      });
+      if (companyLeadsCount !== leadIds.length) {
+        return { success: false, error: 'Unauthorized: One or more selected leads belong to another organization.' };
+      }
+    }
+
     // If Team Lead, check all leadIds belong to this TL squad or are assigned to the TL
     if (user.role === Role.TEAM_LEAD) {
       const tlTeamId = user.ledTeamId || user.teamId;
@@ -318,6 +368,7 @@ export async function unassignLeadsAction(input: unknown): Promise<ActionRespons
         where: {
           id: { in: leadIds },
           status: 'ASSIGNED',
+          ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
         },
         data: {
           assignedEmployeeId: null,
@@ -331,6 +382,7 @@ export async function unassignLeadsAction(input: unknown): Promise<ActionRespons
         where: {
           id: { in: leadIds },
           status: { not: 'ASSIGNED' },
+          ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
         },
         data: {
           assignedEmployeeId: null,
@@ -396,6 +448,7 @@ export async function autoAssignLeadsAction(input: unknown): Promise<ActionRespo
         isActive: true,
         role: isTeamLead ? Role.BDA : { in: [Role.BDA, Role.TEAM_LEAD] },
         ...(tlTeamId ? { teamId: tlTeamId } : {}),
+        ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
       },
       select: { id: true, name: true, employeeCode: true, teamId: true },
     });
@@ -409,12 +462,13 @@ export async function autoAssignLeadsAction(input: unknown): Promise<ActionRespo
       };
     }
 
-    // Fetch unassigned leads (scoped to squad if TL)
+    // Fetch unassigned leads (scoped to squad if TL and scoped to company)
     const totalRequestedLeads = assignAll ? undefined : employeeIds.length * (leadsPerEmployee || 0);
     const unassignedLeads = await prisma.lead.findMany({
       where: {
         assignedEmployeeId: null,
         ...(tlTeamId ? { teamId: tlTeamId } : {}),
+        ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
       },
       orderBy: { createdAt: 'asc' }, // Prioritize oldest unassigned leads
       take: totalRequestedLeads,
@@ -468,6 +522,7 @@ export async function autoAssignLeadsAction(input: unknown): Promise<ActionRespo
           where: {
             id: { in: assignedLeadIds },
             status: 'NEW',
+            ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
           },
           data: {
             assignedEmployeeId: empId,
@@ -482,6 +537,7 @@ export async function autoAssignLeadsAction(input: unknown): Promise<ActionRespo
           where: {
             id: { in: assignedLeadIds },
             status: { not: 'NEW' },
+            ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
           },
           data: {
             assignedEmployeeId: empId,
@@ -543,7 +599,10 @@ export async function autoAssignLeadsToTeamsAction(input: unknown): Promise<Acti
     }
 
     const teams = await prisma.team.findMany({
-      where: { id: { in: teamIds } },
+      where: {
+        id: { in: teamIds },
+        ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
+      },
       select: { id: true, name: true },
     });
 
@@ -551,10 +610,14 @@ export async function autoAssignLeadsToTeamsAction(input: unknown): Promise<Acti
       return { success: false, error: 'One or more selected squads could not be found.' };
     }
 
-    // Fetch unassigned leads (not belonging to any team, or teamId is null)
+    // Fetch unassigned leads (not belonging to any team, or teamId is null, scoped to company)
     const totalRequestedLeads = assignAll ? undefined : teamIds.length * (leadsPerTeam || 0);
     const unassignedLeads = await prisma.lead.findMany({
-      where: { teamId: null, assignedEmployeeId: null },
+      where: {
+        teamId: null,
+        assignedEmployeeId: null,
+        ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
+      },
       orderBy: { createdAt: 'asc' },
       take: totalRequestedLeads,
       select: { id: true },
@@ -603,6 +666,7 @@ export async function autoAssignLeadsToTeamsAction(input: unknown): Promise<Acti
           where: {
             id: { in: assignedLeadIds },
             status: 'ASSIGNED',
+            ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
           },
           data: {
             teamId,
@@ -617,6 +681,7 @@ export async function autoAssignLeadsToTeamsAction(input: unknown): Promise<Acti
           where: {
             id: { in: assignedLeadIds },
             status: { not: 'ASSIGNED' },
+            ...(!user.isSuperAdmin ? { companyId: user.companyId || '__NO_COMPANY__' } : {}),
           },
           data: {
             teamId,

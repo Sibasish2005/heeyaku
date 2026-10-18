@@ -85,6 +85,7 @@ export default function OnboardingFormClient({
     verificationId?: string;
     clerkUserId?: string;
     verifiedEmail?: string;
+    onboardingToken?: string;
   }>({
     sent: false,
     sending: false,
@@ -230,6 +231,8 @@ export default function OnboardingFormClient({
         emailAddressId: otpState.emailAddressId,
         verificationId: otpState.verificationId,
         code: targetCode,
+        email: email.trim().toLowerCase(),
+        clerkUserId: otpState.clerkUserId,
       });
 
       if (!res.success || !res.verified) {
@@ -247,6 +250,7 @@ export default function OnboardingFormClient({
         verifying: false,
         verified: true,
         verifiedEmail: email.trim().toLowerCase(),
+        onboardingToken: res.onboardingToken,
         error: null,
       }));
       toast.success('Email successfully authenticated!');
@@ -302,6 +306,7 @@ export default function OnboardingFormClient({
           requestedBdas: effectiveBdas,
           email: otpState.verifiedEmail || email.trim().toLowerCase(),
           clerkUserId: otpState.clerkUserId,
+          onboardingToken: otpState.onboardingToken,
         });
 
         if (!result.success) {

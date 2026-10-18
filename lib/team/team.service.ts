@@ -45,17 +45,22 @@ export class TeamService {
    * @returns {Promise<{ id: string; name: string }>} Created team ID and name
    * @throws {Error} If a squad with the given name already exists
    */
-  static async createTeam(input: {
-    name: string;
-    description?: string;
-    colorTag?: string;
-    teamLeadId?: string;
-  }): Promise<{ id: string; name: string }> {
+  static async createTeam(
+    input: {
+      name: string;
+      description?: string;
+      colorTag?: string;
+      teamLeadId?: string;
+    },
+    companyId?: string | null,
+    isSuperAdmin: boolean = false
+  ): Promise<{ id: string; name: string }> {
     const { name, description, colorTag, teamLeadId } = input;
 
     const duplicate = await prisma.team.findFirst({
       where: {
         name: { equals: name.trim(), mode: 'insensitive' },
+        ...(!isSuperAdmin ? { companyId: companyId || '__NO_COMPANY__' } : (companyId ? { companyId } : {})),
       },
     });
     if (duplicate) {
@@ -68,10 +73,24 @@ export class TeamService {
         description: description?.trim() || null,
         colorTag: colorTag || '#2563EB',
         teamLeadId: teamLeadId || null,
+        companyId: companyId || null,
       },
     });
 
     if (teamLeadId) {
+      const prospectiveLead = await prisma.employee.findUnique({
+        where: { id: teamLeadId },
+        select: { id: true, companyId: true },
+      });
+      if (!prospectiveLead) {
+        throw new Error('Selected Team Lead was not found.');
+      }
+      if (!isSuperAdmin) {
+        if (!companyId || prospectiveLead.companyId !== companyId) {
+          throw new Error('Unauthorized: Selected Team Lead belongs to another organization.');
+        }
+      }
+
       await prisma.employee.update({
         where: { id: teamLeadId },
         data: {
@@ -102,15 +121,25 @@ export class TeamService {
    * @throws {Error} If new squad name conflicts with an existing squad
    * @throws {Error} If specified Team Lead employee is not found
    */
-  static async updateTeam(input: UpdateTeamInput): Promise<{ id: string; name: string }> {
+  static async updateTeam(
+    input: UpdateTeamInput,
+    callerCompanyId?: string | null,
+    isSuperAdmin: boolean = false
+  ): Promise<{ id: string; name: string }> {
     const { id, name, description, colorTag, teamLeadId } = input;
 
     const existingTeam = await prisma.team.findUnique({
       where: { id },
-      select: { id: true, name: true, teamLeadId: true },
+      select: { id: true, name: true, teamLeadId: true, companyId: true },
     });
     if (!existingTeam) {
       throw new Error('Squad not found.');
+    }
+
+    if (!isSuperAdmin) {
+      if (!callerCompanyId || existingTeam.companyId !== callerCompanyId) {
+        throw new Error('Unauthorized: Cannot modify a squad belonging to another organization.');
+      }
     }
 
     // Name uniqueness check if name changed
@@ -118,6 +147,7 @@ export class TeamService {
       const duplicate = await prisma.team.findFirst({
         where: {
           name: { equals: name.trim(), mode: 'insensitive' },
+          ...(!isSuperAdmin ? { companyId: callerCompanyId || '__NO_COMPANY__' } : (callerCompanyId ? { companyId: callerCompanyId } : {})),
           NOT: { id },
         },
       });
@@ -134,10 +164,15 @@ export class TeamService {
       if (newLeadId) {
         const prospectiveLead = await prisma.employee.findUnique({
           where: { id: newLeadId },
-          select: { id: true, role: true },
+          select: { id: true, role: true, companyId: true },
         });
         if (!prospectiveLead) {
           throw new Error('Selected Team Lead was not found.');
+        }
+        if (!isSuperAdmin) {
+          if (!callerCompanyId || prospectiveLead.companyId !== callerCompanyId) {
+            throw new Error('Unauthorized: Selected Team Lead belongs to another organization.');
+          }
         }
 
         await prisma.employee.update({
@@ -195,22 +230,46 @@ export class TeamService {
    * @throws {Error} If employeeIds array is empty
    * @throws {Error} If target squad does not exist
    */
-  static async addBdasToTeam(teamId: string, employeeIds: string[]): Promise<number> {
+  static async addBdasToTeam(
+    teamId: string,
+    employeeIds: string[],
+    callerCompanyId?: string | null,
+    isSuperAdmin: boolean = false
+  ): Promise<number> {
     if (!employeeIds.length) {
       throw new Error('No BDAs selected.');
     }
 
     const team = await prisma.team.findUnique({
       where: { id: teamId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, companyId: true },
     });
     if (!team) {
       throw new Error('Squad not found.');
     }
 
+    if (!isSuperAdmin) {
+      if (!callerCompanyId || team.companyId !== callerCompanyId) {
+        throw new Error('Unauthorized: Cannot add members to a squad belonging to another organization.');
+      }
+    }
+
+    const associates = await prisma.employee.findMany({
+      where: {
+        id: { in: employeeIds },
+        ...(!isSuperAdmin ? { companyId: callerCompanyId || '__NO_COMPANY__' } : {}),
+      },
+      select: { id: true },
+    });
+
+    if (associates.length !== employeeIds.length) {
+      throw new Error('One or more selected associates were not found or belong to another organization.');
+    }
+
     const result = await prisma.employee.updateMany({
       where: {
         id: { in: employeeIds },
+        ...(!isSuperAdmin ? { companyId: callerCompanyId || '__NO_COMPANY__' } : {}),
       },
       data: {
         teamId: team.id,
@@ -229,7 +288,25 @@ export class TeamService {
    *
    * @returns {Promise<void>}
    */
-  static async removeBdaFromTeam(teamId: string, employeeId: string): Promise<void> {
+  static async removeBdaFromTeam(
+    teamId: string,
+    employeeId: string,
+    callerCompanyId?: string | null,
+    isSuperAdmin: boolean = false
+  ): Promise<void> {
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      select: { id: true, companyId: true },
+    });
+    if (!employee) {
+      throw new Error('Employee not found.');
+    }
+    if (!isSuperAdmin) {
+      if (!callerCompanyId || employee.companyId !== callerCompanyId) {
+        throw new Error('Unauthorized: Cannot remove a member belonging to another organization.');
+      }
+    }
+
     await prisma.employee.update({
       where: { id: employeeId },
       data: {
@@ -248,11 +325,25 @@ export class TeamService {
    *
    * @returns {Promise<void>}
    */
-  static async deleteTeam(teamId: string): Promise<void> {
+  static async deleteTeam(
+    teamId: string,
+    callerCompanyId?: string | null,
+    isSuperAdmin: boolean = false
+  ): Promise<void> {
     const teamToDelete = await prisma.team.findUnique({
       where: { id: teamId },
-      select: { teamLeadId: true },
+      select: { teamLeadId: true, companyId: true },
     });
+
+    if (!teamToDelete) {
+      throw new Error('Squad not found.');
+    }
+
+    if (!isSuperAdmin) {
+      if (!callerCompanyId || teamToDelete.companyId !== callerCompanyId) {
+        throw new Error('Unauthorized: Cannot delete a squad belonging to another organization.');
+      }
+    }
 
     await prisma.lead.updateMany({
       where: { teamId },
@@ -292,11 +383,16 @@ export class TeamService {
    *
    * @returns {Promise<CandidateBdaItem[]>} List of candidate BDAs with contact and current squad details
    */
-  static async fetchAvailableBdas(teamId: string): Promise<CandidateBdaItem[]> {
+  static async fetchAvailableBdas(
+    teamId: string,
+    callerCompanyId?: string | null,
+    isSuperAdmin: boolean = false
+  ): Promise<CandidateBdaItem[]> {
     const bdas = await prisma.employee.findMany({
       where: {
         role: Role.BDA,
         isActive: true,
+        ...(!isSuperAdmin ? { companyId: callerCompanyId || '__NO_COMPANY__' } : (callerCompanyId ? { companyId: callerCompanyId } : {})),
         OR: [
           { teamId: null },
           { teamId: { not: teamId } },
@@ -323,11 +419,15 @@ export class TeamService {
    *
    * @returns {Promise<TeamLeadOption[]>} List of active Team Leads with ID, name, code, and squad name
    */
-  static async fetchActiveTeamLeads(): Promise<TeamLeadOption[]> {
+  static async fetchActiveTeamLeads(
+    callerCompanyId?: string | null,
+    isSuperAdmin: boolean = false
+  ): Promise<TeamLeadOption[]> {
     const tls = await prisma.employee.findMany({
       where: {
         role: Role.TEAM_LEAD,
         isActive: true,
+        ...(!isSuperAdmin ? { companyId: callerCompanyId || '__NO_COMPANY__' } : (callerCompanyId ? { companyId: callerCompanyId } : {})),
       },
       select: {
         id: true,

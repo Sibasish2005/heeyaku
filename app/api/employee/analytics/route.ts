@@ -40,7 +40,22 @@ export async function GET(req: NextRequest) {
 
     // 1. Resilient lookup using centralized resolver
     const resolved = await resolveEmployeeIdentity(payload);
-    const employeeIds = resolved?.allIds || [payload.employeeId];
+    if (!resolved || !resolved.employee) {
+      return NextResponse.json(
+        { success: false, error: 'Employee account not found or inactive.' },
+        { status: 401 }
+      );
+    }
+
+    const companyId = resolved.employee.companyId;
+    if (!companyId) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: Employee is not associated with an active company organization.' },
+        { status: 403 }
+      );
+    }
+
+    const employeeIds = resolved.allIds;
 
     // 2. Start of Day in Indian Standard Time (IST, UTC+05:30)
     const startOfTodayMs = getStartOfTodayISTMs();
@@ -48,6 +63,7 @@ export async function GET(req: NextRequest) {
     // 3. Fetch all call logs for this employee with matched lead status (assigned lead calls only)
     const callLogs = await prisma.callLog.findMany({
       where: {
+        companyId,
         employeeId: { in: employeeIds },
       },
       include: {

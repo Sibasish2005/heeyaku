@@ -55,8 +55,9 @@ export async function fetchEmployeesChunkAction(params: {
     const user = await assertAuthenticatedUser();
     const { skip = 0, take = 10, searchQuery = '', statusFilter = 'ALL', teamFilter = 'ALL', roleFilter = 'ALL' } = params;
 
+    const companyKey = user.isSuperAdmin ? 'superadmin' : (user.companyId || 'none');
     const userScopeKey = user.role === Role.TEAM_LEAD ? `tl-${user.ledTeamId || user.teamId || 'none'}` : 'all';
-    const cacheKey = `${userScopeKey}-${skip}-${take}-${searchQuery.trim().toLowerCase()}-${statusFilter}-${teamFilter}-${roleFilter}`;
+    const cacheKey = `${companyKey}-${userScopeKey}-${skip}-${take}-${searchQuery.trim().toLowerCase()}-${statusFilter}-${teamFilter}-${roleFilter}`;
     const cached = chunkCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
       return {
@@ -69,6 +70,10 @@ export async function fetchEmployeesChunkAction(params: {
 
     // Build requirement-based Prisma filter
     const where: Record<string, unknown> = {};
+
+    if (!user.isSuperAdmin) {
+      where.companyId = user.companyId || '__NO_COMPANY__';
+    }
 
     // 🔒 Team Leads only see BDAs in their own squad (fail-closed)
     if (user.role === Role.TEAM_LEAD) {

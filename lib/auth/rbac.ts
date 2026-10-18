@@ -45,6 +45,15 @@ interface CachedSession {
 const sessionCache = new Map<string, CachedSession>();
 const SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+let testSessionOverride: AuthenticatedUser | null = null;
+
+/**
+ * Test harness helper: overrides the authenticated user in test environments.
+ */
+export function setTestSessionOverride(user: AuthenticatedUser | null): void {
+  testSessionOverride = user;
+}
+
 /**
  * Resolves the currently authenticated user from Clerk session and PostgreSQL DB.
  * Checks for Root CEO status in ADMIN_EMAIL environment variable, matches employee record,
@@ -54,6 +63,10 @@ const SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
  * @returns {Promise<AuthenticatedUser | null>} The authenticated profile or null if unauthenticated
  */
 export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | null> => {
+  if (process.env.NODE_ENV !== 'production' && testSessionOverride !== null) {
+    return testSessionOverride;
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return null;
@@ -356,7 +369,7 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
         userId,
         email: primaryEmail,
         name,
-        role: Role.CEO,
+        role: isSuper ? Role.CEO : Role.BDA,
         companyId: null,
         companyName: null,
         companySlug: null,
@@ -447,6 +460,11 @@ export const assertAuthenticatedUser = cache(async (): Promise<AuthenticatedUser
   const user = await getAuthenticatedUser();
   if (!user) {
     throw new AuthorizationError('Access denied. Please log in with an authorized account.', 403);
+  }
+
+  // Fail closed: Users without a company organization and who are not Super Admin cannot access protected workspaces
+  if (!user.isSuperAdmin && !user.companyId) {
+    throw new AuthorizationError('Access denied. No active company organization associated with this account.', 403);
   }
 
   // 1-Click Master Kill-Switch: Block non-super-admin access if company is suspended
@@ -559,11 +577,19 @@ export function isAllowedCeoEmail(email?: string | null): boolean {
 
 /**
  * Invalidates the in-memory user session cache when roles, permissions, or assignments mutate.
+ * Supports invalidation by Clerk userId, employee database ID, or email address.
  */
-export function invalidateUserSessionCache(userId?: string): void {
-  if (userId) {
-    for (const key of sessionCache.keys()) {
-      if (key === userId || key.startsWith(`${userId}:`)) {
+export function invalidateUserSessionCache(identifier?: string): void {
+  if (identifier) {
+    const target = identifier.toLowerCase().trim();
+    for (const [key, entry] of sessionCache.entries()) {
+      if (
+        key === identifier ||
+        key.startsWith(`${identifier}:`) ||
+        entry.user?.userId === identifier ||
+        entry.user?.employeeId === identifier ||
+        (entry.user?.email && entry.user.email.toLowerCase() === target)
+      ) {
         sessionCache.delete(key);
       }
     }

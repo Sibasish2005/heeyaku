@@ -25,9 +25,12 @@ export default async function ProspectsPage() {
   const isCeo = admin.role === Role.CEO;
   const targetTeamId = isTeamLead ? (admin.ledTeamId || admin.teamId || null) : null;
 
+  const companyScope = !admin.isSuperAdmin ? { companyId: admin.companyId || '__NO_COMPANY__' } : {};
+
   // Build query filter
   const prospectWhere: Prisma.LeadWhereInput = {
     isProspect: true,
+    ...companyScope,
     ...(isTeamLead
       ? {
           OR: [
@@ -83,7 +86,7 @@ export default async function ProspectsPage() {
     }),
     isCeo
       ? prisma.employee.findMany({
-          where: { role: Role.TEAM_LEAD, isActive: true },
+          where: { role: Role.TEAM_LEAD, isActive: true, ...companyScope },
           select: {
             id: true,
             name: true,

@@ -30,6 +30,8 @@ export interface PrepareOtpResult {
 
 export interface AttemptOtpResult {
   verified: boolean;
+  email?: string;
+  clerkUserId?: string;
   attempts?: number;
   error?: string;
 }
@@ -177,8 +179,18 @@ export class ClerkSyncService {
     }
 
     if (verifyData.status === 'verified' || verifyData.verification?.status === 'verified') {
+      const verifiedEmail = (typeof verifyData.email_address === 'string' ? verifyData.email_address : undefined);
+      let verifiedUserId: string | undefined = undefined;
+      if (typeof verifyData.user_id === 'string') {
+        verifiedUserId = verifyData.user_id;
+      } else if (Array.isArray(verifyData.linked_to) && verifyData.linked_to[0]?.id) {
+        verifiedUserId = verifyData.linked_to[0].id;
+      }
+
       return {
         verified: true,
+        email: verifiedEmail,
+        clerkUserId: verifiedUserId,
       };
     }
 

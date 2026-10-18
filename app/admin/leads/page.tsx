@@ -68,6 +68,10 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   try {
     const andClauses: Prisma.LeadWhereInput[] = [];
 
+    if (!admin.isSuperAdmin) {
+      andClauses.push({ companyId: admin.companyId || '__NO_COMPANY__' });
+    }
+
     if (targetTeamId) {
       andClauses.push({
         OR: [
@@ -89,14 +93,17 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
 
     const leadWhere: Prisma.LeadWhereInput = andClauses.length > 0 ? { AND: andClauses } : {};
 
-    const countWhere: Prisma.LeadWhereInput = targetTeamId
-      ? {
-          OR: [
-            { teamId: targetTeamId },
-            ...(admin.employeeId ? [{ assignedEmployeeId: admin.employeeId }] : []),
-          ],
-        }
-      : {};
+    const countWhere: Prisma.LeadWhereInput = {
+      ...(!admin.isSuperAdmin ? { companyId: admin.companyId || '__NO_COMPANY__' } : {}),
+      ...(targetTeamId
+        ? {
+            OR: [
+              { teamId: targetTeamId },
+              ...(admin.employeeId ? [{ assignedEmployeeId: admin.employeeId }] : []),
+            ],
+          }
+        : {}),
+    };
 
     const [
       fetchedLeads,
@@ -138,6 +145,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         where: {
           isActive: true,
           role: isTeamLead ? Role.BDA : { in: [Role.BDA, Role.TEAM_LEAD] },
+          ...(!admin.isSuperAdmin ? { companyId: admin.companyId || '__NO_COMPANY__' } : {}),
         },
         orderBy: { name: 'asc' },
         select: {
@@ -150,6 +158,9 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         },
       }),
       prisma.team.findMany({
+        where: {
+          ...(!admin.isSuperAdmin ? { companyId: admin.companyId || '__NO_COMPANY__' } : {}),
+        },
         select: {
           id: true,
           name: true,

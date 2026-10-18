@@ -35,7 +35,7 @@ export async function createTeamAction(input: {
       return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
     }
 
-    const team = await TeamService.createTeam(input);
+    const team = await TeamService.createTeam(input, user.companyId, user.isSuperAdmin);
 
     revalidatePath('/admin/teams');
     revalidatePath('/admin/employees');
@@ -63,7 +63,7 @@ export async function updateTeamAction(input: UpdateTeamInput): Promise<ActionRe
       return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
     }
 
-    const team = await TeamService.updateTeam(input);
+    const team = await TeamService.updateTeam(input, user.companyId, user.isSuperAdmin);
 
     revalidatePath('/admin/teams');
     revalidatePath(`/admin/teams/${team.id}`);
@@ -96,7 +96,7 @@ export async function addBdasToTeamAction(
       return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
     }
 
-    const count = await TeamService.addBdasToTeam(teamId, employeeIds);
+    const count = await TeamService.addBdasToTeam(teamId, employeeIds, user.companyId, user.isSuperAdmin);
 
     revalidatePath('/admin/teams');
     revalidatePath(`/admin/teams/${teamId}`);
@@ -129,7 +129,7 @@ export async function removeBdaFromTeamAction(
       return { success: false, error: 'Unauthorized: Only CEO and HR can manage squads.' };
     }
 
-    await TeamService.removeBdaFromTeam(teamId, employeeId);
+    await TeamService.removeBdaFromTeam(teamId, employeeId, user.companyId, user.isSuperAdmin);
 
     revalidatePath('/admin/teams');
     revalidatePath(`/admin/teams/${teamId}`);
@@ -158,7 +158,7 @@ export async function deleteTeamAction(teamId: string): Promise<ActionResponse<b
       return { success: false, error: 'Unauthorized: Only CEO and HR can dissolve squads.' };
     }
 
-    await TeamService.deleteTeam(teamId);
+    await TeamService.deleteTeam(teamId, user.companyId, user.isSuperAdmin);
 
     revalidatePath('/admin/teams');
     revalidatePath('/admin/employees');
@@ -181,8 +181,8 @@ export async function deleteTeamAction(teamId: string): Promise<ActionResponse<b
  */
 export async function fetchAvailableBdasForTeamAction(teamId: string): Promise<ActionResponse<CandidateBdaItem[]>> {
   try {
-    await assertAuthenticatedUser();
-    const data = await TeamService.fetchAvailableBdas(teamId);
+    const user = await assertAuthenticatedUser();
+    const data = await TeamService.fetchAvailableBdas(teamId, user.companyId, user.isSuperAdmin);
     return { success: true, data };
   } catch (error) {
     return {
@@ -199,8 +199,8 @@ export async function fetchAvailableBdasForTeamAction(teamId: string): Promise<A
  */
 export async function fetchActiveTeamLeadsAction(): Promise<ActionResponse<TeamLeadOption[]>> {
   try {
-    await assertAuthenticatedUser();
-    const data = await TeamService.fetchActiveTeamLeads();
+    const user = await assertAuthenticatedUser();
+    const data = await TeamService.fetchActiveTeamLeads(user.companyId, user.isSuperAdmin);
     return { success: true, data };
   } catch (error) {
     return {

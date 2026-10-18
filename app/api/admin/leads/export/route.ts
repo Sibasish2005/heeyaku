@@ -3,7 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { assertAdminAccess } from '@/lib/auth/admin';
 import { canExportLeads } from '@/lib/auth/rbac';
 import { formatLeadsForExport } from '@/lib/lead/export';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import Papa from 'papaparse';
 import { LeadStatus, Role } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,16 @@ export async function GET(request: NextRequest) {
 
     // Build database filters
     const where: Record<string, unknown> = {};
+
+    if (!admin.isSuperAdmin) {
+      if (!admin.companyId) {
+        return NextResponse.json(
+          { error: 'Tenant workspace is required.' },
+          { status: 403 }
+        );
+      }
+      where.companyId = admin.companyId;
+    }
 
     // 🔒 Enforce Squad Data Isolation for Team Leads
     if (admin.role === Role.TEAM_LEAD) {
@@ -94,21 +105,10 @@ export async function GET(request: NextRequest) {
     }));
 
     const formatted = formatLeadsForExport(exportData);
-    const worksheet = XLSX.utils.json_to_sheet(formatted);
-
-    // Column widths
-    const colWidths = Object.keys(formatted[0] || {}).map((key) => ({
-      wch: Math.max(key.length, 14),
-    }));
-    worksheet['!cols'] = colWidths;
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'HEEYAKU_Leads');
-
     const timestamp = new Date().toISOString().split('T')[0];
 
     if (format === 'csv') {
-      const csvContent = XLSX.utils.sheet_to_csv(worksheet);
+      const csvContent = Papa.unparse(formatted);
       return new NextResponse(csvContent, {
         status: 200,
         headers: {
@@ -119,8 +119,24 @@ export async function GET(request: NextRequest) {
     }
 
     // Default: XLSX
-    const xlsxBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-    return new NextResponse(xlsxBuffer, {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('HEEYAKU_Leads');
+
+    if (formatted.length > 0) {
+      const headers = Object.keys(formatted[0]);
+      worksheet.columns = headers.map((key) => ({
+        header: key,
+        key: key,
+        width: Math.max(key.length + 2, 14),
+      }));
+
+      for (const row of formatted) {
+        worksheet.addRow(row);
+      }
+    }
+
+    const xlsxBuffer = await workbook.xlsx.writeBuffer();
+    return new NextResponse(Buffer.from(xlsxBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

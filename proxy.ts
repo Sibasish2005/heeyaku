@@ -26,9 +26,12 @@ export default clerkMiddleware(async (auth, req) => {
     }
   }
 
-  // 2. Enforce authentication for protected admin pages (page navigations only; Server Actions enforce RBAC internally)
-  if (isProtectedRoute(req) && !req.headers.has("next-action")) {
-    await auth.protect();
+  // 2. Enforce authentication for protected admin routes and actions
+  if (isProtectedRoute(req)) {
+    const session = await auth();
+    if (!session.userId) {
+      await auth.protect();
+    }
   }
 });
 

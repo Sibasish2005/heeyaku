@@ -31,7 +31,7 @@ export default async function AdminDashboard() {
     topPerformerToday,
     topPerformerThisMonth,
     topPerformer,
-  } = await getDashboardMetrics(teamId);
+  } = await getDashboardMetrics(teamId, user.companyId, user.isSuperAdmin);
 
   return (
     <div className="p-6 sm:p-8 space-y-10 max-w-7xl mx-auto w-full animate-in fade-in duration-150">

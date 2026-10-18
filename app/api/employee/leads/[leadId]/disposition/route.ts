@@ -65,10 +65,20 @@ export async function POST(
     }
 
     const resolved = await resolveEmployeeIdentity(payload);
-    if (!resolved) {
+    if (!resolved || !resolved.employee) {
       return NextResponse.json(
-        { success: false, error: 'Employee account not found.' },
+        { success: false, error: 'Employee account not found or inactive.' },
         { status: 401 }
+      );
+    }
+
+    const callerCompanyId = resolved.employee.companyId;
+
+    // Fail closed: Block cross-tenant lead disposition updates
+    if (!callerCompanyId || !existingLead.companyId || existingLead.companyId !== callerCompanyId) {
+      return NextResponse.json(
+        { success: false, error: 'Access denied: Lead belongs to a different tenant organization.' },
+        { status: 403 }
       );
     }
 
@@ -97,7 +107,7 @@ export async function POST(
       );
     }
 
-    // Validate status & enforce connected call requirement
+    // Validate status & enforce connected vs disconnected call rules
     const CONNECTED_STATUSES = new Set<LeadStatus>([
       'CONTACTED',
       'INTERESTED',
@@ -108,18 +118,52 @@ export async function POST(
       'NOT_QUALIFIED',
     ]);
 
+    const UNCONNECTED_STATUSES = new Set<LeadStatus>([
+      'NO_ANSWER',
+      'BUSY',
+      'WRONG_NUMBER',
+    ]);
+
     let targetStatus: LeadStatus = existingLead.status;
     if (status && VALID_STATUSES.has(status as LeadStatus)) {
       const requestedStatus = status as LeadStatus;
+
+      // 1. If explicit call duration is provided in update payload:
+      if (typeof callDuration === 'number') {
+        if (callDuration === 0 && CONNECTED_STATUSES.has(requestedStatus)) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Cannot update to a connected level KPI on a disconnected call (talk time is 0s).',
+            },
+            { status: 400 }
+          );
+        }
+        if (callDuration > 0 && UNCONNECTED_STATUSES.has(requestedStatus)) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: 'Cannot update to a non-connected KPI (No Answer, Busy, Wrong Number) on a connected call.',
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      // 2. Enforce verified connected call requirement for connected statuses
       if (CONNECTED_STATUSES.has(requestedStatus)) {
-        // Enforce verified connected call (duration > 0s)
+        // Enforce verified connected call made by this employee (duration > 0s)
         const connectedCall = await prisma.callLog.findFirst({
           where: {
+            employeeId: { in: resolved.allIds },
+            ...(existingLead.companyId ? { companyId: existingLead.companyId } : {}),
+            connected: true,
+            durationSeconds: { gt: 0 },
             OR: [
-              { leadId, connected: true, durationSeconds: { gt: 0 } },
-              { phoneNumber: existingLead.phoneNumber, connected: true, durationSeconds: { gt: 0 } },
+              { leadId },
+              { phoneNumber: existingLead.phoneNumber },
               ...(existingLead.phoneDigits
-                ? [{ phoneNumber: { endsWith: existingLead.phoneDigits }, connected: true, durationSeconds: { gt: 0 } }]
+                ? [{ phoneNumber: { endsWith: existingLead.phoneDigits } }]
                 : []),
             ],
           },
