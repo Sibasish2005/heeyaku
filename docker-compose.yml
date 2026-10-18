@@ -1,0 +1,30 @@
+services:
+  app:
+    image: ${DOCKER_IMAGE:-ghcr.io/your_company_org/heeyaku:latest}
+    container_name: heeyaku-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env.production
+    environment:
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 5120M
+        reservations:
+          memory: 1024M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
