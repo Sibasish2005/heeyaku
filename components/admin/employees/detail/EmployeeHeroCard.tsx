@@ -71,7 +71,9 @@ export default function EmployeeHeroCard({
             </div>
             <div className="text-xs text-muted-foreground mt-0.5">
               {employee.employeeCode} · {
-                employee.role === 'HR'
+                employee.role === 'CEO'
+                  ? 'Chief Executive Officer (CEO)'
+                  : employee.role === 'HR'
                   ? 'Human Resources'
                   : employee.role === 'TEAM_LEAD'
                   ? `Team Lead${employee.team ? ` · Squad ${employee.team}` : ''}`

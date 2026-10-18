@@ -10,7 +10,7 @@ export interface EmployeeFormData {
   name: string;
   email: string;
   phoneNumber: string;
-  role?: 'BDA' | 'TEAM_LEAD' | 'HR';
+  role?: 'CEO' | 'BDA' | 'TEAM_LEAD' | 'HR';
   teamLeadId?: string;
   team?: string;
   notes: string;
@@ -71,10 +71,10 @@ export default function CreateEmployeeFormFields({
 
   const roleOptions = [
     {
-      value: 'BDA',
-      label: 'Sales Associate (BDA) - Android Telephony App',
-      text: 'Sales Associate (BDA)',
-      icon: <Phone className="w-3.5 h-3.5 text-blue-500" />,
+      value: 'CEO',
+      label: 'Chief Executive Officer (CEO) - Full Operations Command',
+      text: 'Chief Executive Officer (CEO)',
+      icon: <Shield className="w-3.5 h-3.5 text-amber-500" />,
     },
     {
       value: 'TEAM_LEAD',
@@ -87,6 +87,12 @@ export default function CreateEmployeeFormFields({
       label: 'Human Resources (HR) - Staff Roster & Hiring',
       text: 'Human Resources (HR)',
       icon: <Shield className="w-3.5 h-3.5 text-emerald-500" />,
+    },
+    {
+      value: 'BDA',
+      label: 'Sales Associate (BDA) - Android Telephony App',
+      text: 'Sales Associate (BDA)',
+      icon: <Phone className="w-3.5 h-3.5 text-blue-500" />,
     },
   ];
 
@@ -298,11 +304,11 @@ export default function CreateEmployeeFormFields({
           value={currentRole}
           options={roleOptions}
           onValueChange={(val) => {
-            const newRole = val as 'BDA' | 'TEAM_LEAD' | 'HR';
+            const newRole = val as 'CEO' | 'BDA' | 'TEAM_LEAD' | 'HR';
             onChange({
               ...formData,
               role: newRole,
-              team: newRole === 'HR' ? 'Human Resources' : newRole === 'TEAM_LEAD' ? 'Team Lead' : 'Business Development Associates',
+              team: newRole === 'CEO' ? 'Executive' : newRole === 'HR' ? 'Human Resources' : newRole === 'TEAM_LEAD' ? 'Team Lead' : 'Business Development Associates',
             });
           }}
         />

@@ -11,6 +11,7 @@ import { clearImpersonationAction } from '@/app/super-admin/actions';
 import { useRouter } from 'next/navigation';
 import { Role } from '@prisma/client';
 import { toast } from 'sonner';
+import RoleSwitcherBar from './RoleSwitcherBar';
 
 interface AdminShellProps {
   adminEmail: string;
@@ -79,6 +80,15 @@ export default function AdminShell({
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+        {/* Real-time Role Switcher & Perspective Simulator for verified CEOs */}
+        {isRealCeo && (
+          <RoleSwitcherBar
+            currentRole={role}
+            isRealCeo={isRealCeo}
+            simulatedRole={simulatedRole}
+          />
+        )}
+
         {/* Floating Ghost Mode Impersonation Banner */}
         {isImpersonating && (
           <div className="sticky top-0 z-50 bg-amber-500 text-slate-950 px-4 py-2 text-xs font-bold flex items-center justify-between shadow-md">

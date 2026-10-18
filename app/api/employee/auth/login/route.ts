@@ -156,12 +156,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Role boundary: Mobile app is strictly for Business Development Associates (BDA)
-    if (employee.role !== 'BDA') {
+    // Role boundary: Mobile app access is granted to active workspace personnel (CEO, Team Lead, HR, BDA)
+    const ALLOWED_MOBILE_ROLES = ['BDA', 'CEO', 'TEAM_LEAD', 'HR'];
+    if (!ALLOWED_MOBILE_ROLES.includes(employee.role)) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Mobile app access is restricted to Business Development Associates (BDA).',
+          error: 'Mobile app access is restricted to authorized company personnel.',
         },
         { status: 403 }
       );

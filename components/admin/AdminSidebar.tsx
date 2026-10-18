@@ -221,9 +221,11 @@ export default function AdminSidebar({
                       ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
                       : role === Role.HR
                       ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-                      : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                      : role === Role.BDA
+                      ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                      : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
                   }`}>
-                    {role === Role.CEO ? 'CEO' : role === Role.HR ? 'HR' : teamName ? `TL • ${teamName}` : 'Team Lead'}
+                    {role === Role.CEO ? 'CEO' : role === Role.HR ? 'HR' : role === Role.BDA ? 'BDA' : teamName ? `TL • ${teamName}` : 'Team Lead'}
                   </span>
                 </div>
                 <p className="text-[10px] text-muted-foreground truncate mt-0.5">{adminEmail}</p>

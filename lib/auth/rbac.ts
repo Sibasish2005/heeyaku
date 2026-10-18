@@ -100,7 +100,20 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
         }
       }
       
-      let effectiveRole = dbEmployee.role;
+      // Auto-heal Root CEO role if marked as BDA or other role in database
+      if (isAllowedCeoEmail(normalizedEmail) && dbEmployee.role !== Role.CEO) {
+        try {
+          await prisma.employee.update({
+            where: { id: dbEmployee.id },
+            data: { role: Role.CEO },
+          });
+          dbEmployee.role = Role.CEO;
+        } catch (healErr) {
+          console.warn('Failed to auto-heal CEO employee role in DB:', healErr);
+        }
+      }
+
+      let effectiveRole = isConfiguredCeo ? Role.CEO : dbEmployee.role;
 
       let effectiveTeamId: string | null = dbEmployee.teamId;
       let effectiveTeamName: string | null = dbEmployee.teamGroup?.name || null;
@@ -394,7 +407,20 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       });
     }
 
-    const effectiveRole = employee.role;
+    const isConfiguredCeo = isAllowedCeoEmail(normalizedEmail) || employee.role === Role.CEO;
+    if (isAllowedCeoEmail(normalizedEmail) && employee.role !== Role.CEO) {
+      try {
+        await prisma.employee.update({
+          where: { id: employee.id },
+          data: { role: Role.CEO },
+        });
+        employee.role = Role.CEO;
+      } catch (healErr) {
+        console.warn('Failed to auto-heal CEO employee role in DB:', healErr);
+      }
+    }
+
+    const effectiveRole = isConfiguredCeo ? Role.CEO : employee.role;
 
     let trialDaysRemaining: number | null = null;
     let isTrialExpired = false;
@@ -409,6 +435,8 @@ export const getAuthenticatedUser = cache(async (): Promise<AuthenticatedUser | 
       email: primaryEmail,
       name: employee.name || name,
       role: effectiveRole,
+      isRealCeo: isConfiguredCeo,
+      simulatedRole: isConfiguredCeo && effectiveRole !== Role.CEO ? effectiveRole : null,
       employeeId: employee.id,
       teamId: employee.teamId,
       teamName: employee.teamGroup?.name || null,

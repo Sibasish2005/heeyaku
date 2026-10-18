@@ -5,6 +5,7 @@ import { auth, currentUser } from '@clerk/nextjs/server';
 import { getAuthenticatedAdmin } from '@/lib/auth/admin';
 import { isSuperAdminEmail } from '@/lib/auth/rbac';
 import AdminShell from '@/components/admin/AdminShell';
+import RoleSwitcherBar from '@/components/admin/RoleSwitcherBar';
 import { Smartphone } from 'lucide-react';
 import { Role } from '@prisma/client';
 
@@ -70,6 +71,17 @@ export default async function AdminLayout({
   if (admin.role === Role.BDA) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6 text-[#0B1F33]">
+        {/* If a real CEO is simulating BDA, provide role switcher bar and instant exit */}
+        {admin.isRealCeo && (
+          <div className="fixed top-0 left-0 right-0 z-50">
+            <RoleSwitcherBar
+              currentRole={admin.role}
+              isRealCeo={admin.isRealCeo}
+              simulatedRole={admin.simulatedRole}
+            />
+          </div>
+        )}
+
         <div className="max-w-md w-full bg-white rounded-2xl border border-blue-200 p-8 shadow-sm text-center space-y-4">
           <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto border border-blue-100">
             <Smartphone className="w-6 h-6" />
@@ -80,13 +92,32 @@ export default async function AdminLayout({
           <p className="text-xs text-slate-500 leading-relaxed">
             Welcome, {admin.name}! Sales Associates conduct lead outreach and telephony calling via the dedicated Android Call Tracker mobile app.
           </p>
-          <div className="pt-4">
+          {admin.isRealCeo && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 text-left">
+              💡 <strong>Role Simulation Active:</strong> You are currently previewing the BDA perspective. Use the bar above or the button below to switch back to your CEO View.
+            </div>
+          )}
+          <div className="pt-4 flex flex-col gap-2">
             <a
               href="/download"
               className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors shadow-sm"
             >
               Download Android Call Tracker
             </a>
+            {admin.isRealCeo && (
+              <form action={async () => {
+                'use server';
+                const { switchSimulatedRoleAction } = await import('@/app/admin/role-switcher-action');
+                await switchSimulatedRoleAction(null);
+              }}>
+                <button
+                  type="submit"
+                  className="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-semibold hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  Return to CEO Dashboard
+                </button>
+              </form>
+            )}
           </div>
         </div>
       </div>
