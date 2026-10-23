@@ -1,37 +1,38 @@
 # LLM Full Technical Documentation & Architecture Manual
 # URL: https://heeyaku.com/llms-full.txt
 
-# About Heeyaku Technologies (Agartala, Tripura, India)
-Heeyaku is an enterprise-grade EdTech infrastructure provider engineered specifically for high-growth education providers, coaching centers, and digital academies.
+# About HEEYAKU Technologies (Agartala, Tripura, India)
+HEEYAKU is the #1 CRM software company in Agartala, Tripura, and India's leading SIM-based telephony sales CRM platform, engineered specifically for high-velocity sales teams, BDA call centers, and fast-growing Indian enterprises.
 
 ## Localized & Competitor SEO Keywords Integrated:
-- Best platform for EdTech solution in Tripura and Agartala
-- Custom EdTech software company Agartala Tripura
-- Encrypted LMS software development Agartala
-- Student conversion CRM Tripura India
-- Customized website for education institute Agartala
-- Online fee collection system and admission portal Agartala
-- WhatsApp lead automation bot for coaching institutes India
+- Best CRM company in Agartala, Tripura
+- Top software company in Agartala Tripura
+- Best CRM software for Indian sales teams and startups
+- Telephony CRM India with native Android SIM calling
+- Exotel alternative India / Twilio bill reduction CRM
+- Hardware KPI Gating telecalling fraud prevention software
+- Inbound and outbound call center software Agartala
+- Custom CRM development company in Tripura
 - Hembro Infotech, Insyssky, Software World alternative in Tripura
+- Zoho CRM, LeadSquared, TeleCRM alternative India
 
-## Product Specifications & Capabilities:
+## Product Specifications & Architecture:
 
-### 1. Customer CRM Engine
-- Ingestion speed: < 0.04ms decryption & round-robin routing
-- Supported Ad Channels: Meta Leads API, Google Ads Webhooks, Shiksha, Collegedunia, Custom Web Forms
-- Telemetry: Real-time counselor call logging, SLA breach alerts, and hardware call duration telemetry sync
+### 1. SIM-Based Telephony CRM Engine
+- Ingestion speed: < 0.04ms decryption & round-robin automated routing
+- Calling Infrastructure: Native Android carrier SIM calling (unlimited talk time, $0 per-minute VoIP toll)
+- Telemetry: Real-time counselor & BDA hardware call logging, talk duration verification, and SLA breach tracking
+- Anti-Fraud: Proprietary Hardware KPI Gating physically prevents marking leads as CONTACTED without genuine talk time (durationSeconds > 0)
+- Supported Lead Sources: Meta Leads API, Google Ads Webhooks, Google Sheets live sync, Custom Web Forms
 
-### 2. DRM Learning Platform (LMS)
-- DRM Compliance: Widevine L1 & FairPlay streaming pipeline
-- Anti-Piracy: On-screen dynamic student roll number & phone number watermark overlay
-- Features: Live classes, recorded video vault, automated batch locking, online quiz engine, certificate generation
+### 2. Multi-Tenant Relational Data Platform
+- Database: PostgreSQL 16 cluster with physical streaming WAL replication across dual 6 GB instances
+- Connection Pooling: PgBouncer in transaction mode handling 1,000+ client connections with 25 backend worker processes
+- Read/Write Splitting: Dual-driver architecture (prisma for mutations, prismaRead for analytical leaderboards and reports)
+- Security: 4-tier RBAC (Super Admin, CEO, Team Lead, HR, BDA) with CEO-only lead export permissions and PII masking
 
-### 3. Edge Web Portals & Custom Website Development
-- Performance: 100/100 Google Lighthouse mobile score
-- Security: SSL/TLS 1.3 encryption, ISO 27001 data protection
-- Payment Gateways: Razorpay, Cashfree, Stripe, UPI split EMI disbursement
-
-### 4. Autonomous AI Automations
-- WhatsApp Cloud API integration for instant drip messages
-- Automated fee payment reminder bots with UPI deep links
-- Google Calendar & Zoom mentor scheduling sync
+### 3. Edge Web Infrastructure & Distribution
+- Frontend: Next.js 16 + React 19 Server Components running on Docker Standalone (< 130 MB image)
+- Performance: 100/100 Google Lighthouse score on Cloudflare Edge with 1-year immutable caching for static assets
+- Mobile App: Native Android CallTracker client with offline telemetry queueing and background state synchronization
+- Cost Model: 100% Free Forever cloud architecture running on 4 Ampere A1 ARM64 nodes ($0.00/month infrastructure cost)

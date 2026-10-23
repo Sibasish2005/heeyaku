@@ -22,45 +22,60 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "HEEYAKU — #1 Best EdTech Platform, EdTech CRM & LMS Company | Agartala, Tripura, India",
-  description: "Heeyaku is the #1 best platform for EdTech solutions in Agartala, Tripura, and India. Custom EdTech software, student lead CRM, DRM video LMS, WhatsApp automations, and customized educational websites.",
+  title: "HEEYAKU — Leading Telephony CRM in India & Top-Rated CRM Company in Agartala, Tripura",
+  description: "HEEYAKU is a premier SIM-based telephony CRM and top-rated CRM software company in Agartala, Tripura. Reduce calling overhead with native Android SIM dialing, eliminate telecaller fraud with Hardware KPI Gating, and automate lead distribution.",
   keywords: [
-    "Best platform for EdTech solution",
-    "Best EdTech software company in Agartala Tripura",
-    "EdTech CRM Tripura",
-    "EdTech CRM Agartala",
-    "LMS software Agartala",
-    "Customized EdTech software Agartala Tripura",
-    "Customized website for education institute Agartala",
-    "School management software Agartala Tripura",
-    "Online fees collection system Agartala",
-    "Admission portal software development Tripura",
-    "AI automation for coaching institute India",
-    "Encrypted DRM LMS player India",
-    "WhatsApp drip automation for student lead conversion",
-    "Hembro Infotech alternative Agartala",
-    "Insyssky alternative Tripura",
+    // Top Indian CRM Keywords
+    "Leading CRM in India",
+    "Indian CRM software",
+    "Telephony CRM India",
+    "SIM based calling CRM",
+    "Exotel alternative India",
+    "Twilio alternative India",
+    "Zoho CRM alternative India",
+    "LeadSquared alternative",
+    "TeleCRM alternative India",
+    "Sales CRM for Indian startups",
+    "BDA call tracker Android",
+    "Telecalling software India",
+    "Outbound call center CRM India",
+    "Lead management software India",
+    "Speed to lead automation India",
+    // Hyper-Local Agartala & Tripura CRM Keywords
+    "Best CRM company in Agartala",
+    "CRM software in Agartala",
+    "CRM company in Agartala Tripura",
+    "Top software company in Agartala",
+    "Software company in Agartala Tripura",
+    "IT companies in Agartala",
+    "CRM development company in Agartala",
+    "Tripura IT Park software company",
+    "RK Nagar IT Park Agartala software",
+    "Insyssky alternative Agartala",
+    "Hembro Infotech alternative Tripura",
     "Software World Tripura alternative",
-    "Heeyaku EdTech infrastructure",
-    "Custom CRM LMS development Tripura India"
+    "Business management software Agartala",
+    "Call center software Agartala",
+    "Custom CRM development Tripura",
+    "Northeast India sales CRM software",
   ],
-  authors: [{ name: "Heeyaku Inc." }],
+  authors: [{ name: "HEEYAKU Technologies" }],
   metadataBase: new URL("https://heeyaku.com"),
   alternates: {
     canonical: "https://heeyaku.com",
   },
   openGraph: {
-    title: "HEEYAKU — Best EdTech Platform, EdTech CRM & LMS Solutions | Agartala, Tripura",
-    description: "Heeyaku provides custom CRM, DRM-protected LMS, AI automations, and custom web portals for education institutes in Agartala, Tripura, and across India.",
+    title: "HEEYAKU — Leading Telephony CRM in India & Top CRM Company in Agartala, Tripura",
+    description: "Enterprise Telephony CRM with native Android SIM calling, Hardware KPI Gating, automated lead distribution, and zero VoIP bills. Made in Agartala, Tripura for high-growth Indian sales teams.",
     url: "https://heeyaku.com",
     type: "website",
     locale: "en_IN",
-    siteName: "Heeyaku",
+    siteName: "HEEYAKU",
   },
   twitter: {
     card: "summary_large_image",
-    title: "HEEYAKU — Best EdTech Platform, EdTech CRM & LMS Solutions",
-    description: "Custom EdTech CRM, LMS, AI automation, and web development in Tripura, Agartala, India.",
+    title: "HEEYAKU — Leading Telephony CRM in India & Top CRM Company in Agartala",
+    description: "Enterprise SIM Telephony CRM, automated lead distribution, and verified call telemetry. Built for high-velocity sales teams across India.",
   },
   icons: {
     icon: [
@@ -89,29 +104,43 @@ const jsonLd = {
   "@graph": [
     {
       "@type": "SoftwareApplication",
-      "name": "Heeyaku EdTech OS",
-      "applicationCategory": "EducationalSoftware",
-      "operatingSystem": "Web",
+      "name": "HEEYAKU Telephony CRM",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Android, Web, Cloud",
       "offers": {
         "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "INR"
+        "price": "499",
+        "priceCurrency": "INR",
+        "availability": "https://schema.org/InStock",
+        "seller": {
+          "@type": "Organization",
+          "name": "HEEYAKU Technologies"
+        }
       },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "ratingCount": "128"
-      },
-      "description": "Best platform for EdTech solutions providing custom CRM, DRM-protected LMS, AI workflow automations, and custom websites in Agartala, Tripura, and India."
+      "description": "India's premier SIM-based telephony CRM and sales acceleration platform. Features hardware talk-time verification, zero VoIP costs, and automated lead routing.",
+      "featureList": [
+        "Native Android SIM-Based Telephony",
+        "Hardware KPI Gating (Verified Talk Time)",
+        "Automated Round-Robin Lead Assignment",
+        "Multi-Tenant PostgreSQL 16 Architecture",
+        "CEO-Only Secure Lead CSV Exports",
+        "Google Sheets & Webhook Real-Time Sync"
+      ]
     },
     {
       "@type": "LocalBusiness",
-      "name": "Heeyaku Technologies",
-      "image": "https://heeyaku.com/favicon.ico",
+      "name": "HEEYAKU Technologies — CRM & Software Development",
+      "image": "https://heeyaku.com/icon.svg",
+      "logo": "https://heeyaku.com/icon.svg",
+      "url": "https://heeyaku.com",
+      "email": "admin@heeyaku.com",
+      "priceRange": "₹₹",
       "address": {
         "@type": "PostalAddress",
+        "streetAddress": "Tripura IT Park, RK Nagar / Central City",
         "addressLocality": "Agartala",
         "addressRegion": "Tripura",
+        "postalCode": "799008",
         "addressCountry": "IN"
       },
       "geo": {
@@ -119,27 +148,52 @@ const jsonLd = {
         "latitude": 23.8315,
         "longitude": 91.2868
       },
-      "url": "https://heeyaku.com",
-      "telephone": "+91-9000000000",
-      "priceRange": "₹₹₹"
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+        "opens": "09:00",
+        "closes": "19:00"
+      },
+      "areaServed": [
+        "Agartala",
+        "Tripura",
+        "Northeast India",
+        "India"
+      ]
     },
     {
       "@type": "FAQPage",
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "Which is the best platform for EdTech solutions in Tripura & Agartala?",
+          "name": "Which is a leading CRM software company in Agartala, Tripura?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Heeyaku provides the best custom EdTech solutions in Agartala, Tripura, featuring a sub-second CRM, DRM-encrypted LMS, WhatsApp drip bots, and high-performance custom websites."
+            "text": "HEEYAKU Technologies is a leading CRM software provider in Agartala, Tripura, delivering a modern cloud CRM with native Android SIM-based telephony, verified talk-time telemetry, and automated lead distribution."
           }
         },
         {
           "@type": "Question",
-          "name": "Does Heeyaku build customized websites and software for education institutes?",
+          "name": "What is the benefit of a SIM-based telephony CRM for Indian sales teams?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, Heeyaku builds custom edtech software, student portals, and LMS platforms tailored specifically for coaching institutes, bootcamps, and academies."
+            "text": "SIM-based telephony CRMs utilize sales reps' existing unlimited carrier voice plans (Jio, Airtel) instead of charging per-minute VoIP rates, significantly lowering telephony bills while capturing comprehensive call telemetry."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does Hardware KPI Gating prevent telecaller fraud?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Hardware KPI Gating verifies that a phone call actually took place on the cellular network with recorded talk duration (durationSeconds > 0) before permitting status changes to Contacted or Qualified stages."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does HEEYAKU compare with alternative platforms like Zoho or LeadSquared?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "HEEYAKU focuses specifically on outbound sales workflows with built-in SIM calling, eliminating per-minute VoIP add-on fees and offering an unbloated interface designed for rapid agent onboarding."
           }
         }
       ]
