@@ -19,7 +19,7 @@ Heeyaku is an enterprise-grade EdTech infrastructure provider engineered specifi
 ### 1. Customer CRM Engine
 - Ingestion speed: < 0.04ms decryption & round-robin routing
 - Supported Ad Channels: Meta Leads API, Google Ads Webhooks, Shiksha, Collegedunia, Custom Web Forms
-- Telemetry: Real-time counselor call logging, SLA breach alerts, and automated call recording sync
+- Telemetry: Real-time counselor call logging, SLA breach alerts, and hardware call duration telemetry sync
 
 ### 2. DRM Learning Platform (LMS)
 - DRM Compliance: Widevine L1 & FairPlay streaming pipeline

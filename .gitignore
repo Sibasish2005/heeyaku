@@ -57,3 +57,6 @@ next-env.d.ts
 *.dump
 *.dump.sha256
 *.enc
+
+# reports & internal documentation
+/reports/
